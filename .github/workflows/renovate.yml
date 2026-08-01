@@ -1,0 +1,83 @@
+name: Renovate
+
+# Self-hosted replacement for the Mend Cloud Runner that drives hasToggle.dev.
+# The bot identity is a GitHub App owned by the org (see docs/renovate.md);
+# nothing here depends on a human's personal access token.
+
+on:
+  schedule:
+    # Every four hours. This only controls how often Renovate wakes up and
+    # looks — what it is allowed to open is decided by renovate.json.
+    - cron: "0 */4 * * *"
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: Log level
+        type: choice
+        default: info
+        options:
+          - debug
+          - info
+          - warn
+      dryRun:
+        description: Dry run — resolve everything, write nothing
+        type: boolean
+        default: false
+
+# Two overlapping runs duplicate branch work and can race each other's
+# automerge step. Queue rather than cancel so a scheduled tick is never lost.
+concurrency:
+  group: renovate
+  cancel-in-progress: false
+
+# The job's own GITHUB_TOKEN does nothing here — every write goes through the
+# App installation token minted below.
+permissions:
+  contents: read
+
+jobs:
+  renovate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mint an App installation token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          app-id: ${{ secrets.RENOVATE_APP_ID }}
+          private-key: ${{ secrets.RENOVATE_APP_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ github.event.repository.name }}
+
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          # Renovate clones the repo itself with the App token; the checkout is
+          # only here to give the action a workspace. Leaving the Actions
+          # credentials behind in .git/config would serve no purpose.
+          persist-credentials: false
+
+      # Setting the env var only when the input is true keeps RENOVATE_DRY_RUN
+      # absent on normal runs — an empty string is not a valid dryRun value.
+      - name: Enable dry run
+        if: ${{ inputs.dryRun }}
+        run: echo "RENOVATE_DRY_RUN=full" >> "$GITHUB_ENV"
+
+      - name: Renovate
+        uses: renovatebot/github-action@v46.2.0
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          # Floats within the major so patches arrive without a config bump;
+          # Renovate keeps the `uses:` pin above current by itself.
+          renovate-version: 44
+        env:
+          # Global (self-hosted) config lives here rather than in a config file
+          # so there is one place to read. The action forwards any RENOVATE_*
+          # and LOG_LEVEL vars into the container.
+          RENOVATE_PLATFORM: github
+          RENOVATE_REPOSITORIES: ${{ github.repository }}
+          # renovate.json is already committed, so the onboarding-PR flow is
+          # dead weight — and requiring config means a run against a repo
+          # without one fails loudly instead of silently doing nothing.
+          RENOVATE_ONBOARDING: "false"
+          RENOVATE_REQUIRE_CONFIG: required
+          LOG_LEVEL: ${{ inputs.logLevel || 'info' }}
