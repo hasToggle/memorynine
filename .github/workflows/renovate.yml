@@ -6,9 +6,9 @@ name: Renovate
 
 on:
   schedule:
-    # Every four hours. This only controls how often Renovate wakes up and
+    # Every six hours. This only controls how often Renovate wakes up and
     # looks — what it is allowed to open is decided by renovate.json.
-    - cron: "0 */4 * * *"
+    - cron: "0 */6 * * *"
   workflow_dispatch:
     inputs:
       logLevel:
