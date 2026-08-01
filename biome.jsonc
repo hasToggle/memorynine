@@ -20,7 +20,8 @@
       "!docs/hooks",
       "!apps/docs/**/*.json",
       "!apps/email/.react-email",
-      "!**/*.generated.*"
+      "!**/*.generated.*",
+      "!**/*.svg"
     ]
   }
 }
