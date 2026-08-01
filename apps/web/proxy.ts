@@ -7,7 +7,7 @@ import {
   noseconeOptionsWithToolbar,
   securityMiddleware,
 } from "@repo/security/middleware";
-import { createNEMO } from "@rescale/nemo";
+import { createNEMO } from "@zanreal/nemo";
 import { type NextProxy, type NextRequest, NextResponse } from "next/server";
 import { env } from "@/env";
 

@@ -174,9 +174,9 @@
         "@repo/rate-limit": "workspace:*",
         "@repo/security": "workspace:*",
         "@repo/seo": "workspace:*",
-        "@rescale/nemo": "^3.0.1",
         "@sentry/nextjs": "^10.69.0",
         "@t3-oss/env-nextjs": "^0.13.11",
+        "@zanreal/nemo": "^3.0.1",
         "date-fns": "^4.4.0",
         "disposable-email-domains": "^1.0.62",
         "lucide-react": "^1.28.0",
@@ -1552,8 +1552,6 @@
     "@repo/typescript-config": ["@repo/typescript-config@workspace:packages/typescript-config"],
 
     "@repo/webhooks": ["@repo/webhooks@workspace:packages/webhooks"],
-
-    "@rescale/nemo": ["@rescale/nemo@3.0.1", "", { "dependencies": { "@zanreal/nemo": "^3.0.1" }, "peerDependencies": { "next": ">=13.0.0" } }, "sha512-zx2mxb/9AefGv0AtsFNnDG8wS+4QrbiZC4kKXXbFd/Ks4sZhfTlPPRe6qvIEdBkogj4gDf0X3UGW66YaIskkeA=="],
 
     "@rollup/plugin-commonjs": ["@rollup/plugin-commonjs@28.0.1", "", { "dependencies": { "@rollup/pluginutils": "^5.0.1", "commondir": "^1.0.1", "estree-walker": "^2.0.2", "fdir": "^6.2.0", "is-reference": "1.2.1", "magic-string": "^0.30.3", "picomatch": "^4.0.2" }, "peerDependencies": { "rollup": "^2.68.0||^3.0.0||^4.0.0" }, "optionalPeers": ["rollup"] }, "sha512-+tNWdlWKbpB3WgBN7ijjYkq9X5uhjmcvyjEght4NmH5fAU++zfQzAJ6wumLS+dNcvwEZhKx2Z+skY8m7v0wGSA=="],
 
