@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@react-email/components": "1.0.12",
-    "@react-email/preview-server": "^5.2.10",
     "@react-email/render": "^2.1.0",
     "@repo/email": "workspace:*",
     "mongodb": "^7.5.0",
