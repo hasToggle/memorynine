@@ -3,6 +3,7 @@
   "extends": ["config:recommended"],
   "automerge": true,
   "automergeType": "pr",
+  "forkProcessing": "enabled",
   "packageRules": [
     {
       "description": "Marker package only — Next.js 16 stable checks for its presence to skip the legacy (TS-JS-API) build-time type check under typescript@7; it is never executed, and its near-daily dev builds would otherwise churn PRs. Remove together with the package once Next.js supports typescript@7 natively.",
