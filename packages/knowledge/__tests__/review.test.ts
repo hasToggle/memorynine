@@ -126,7 +126,7 @@ describe.skipIf(!uri)("resolveProposalItems", () => {
       true
     );
     expect(orgFact?.confirmedBy).toBe("user_ceo1");
-    expect(orgFact?.sourceId.equals(sourceId)).toBe(true);
+    expect(orgFact?.sourceId?.equals(sourceId)).toBe(true);
     const personFact = storedFacts.find(
       (fact) => fact.category === "preference"
     );

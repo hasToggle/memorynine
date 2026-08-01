@@ -151,6 +151,7 @@ export const resolveProposalItems = async (
   }
 
   const planned = planResolution(proposal, entities, factDecisions, resolvedBy);
+  await validateSupersessions(collections.facts, tenantId, planned.factWrites);
   const writtenAt = new Date();
 
   // Entities first: facts may anchor them.
@@ -190,9 +191,18 @@ export const resolveProposalItems = async (
   }
 
   const createdFactIds: ObjectId[] = [];
-  for (const { decision, factDoc, factId } of planned.factWrites) {
+  for (const { decision, draft, factDoc, factId } of planned.factWrites) {
     // biome-ignore lint/performance/noAwaitInLoops: sequential writes keep the resume order deterministic; review batches are tiny
     await insertIgnoringDuplicate(collections.facts, factDoc);
+    if (draft.supersedes?.length) {
+      // Retire the replaced facts. The supersededBy: null guard (null-or-
+      // missing) makes the stamp idempotent and refuses to overwrite a chain
+      // written by someone else between validation and here.
+      await collections.facts.updateMany(
+        { _id: { $in: draft.supersedes }, supersededBy: null, tenantId },
+        { $set: { supersededBy: factId, updatedAt: writtenAt } }
+      );
+    }
     await collections.proposals.updateOne(
       { _id: proposalId, tenantId },
       {
@@ -257,6 +267,53 @@ export const resolveProposalItems = async (
   }
 
   return { createdEntityIds, createdFactIds, proposalResolved: !pendingRemain };
+};
+
+// Supersession targets must exist and be unclaimed — checked before the first
+// write, like all other validation. A target already superseded by the same
+// deterministic factId is a crashed run resuming, so it passes; superseded by
+// anything else means another resolution won and this batch must not proceed.
+const validateSupersessions = async (
+  facts: Collection<Fact>,
+  tenantId: string,
+  factWrites: PlannedFact[]
+): Promise<void> => {
+  const claims = new Map<string, { factId: ObjectId; index: number }>();
+  for (const { decision, draft, factId } of factWrites) {
+    for (const target of draft.supersedes ?? []) {
+      const hex = target.toHexString();
+      const prior = claims.get(hex);
+      if (prior && !prior.factId.equals(factId)) {
+        throw new Error(
+          `factDrafts[${prior.index}] and factDrafts[${decision.index}] both supersede fact ${hex}`
+        );
+      }
+      claims.set(hex, { factId, index: decision.index });
+    }
+  }
+  if (claims.size === 0) {
+    return;
+  }
+  const targetIds = [...claims.keys()].map((hex) => new ObjectId(hex));
+  const found = await facts
+    .find({ _id: { $in: targetIds }, tenantId })
+    .toArray();
+  const foundByHex = new Map(
+    found.map((fact) => [fact._id.toHexString(), fact])
+  );
+  for (const [hex, claim] of claims) {
+    const target = foundByHex.get(hex);
+    if (!target) {
+      throw new Error(
+        `factDrafts[${claim.index}] supersedes fact ${hex}, which was not found`
+      );
+    }
+    if (target.supersededBy && !target.supersededBy.equals(claim.factId)) {
+      throw new Error(
+        `factDrafts[${claim.index}] supersedes fact ${hex}, which is already superseded by ${target.supersededBy.toHexString()}`
+      );
+    }
+  }
 };
 
 const entityCollectionFor = (
@@ -345,7 +402,15 @@ const planFactWrite = (
       `factDrafts[${decision.index}]: an edit decision requires finalText`
     );
   }
-  if (!proposal.sourceId) {
+  // Provenance per proposal kind: ingestion facts point at their source,
+  // consolidation facts at the facts they merge (which they also supersede).
+  if (proposal.kind === "consolidation") {
+    if (!draft.supersedes?.length) {
+      throw new Error(
+        `factDrafts[${decision.index}]: consolidation drafts must supersede at least one fact`
+      );
+    }
+  } else if (!proposal.sourceId) {
     throw new Error(
       "Fact drafts can only be confirmed on proposals that carry a sourceId"
     );
@@ -371,7 +436,9 @@ const planFactWrite = (
     confidence: draft.confidence,
     confirmedBy: resolvedBy,
     createdAt: new Date(),
-    sourceId: proposal.sourceId,
+    ...(proposal.kind === "consolidation"
+      ? { derivedFrom: draft.supersedes }
+      : { sourceId: proposal.sourceId }),
     tenantId: proposal.tenantId,
     text: decision.finalText ?? draft.text,
     updatedAt: new Date(),

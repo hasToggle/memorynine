@@ -42,6 +42,9 @@ export const factDraftSchema = z.object({
       status: z.enum(["pending", "confirmed", "edited", "discarded"]),
     })
     .default({ status: "pending" }),
+  // Facts this draft replaces on confirmation (they get supersededBy stamped).
+  // Required for consolidation drafts — it doubles as their provenance.
+  supersedes: z.array(zodObjectId).min(1).optional(),
   text: z.string().min(1),
 });
 export type FactDraft = z.infer<typeof factDraftSchema>;

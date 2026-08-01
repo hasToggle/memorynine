@@ -35,18 +35,28 @@ export const currentlyValidFilter = {
   validUntil: null,
 } as const;
 
-export const factSchema = z.object({
-  ...baseDocFields,
-  anchors: factAnchorsSchema,
-  category: z.enum(factCategoryValues),
-  confidence: z.number().min(0).max(1),
-  confirmedBy: z.string().min(1),
-  // Stubbed for later semantic search (EU embedding provider).
-  embedding: z.array(z.number()).optional(),
-  sourceId: zodObjectId,
-  supersededBy: zodObjectId.optional(),
-  text: z.string().min(1),
-  // Lifecycle (dream cycle): a fact is currently valid iff BOTH are absent.
-  validUntil: z.date().optional(),
-});
+export const factSchema = z
+  .object({
+    ...baseDocFields,
+    anchors: factAnchorsSchema,
+    category: z.enum(factCategoryValues),
+    confidence: z.number().min(0).max(1),
+    confirmedBy: z.string().min(1),
+    // Provenance for consolidated facts: the facts this one was merged from.
+    derivedFrom: z.array(zodObjectId).min(1).optional(),
+    // Stubbed for later semantic search (EU embedding provider).
+    embedding: z.array(z.number()).optional(),
+    sourceId: zodObjectId.optional(),
+    // Lifecycle fields are nullish, not just optional: the convention treats
+    // null and missing alike, so the stored form the filter tolerates (and
+    // the driver's Filter type derives from) must admit null too.
+    supersededBy: zodObjectId.nullish(),
+    text: z.string().min(1),
+    // Lifecycle (dream cycle): a fact is currently valid iff BOTH are absent.
+    validUntil: z.date().nullish(),
+  })
+  .refine((fact) => Boolean(fact.sourceId || fact.derivedFrom?.length), {
+    message:
+      "A fact needs provenance: a sourceId (ingestion) or derivedFrom (consolidation)",
+  });
 export type Fact = z.infer<typeof factSchema>;
