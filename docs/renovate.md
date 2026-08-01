@@ -22,30 +22,61 @@ unchanged from the upstream template. This document only covers the runner.
 
 ### 1. Create the App
 
-Requires org-owner rights on `hasToggle`. The permission list is long and
-getting one wrong fails at run time rather than at setup, so use the manifest
-form generated at `.context/renovate-app-manifest.html` — open it in a browser
-and it posts a pre-filled app definition to GitHub. Otherwise, create it by hand
-at **Organization settings → Developer settings → GitHub Apps → New GitHub App**
-with exactly these permissions ([source](https://docs.renovatebot.com/modules/platform/github/)):
+Requires org-owner rights on `hasToggle`. Create it at
+<https://github.com/organizations/hasToggle/settings/apps/new> with the settings
+below. Getting a permission wrong fails at run time rather than at setup, so it
+is worth checking the read-back rather than trusting the clicks.
 
-| Permission                  | Access       |
-| --------------------------- | ------------ |
-| Administration              | Read         |
-| Checks                      | Read & write |
-| Commit statuses             | Read & write |
-| Contents                    | Read & write |
-| Dependabot alerts           | Read         |
-| Issues                      | Read & write |
-| Members (organization)      | Read         |
-| Metadata                    | Read         |
-| Pull requests               | Read & write |
-| Workflows                   | Read & write |
+| Field                          | Value                                    |
+| ------------------------------ | ---------------------------------------- |
+| GitHub App name                | `spinor-renovate`                        |
+| Homepage URL                   | `https://github.com/hasToggle/spinor`    |
+| Webhook → Active               | **unchecked** (this runner polls)        |
+| Where can this GitHub App be installed | Only on this account             |
+| Subscribe to events            | none                                     |
 
-Subscribe to no events — this runner polls on a schedule and needs no webhook.
+Permissions ([source](https://docs.renovatebot.com/modules/platform/github/)):
+
+The form groups these under **Repository permissions** and **Organization
+permissions**, and it labels several of them differently from the API keys used
+in the manifest — which is worth knowing if you are cross-reading the two.
+
+| Section      | Label on the form | API key               | Access       |
+| ------------ | ----------------- | --------------------- | ------------ |
+| Repository   | Administration    | `administration`      | Read         |
+| Repository   | Checks            | `checks`              | Read & write |
+| Repository   | Commit statuses   | `statuses`            | Read & write |
+| Repository   | Contents          | `contents`            | Read & write |
+| Repository   | Dependabot alerts | `vulnerability_alerts`| Read         |
+| Repository   | Issues            | `issues`              | Read & write |
+| Repository   | Metadata          | `metadata`            | Read         |
+| Repository   | Pull requests     | `pull_requests`       | Read & write |
+| Repository   | Workflows         | `workflows`           | Read & write |
+| Organization | Members           | `members`             | Read         |
+
+The two that are hardest to find are `statuses`, which the form calls **Commit
+statuses**, and `vulnerability_alerts`, which it calls **Dependabot alerts**.
+`members` is not in the Repository list at all — scroll down to the separate
+Organization permissions section.
+
+Two rows behave differently from the rest, which is expected rather than a
+mis-click: **Metadata** offers no read-and-write option, and **Workflows**
+offers no read-only one.
+
 `Workflows: write` is what lets Renovate bump action versions inside
 `.github/workflows/`; without it those updates fail while everything else
 succeeds, which is a confusing way to find out.
+
+Sanity check: `gh api /apps/renovate --jq .permissions` returns the permission
+set of Mend's own hosted Renovate app. It matches the table above, plus
+`emails: read` and `packages: read`, which the docs do not list as required.
+
+After creating the app, verify what actually got saved rather than re-reading
+the form:
+
+```sh
+gh api /apps/spinor-renovate --jq '{permissions, events}'
+```
 
 ### 2. Generate a private key and note the App ID
 
@@ -86,12 +117,15 @@ Two settings are off on this repo and both change how `automerge: true` behaves:
   error every run and you lose the single best view of what is pending. Fix
   with `gh api -X PATCH repos/hasToggle/spinor -f has_issues=true`, or set
   `"dependencyDashboard": false` in `renovate.json` to opt out deliberately.
-- **Auto-merge is disabled, and `main` is unprotected.** Renovate prefers
-  GitHub's native auto-merge, which needs the repo setting on *and* something
-  blocking the merge (a required check) for it to mean anything. With neither,
-  Renovate falls back to merging patch and minor PRs itself on its next run —
-  without waiting for CI. If that is not what you want, enable auto-merge and
-  protect `main` with a required check:
+- **Auto-merge is disabled, `main` is unprotected, and no workflow runs on
+  pull requests.** Renovate prefers GitHub's native auto-merge, which needs the
+  repo setting on *and* something blocking the merge (a required check) for it
+  to mean anything. With none of the three, `automerge: true` in
+  `renovate.json` means patch and minor dependency updates land on `main` with
+  no automated verification whatsoever — Renovate merges them itself on its
+  next run. That may well be the intended trade for a repo reviewed locally,
+  but it should be a decision rather than a discovery. To close it, add a CI
+  workflow on `pull_request`, require it on `main`, and:
 
   ```sh
   gh api -X PATCH repos/hasToggle/spinor -f allow_auto_merge=true
