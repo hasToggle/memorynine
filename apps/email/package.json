@@ -11,7 +11,6 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
-    "@react-email/components": "1.0.12",
     "@react-email/render": "^2.1.0",
     "@repo/email": "workspace:*",
     "mongodb": "^7.5.0",

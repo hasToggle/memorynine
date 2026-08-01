@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import {
   Body,
   Container,
@@ -9,8 +10,7 @@ import {
   Section,
   Tailwind,
   Text,
-} from "@react-email/components";
-import type { ReactElement } from "react";
+} from "react-email";
 
 const baseUrl = process.env.NEXT_PUBLIC_APEX_URL
   ? `https://${process.env.NEXT_PUBLIC_APEX_URL}`
