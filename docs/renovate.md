@@ -78,10 +78,11 @@ the form:
 gh api /apps/spinor-renovate --jq '{permissions, events}'
 ```
 
-### 2. Generate a private key and note the App ID
+### 2. Generate a private key and note the Client ID
 
 On the app's settings page: **Generate a private key** (downloads a `.pem`) and
-copy the numeric **App ID** from the top of the page.
+copy the **Client ID** (`Iv23li…`) — not the numeric App ID, which
+`actions/create-github-app-token` deprecated in v3.
 
 ### 3. Install the App on this repo
 
@@ -90,12 +91,20 @@ copy the numeric **App ID** from the top of the page.
 ### 4. Add the secrets
 
 ```sh
-gh secret set RENOVATE_APP_ID          --repo hasToggle/spinor --body '<app id>'
+gh secret set RENOVATE_APP_CLIENT_ID   --repo hasToggle/spinor --body '<client id>'
 gh secret set RENOVATE_APP_PRIVATE_KEY --repo hasToggle/spinor < ~/Downloads/<app>.private-key.pem
 ```
 
+Pipe the `.pem` rather than pasting it: that preserves the newlines, and the
+whole file is wanted — `-----BEGIN`/`-----END` lines included. Do not
+base64-encode it; the action does not decode base64 for you.
+
 Then delete the local `.pem` — it can always be regenerated, and a key sitting
 in `~/Downloads` is a standing liability.
+
+Only the private key is genuinely secret. The client id is readable by anyone
+via `gh api /apps/spinor-renovate --jq .client_id`; it lives in secrets purely
+so the workflow step reads uniformly.
 
 ### 5. Verify
 
