@@ -90,7 +90,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bunx --bun biome format --write . 2>/dev/null; exit 0"
+            "command": "bunx --bun biome format --write . || true"
           }
         ]
       }
