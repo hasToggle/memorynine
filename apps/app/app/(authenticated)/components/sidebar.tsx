@@ -45,6 +45,7 @@ import {
   FrameIcon,
   LifeBuoyIcon,
   MapIcon,
+  MicIcon,
   MoreHorizontalIcon,
   NewspaperIcon,
   PieChartIcon,
@@ -135,6 +136,12 @@ const data = {
       title: "Digest",
       url: "/digest",
       icon: NewspaperIcon,
+      items: [],
+    },
+    {
+      title: "Capture",
+      url: "/capture",
+      icon: MicIcon,
       items: [],
     },
     {

@@ -14,6 +14,13 @@ export interface TranscriptResult {
 export interface RunTranscriptionOptions {
   /** Failed attempts before the source flips to "failed". Default 3. */
   maxAttempts?: number;
+  /**
+   * Turns the stored blob URL into one the transcription provider can
+   * actually fetch — e.g. a short-lived presigned GET URL for a private
+   * Vercel Blob store. Omit when stored URLs are directly fetchable.
+   * A throw here is a retryable failure against the budget.
+   */
+  resolveAudioUrl?: (blobUrl: string) => Promise<string>;
   sourceId: ObjectId;
   /** The transcription call. Injectable so tests and providers stay decoupled. */
   transcribe: (audioUrl: string) => Promise<TranscriptResult>;
@@ -132,7 +139,12 @@ export const createAssemblyAiTranscriber = (
 export const runTranscription = async (
   db: Db,
   tenantId: string,
-  { maxAttempts = 3, sourceId, transcribe }: RunTranscriptionOptions
+  {
+    maxAttempts = 3,
+    resolveAudioUrl,
+    sourceId,
+    transcribe,
+  }: RunTranscriptionOptions
 ): Promise<TranscriptionRunResult> => {
   const { sources } = getCollections(db);
   const source = await sources.findOne({ _id: sourceId, tenantId });
@@ -165,7 +177,10 @@ export const runTranscription = async (
   let failure: string | null = null;
   let text = "";
   try {
-    const result = await transcribe(audioUrl);
+    const fetchableUrl = resolveAudioUrl
+      ? await resolveAudioUrl(audioUrl)
+      : audioUrl;
+    const result = await transcribe(fetchableUrl);
     text = result.text.trim();
     if (text.length === 0) {
       failure = "transcription returned empty text";
