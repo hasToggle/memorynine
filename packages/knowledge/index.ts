@@ -6,6 +6,21 @@
 export { ObjectId } from "mongodb";
 export type { KnowledgeCollections } from "./collections";
 export { ensureIndexes, getCollections } from "./collections";
+export type {
+  ConsolidationFact,
+  ConsolidationRunResult,
+  ConsolidationSweepOptions,
+  ConsolidationSweepReport,
+  LlmMerge,
+  ParsedConsolidation,
+  RunConsolidationOptions,
+} from "./consolidation";
+export {
+  buildConsolidationPrompt,
+  parseConsolidationResponse,
+  runConsolidation,
+  sweepConsolidation,
+} from "./consolidation";
 export type { Dossier, DossierAnchor } from "./dossier";
 export {
   composeDossier,

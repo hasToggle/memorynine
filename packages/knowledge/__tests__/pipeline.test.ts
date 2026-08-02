@@ -158,7 +158,7 @@ describe.skipIf(!uri)("sweepPipeline stale recovery", () => {
   const client = new MongoClient(uri ?? "mongodb://localhost:27017");
   const db = client.db("knowledge_test_pipeline_recovery");
   const { proposals, sources } = getCollections(db);
-  const TEN_MINUTES_AGO = () => new Date(Date.now() - 10 * 60_000);
+  const STALE = () => new Date(Date.now() - 11 * 60_000);
 
   beforeAll(async () => {
     await client.connect();
@@ -181,11 +181,11 @@ describe.skipIf(!uri)("sweepPipeline stale recovery", () => {
       _id,
       capturedBy: "user_ceo1",
       content: "Angebot bis Ende August an Nordwind GmbH.",
-      createdAt: TEN_MINUTES_AGO(),
+      createdAt: STALE(),
       status: "extracting",
       tenantId: "tenant-a",
       type: "voice",
-      updatedAt: TEN_MINUTES_AGO(),
+      updatedAt: STALE(),
     });
 
     const report = await sweepPipeline(db, {
@@ -207,11 +207,11 @@ describe.skipIf(!uri)("sweepPipeline stale recovery", () => {
         contentType: "audio/wav",
       },
       capturedBy: "user_ceo1",
-      createdAt: TEN_MINUTES_AGO(),
+      createdAt: STALE(),
       status: "transcribing",
       tenantId: "tenant-a",
       type: "voice",
-      updatedAt: TEN_MINUTES_AGO(),
+      updatedAt: STALE(),
     });
 
     const report = await sweepPipeline(db, {
