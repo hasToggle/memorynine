@@ -1,7 +1,18 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "bun:test";
 import { MongoClient, ObjectId } from "mongodb";
 import { ensureIndexes, getCollections } from "../collections";
-import { erasePerson } from "../erasure";
+import {
+  erasePerson,
+  listBlobCleanupCandidates,
+  markSourceBlobsDeleted,
+} from "../erasure";
 
 const uri = process.env.MONGODB_TEST_URI;
 const TENANT = "test-tenant";
@@ -505,5 +516,89 @@ describe.skipIf(!uri)("erasePerson", () => {
     const after = await sources.findOne({ _id: mixedSourceId });
     expect(after?.content).toBe(before?.content);
     expect(after?.email?.originalSender).toBe(before?.email?.originalSender);
+  });
+});
+
+describe.skipIf(!uri)("blob cleanup helpers", () => {
+  const client = new MongoClient(uri ?? "mongodb://localhost:27017");
+  const db = client.db("knowledge_test_blob_cleanup");
+  const { sources } = getCollections(db);
+
+  beforeAll(async () => {
+    await client.connect();
+    await db.dropDatabase();
+    await ensureIndexes(db);
+  });
+
+  beforeEach(async () => {
+    await sources.deleteMany({});
+  });
+
+  afterAll(async () => {
+    await db.dropDatabase();
+    await client.close();
+  });
+
+  const insertFlaggedSource = async (tenantId: string) => {
+    const _id = new ObjectId();
+    await sources.insertOne({
+      _id,
+      attachments: [
+        {
+          blobUrl: `https://store.private.blob.vercel-storage.com/att/${_id}.pdf`,
+          contentType: "application/pdf",
+          filename: "angebot.pdf",
+        },
+      ],
+      audio: {
+        blobUrl: `https://store.private.blob.vercel-storage.com/voice/${_id}.wav`,
+        contentType: "audio/wav",
+      },
+      blobsPendingDeletion: true,
+      capturedBy: "user_ceo1",
+      content: "[REDACTED] Notiz.",
+      createdAt: new Date(),
+      status: "reviewed",
+      tenantId,
+      type: "voice",
+      updatedAt: new Date(),
+    });
+    return _id;
+  };
+
+  test("lists flagged sources across tenants with all their blob urls", async () => {
+    const a = await insertFlaggedSource("tenant-a");
+    await insertFlaggedSource("tenant-b");
+    await sources.insertOne({
+      _id: new ObjectId(),
+      capturedBy: "user_ceo1",
+      content: "Ohne Flag.",
+      createdAt: new Date(),
+      status: "reviewed",
+      tenantId: "tenant-a",
+      type: "manual",
+      updatedAt: new Date(),
+    });
+
+    const candidates = await listBlobCleanupCandidates(db);
+    expect(candidates).toHaveLength(2);
+    const forA = candidates.find((c) => c.sourceId.equals(a));
+    expect(forA?.tenantId).toBe("tenant-a");
+    expect(forA?.blobUrls).toHaveLength(2);
+    expect(forA?.blobUrls[0]).toContain("voice/");
+  });
+
+  test("marking removes the blob references and the flag", async () => {
+    const id = await insertFlaggedSource("tenant-a");
+    await markSourceBlobsDeleted(db, "tenant-a", id);
+
+    const source = await sources.findOne({ _id: id });
+    expect(source?.audio).toBeUndefined();
+    expect(source?.attachments).toBeUndefined();
+    expect(source?.blobsPendingDeletion).toBeUndefined();
+    // The redacted audit record itself stays.
+    expect(source?.content).toBe("[REDACTED] Notiz.");
+
+    expect(await listBlobCleanupCandidates(db)).toHaveLength(0);
   });
 });
