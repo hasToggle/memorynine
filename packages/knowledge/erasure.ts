@@ -7,6 +7,8 @@ import type { Source } from "./schemas/sources";
 const REDACTED = "[REDACTED]";
 
 export interface ErasureReport {
+  /** Derived caches dropped wholesale; they rebuild lazily on next refresh. */
+  dossiersDeleted: number;
   factsDeleted: number;
   /** Audio and attachment blobs whose source no longer backs any fact. */
   orphanedBlobUrls: string[];
@@ -203,11 +205,12 @@ export const erasePerson = async (
   tenantId: string,
   personId: ObjectId
 ): Promise<ErasureReport> => {
-  const { people, facts, sources, proposals } = getCollections(db);
+  const { people, facts, sources, proposals, dossiers } = getCollections(db);
 
   const person = await people.findOne({ _id: personId, tenantId });
   if (!person) {
     return {
+      dossiersDeleted: 0,
       factsDeleted: 0,
       orphanedBlobUrls: [],
       personDeleted: false,
@@ -281,10 +284,18 @@ export const erasePerson = async (
     );
   }
 
-  // 5. Delete the person document itself.
+  // 5. Drop the tenant's dossier cache: any dossier may embed the person's
+  //    name inside composed fact texts, and dossiers are derived data that
+  //    rebuild lazily from the (now cleaned) facts.
+  const { deletedCount: dossiersDeleted } = await dossiers.deleteMany({
+    tenantId,
+  });
+
+  // 6. Delete the person document itself.
   await people.deleteOne({ _id: personId, tenantId });
 
   return {
+    dossiersDeleted,
     factsDeleted,
     orphanedBlobUrls,
     personDeleted: true,

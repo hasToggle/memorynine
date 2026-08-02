@@ -6,8 +6,35 @@
 export { ObjectId } from "mongodb";
 export type { KnowledgeCollections } from "./collections";
 export { ensureIndexes, getCollections } from "./collections";
+export type { Dossier, DossierAnchor } from "./dossier";
+export {
+  composeDossier,
+  dossierAnchorKinds,
+  dossierSchema,
+  refreshDossier,
+} from "./dossier";
 export type { ErasureReport } from "./erasure";
 export { erasePerson } from "./erasure";
+export type {
+  ExtractionPromptInput,
+  KnownEntity,
+  KnownFact,
+  LlmEntityDraft,
+  LlmFactDraft,
+  ParsedExtraction,
+} from "./extraction";
+export {
+  buildExtractionPrompt,
+  llmExtractionSchema,
+  parseExtractionResponse,
+} from "./extraction";
+export type {
+  ExtractionRunResult,
+  RunExtractionOptions,
+} from "./extraction-run";
+export { runExtraction } from "./extraction-run";
+export type { GatewayConfig } from "./gateway";
+export { createGatewayGenerate } from "./gateway";
 export { keys } from "./keys";
 export type {
   EntityDecision,
