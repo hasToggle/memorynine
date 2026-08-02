@@ -28,8 +28,12 @@ export {
   dossierSchema,
   refreshDossier,
 } from "./dossier";
-export type { ErasureReport } from "./erasure";
-export { erasePerson } from "./erasure";
+export type { BlobCleanupCandidate, ErasureReport } from "./erasure";
+export {
+  erasePerson,
+  listBlobCleanupCandidates,
+  markSourceBlobsDeleted,
+} from "./erasure";
 export type {
   ExtractionPromptInput,
   KnownEntity,

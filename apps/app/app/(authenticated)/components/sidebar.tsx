@@ -54,6 +54,7 @@ import {
   ShareIcon,
   SquareTerminalIcon,
   Trash2Icon,
+  UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
@@ -148,6 +149,12 @@ const data = {
       title: "Review",
       url: "/review",
       icon: ClipboardCheckIcon,
+      items: [],
+    },
+    {
+      title: "People",
+      url: "/people",
+      icon: UsersIcon,
       items: [],
     },
     {

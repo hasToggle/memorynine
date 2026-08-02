@@ -1,10 +1,12 @@
 import {
   createAssemblyAiTranscriber,
   createGatewayGenerate,
+  listBlobCleanupCandidates,
+  markSourceBlobsDeleted,
   sweepPipeline,
 } from "@repo/knowledge";
 import { getKnowledgeDb } from "@repo/knowledge/client";
-import { issueSignedToken, presignUrl } from "@repo/storage";
+import { del, issueSignedToken, presignUrl } from "@repo/storage";
 
 // Transcription polling dominates the runtime; a busy sweep with several
 // voice memos needs more than the default function budget.
@@ -38,13 +40,34 @@ export const GET = async (request: Request) => {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const report = await sweepPipeline(getKnowledgeDb(), {
+  const db = getKnowledgeDb();
+  const report = await sweepPipeline(db, {
     generate: createGatewayGenerate(),
     resolveAudioUrl,
     transcribe: createAssemblyAiTranscriber(),
   });
 
-  return Response.json(report, {
-    status: report.failures.length > 0 ? 207 : 200,
-  });
+  // Crash recovery for erasure: if an erase action died between reporting
+  // orphaned blobs and deleting them, the flag is still set — finish the
+  // job here. del() is idempotent, so double-deletes are harmless.
+  let blobsCleaned = 0;
+  for (const candidate of await listBlobCleanupCandidates(db)) {
+    try {
+      if (candidate.blobUrls.length > 0) {
+        // biome-ignore lint/performance/noAwaitInLoops: sequential keeps delete-then-mark ordering per source
+        await del(candidate.blobUrls);
+        blobsCleaned += candidate.blobUrls.length;
+      }
+      await markSourceBlobsDeleted(db, candidate.tenantId, candidate.sourceId);
+    } catch (error) {
+      report.failures.push(
+        `blob cleanup ${candidate.sourceId.toHexString()}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  return Response.json(
+    { ...report, blobsCleaned },
+    { status: report.failures.length > 0 ? 207 : 200 }
+  );
 };

@@ -200,6 +200,55 @@ const redactProposals = async (
   return redacted;
 };
 
+export interface BlobCleanupCandidate {
+  blobUrls: string[];
+  sourceId: ObjectId;
+  tenantId: string;
+}
+
+// The second half of the erasure contract: erasePerson flags sources whose
+// facts are all gone (blobsPendingDeletion) and reports their blob URLs;
+// the app layer deletes the blobs from storage and then calls
+// markSourceBlobsDeleted. These helpers make that completion crash-safe:
+// a caller that died between report and delete leaves the flag standing,
+// and any later sweep finds it here.
+
+export const listBlobCleanupCandidates = async (
+  db: Db,
+  limit = 50
+): Promise<BlobCleanupCandidate[]> => {
+  const { sources } = getCollections(db);
+  const flagged = await sources
+    .find({ blobsPendingDeletion: true })
+    .sort({ updatedAt: 1 })
+    .limit(limit)
+    .toArray();
+  return flagged.map((source) => ({
+    blobUrls: [
+      ...(source.audio ? [source.audio.blobUrl] : []),
+      ...(source.attachments ?? []).map((attachment) => attachment.blobUrl),
+    ],
+    sourceId: source._id,
+    tenantId: source.tenantId,
+  }));
+};
+
+/** Call only after the listed blob URLs were actually deleted from storage. */
+export const markSourceBlobsDeleted = async (
+  db: Db,
+  tenantId: string,
+  sourceId: ObjectId
+): Promise<void> => {
+  const { sources } = getCollections(db);
+  await sources.updateOne(
+    { _id: sourceId, tenantId },
+    {
+      $set: { updatedAt: new Date() },
+      $unset: { attachments: "", audio: "", blobsPendingDeletion: "" },
+    }
+  );
+};
+
 export const erasePerson = async (
   db: Db,
   tenantId: string,
