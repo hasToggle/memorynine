@@ -1,12 +1,7 @@
-import { createHash } from "node:crypto";
-import {
-  type Collection,
-  type Db,
-  type Document,
-  MongoServerError,
-  ObjectId,
-} from "mongodb";
+import type { Collection, Db, Document } from "mongodb";
+import { ObjectId } from "mongodb";
 import { getCollections } from "./collections";
+import { deterministicId, insertIgnoringDuplicate } from "./idempotency";
 import {
   engagementSchema,
   organizationSchema,
@@ -67,24 +62,6 @@ const entityInputSchemas = {
   organization: organizationSchema.omit(BASE_KEYS),
   person: personSchema.omit(BASE_KEYS),
 } as const;
-
-const deterministicId = (seed: string): ObjectId =>
-  new ObjectId(createHash("md5").update(seed).digest("hex").slice(0, 24));
-
-const insertIgnoringDuplicate = async <T extends Document>(
-  collection: Collection<T>,
-  doc: T
-): Promise<void> => {
-  try {
-    await collection.insertOne(doc as never);
-  } catch (error) {
-    const alreadyDone =
-      error instanceof MongoServerError && error.code === 11_000;
-    if (!alreadyDone) {
-      throw error;
-    }
-  }
-};
 
 interface PlannedEntity {
   decision: EntityDecision;

@@ -44,6 +44,10 @@ export const sourceSchema = z.object({
     })
     .optional(),
   error: z.string().optional(),
+  // Failure budget for the extraction worker: consecutive failed attempts.
+  // At the worker's maxAttempts the status flips to "failed" instead of
+  // retrying forever; a successful run clears it.
+  extractionAttempts: z.number().int().min(0).optional(),
   status: z.enum(sourceStatusValues),
   type: z.enum(["voice", "email", "manual"]),
 });
