@@ -36,6 +36,8 @@ export { runExtraction } from "./extraction-run";
 export type { GatewayConfig } from "./gateway";
 export { createGatewayGenerate } from "./gateway";
 export { keys } from "./keys";
+export type { SweepOptions, SweepReport } from "./pipeline";
+export { sweepPipeline } from "./pipeline";
 export type {
   EntityDecision,
   FactDecision,
@@ -77,3 +79,14 @@ export {
   PEOPLE_SEARCH_INDEX_NAME,
   peopleSearchIndexDefinition,
 } from "./search";
+export type {
+  AssemblyAiConfig,
+  RunTranscriptionOptions,
+  TranscriptionRunResult,
+  TranscriptResult,
+} from "./transcription";
+export {
+  createAssemblyAiTranscriber,
+  DEFAULT_PII_POLICIES,
+  runTranscription,
+} from "./transcription";
