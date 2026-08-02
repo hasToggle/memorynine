@@ -12,6 +12,8 @@ export interface SweepOptions {
   generate: (prompt: string) => Promise<string>;
   /** Max sources per stage per sweep. Default 10. */
   limit?: number;
+  /** See RunTranscriptionOptions.resolveAudioUrl (private blob stores). */
+  resolveAudioUrl?: (blobUrl: string) => Promise<string>;
   /**
    * An in-flight status (transcribing/extracting) older than this is a
    * crashed run, not a busy worker, and gets swept again. Default 10 min —
@@ -32,7 +34,13 @@ const DEFAULT_STALE_AFTER_MS = 10 * 60_000;
 
 export const sweepPipeline = async (
   db: Db,
-  { generate, limit = 10, staleAfterMs, transcribe }: SweepOptions
+  {
+    generate,
+    limit = 10,
+    resolveAudioUrl,
+    staleAfterMs,
+    transcribe,
+  }: SweepOptions
 ): Promise<SweepReport> => {
   const { sources } = getCollections(db);
   const report: SweepReport = {
@@ -65,6 +73,7 @@ export const sweepPipeline = async (
     try {
       // biome-ignore lint/performance/noAwaitInLoops: sources are processed sequentially on purpose — parallel transcription would multiply provider load and interleave failure-budget writes
       const result = await runTranscription(db, source.tenantId, {
+        resolveAudioUrl,
         sourceId: source._id,
         transcribe,
       });

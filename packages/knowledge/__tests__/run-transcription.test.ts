@@ -136,3 +136,69 @@ describe.skipIf(!uri)("runTranscription", () => {
     ).rejects.toThrow(noAudioPattern);
   });
 });
+
+describe.skipIf(!uri)("runTranscription with resolveAudioUrl", () => {
+  const client = new MongoClient(uri ?? "mongodb://localhost:27017");
+  const db = client.db("knowledge_test_transcription_resolve");
+  const { sources } = getCollections(db);
+  let sourceId: ObjectId;
+
+  beforeAll(async () => {
+    await client.connect();
+    await db.dropDatabase();
+    await ensureIndexes(db);
+  });
+
+  beforeEach(async () => {
+    await sources.deleteMany({});
+    sourceId = new ObjectId();
+    await sources.insertOne({
+      _id: sourceId,
+      audio: {
+        blobUrl: "https://store.private.blob.vercel-storage.com/voice/memo.wav",
+        contentType: "audio/wav",
+      },
+      capturedBy: "user_ceo1",
+      status: "received",
+      tenantId: TENANT,
+      type: "voice",
+      ...now(),
+    });
+  });
+
+  afterAll(async () => {
+    await db.dropDatabase();
+    await client.close();
+  });
+
+  test("the transcriber receives the resolved URL, not the stored one", async () => {
+    let seenUrl = "";
+    const result = await runTranscription(db, TENANT, {
+      resolveAudioUrl: (blobUrl) =>
+        Promise.resolve(`${blobUrl}?signed=for-a-while`),
+      sourceId,
+      transcribe: (audioUrl) => {
+        seenUrl = audioUrl;
+        return Promise.resolve({ text: "Notiz." });
+      },
+    });
+
+    expect(result.status).toBe("transcribed");
+    expect(seenUrl).toBe(
+      "https://store.private.blob.vercel-storage.com/voice/memo.wav?signed=for-a-while"
+    );
+  });
+
+  test("a failing resolver counts against the failure budget", async () => {
+    const result = await runTranscription(db, TENANT, {
+      resolveAudioUrl: () => Promise.reject(new Error("token expired")),
+      sourceId,
+      transcribe: () => Promise.reject(new Error("must not be called")),
+    });
+
+    expect(result.status).toBe("retry");
+    const source = await sources.findOne({ _id: sourceId });
+    expect(source?.error).toContain("token expired");
+    expect(source?.transcriptionAttempts).toBe(1);
+  });
+});

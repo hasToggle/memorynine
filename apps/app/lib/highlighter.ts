@@ -5,8 +5,8 @@ let highlighterInstance: ReturnType<typeof createHighlighter> | null = null;
 export function initHighlighter() {
   if (!highlighterInstance) {
     highlighterInstance = createHighlighter({
-      themes: ["ayu-dark"],
       langs: ["jsx", "tsx"],
+      themes: ["ayu-dark"],
     });
   }
   return highlighterInstance;
