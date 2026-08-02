@@ -40,6 +40,7 @@ import {
   BookOpenIcon,
   BotIcon,
   ChevronRightIcon,
+  ClipboardCheckIcon,
   FolderIcon,
   FrameIcon,
   LifeBuoyIcon,
@@ -134,6 +135,12 @@ const data = {
       title: "Digest",
       url: "/digest",
       icon: NewspaperIcon,
+      items: [],
+    },
+    {
+      title: "Review",
+      url: "/review",
+      icon: ClipboardCheckIcon,
       items: [],
     },
     {

@@ -19,6 +19,7 @@
     "@repo/design-system": "workspace:*",
     "@repo/email": "workspace:*",
     "@repo/feature-flags": "workspace:*",
+    "@repo/knowledge": "workspace:*",
     "@repo/next-config": "workspace:*",
     "@repo/notifications": "workspace:*",
     "@repo/observability": "workspace:*",
