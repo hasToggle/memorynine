@@ -48,7 +48,7 @@ next-forge comes with batteries included:
 
 ### Packages
 
-- **Authentication** — Powered by [Clerk](https://clerk.com)
+- **Authentication** — Powered by [better-auth](https://better-auth.com)
 - **Database** — Type-safe ORM with migrations
 - **Design System** — Comprehensive component library with dark mode
 - **Payments** — Subscription management via [Stripe](https://stripe.com)
@@ -86,7 +86,7 @@ npx next-forge@latest init
 ### Setup
 
 1. Configure your environment variables
-2. Set up required service accounts (Clerk, Stripe, Resend, etc.)
+2. Set up required service accounts (better-auth, Stripe, Resend, etc.)
 3. Run the development server
 
 For detailed setup instructions, read the [documentation](https://www.next-forge.com/docs).

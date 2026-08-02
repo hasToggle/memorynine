@@ -70,7 +70,7 @@ The repository uses **Bun workspaces** with two main directories:
 ### Applications (apps/)
 
 1. **app** (port 3000) - Main SaaS application
-   - Authentication via Clerk (route groups: `(authenticated)` and `(unauthenticated)`)
+   - Authentication via better-auth (route groups: `(authenticated)` and `(unauthenticated)`); handler mounted at `/api/auth/[...all]`
    - Uses Next.js 16 with App Router
    - Server actions in `app/actions/`
    - API routes in `app/api/`
@@ -96,7 +96,7 @@ The repository uses **Bun workspaces** with two main directories:
 
 Core infrastructure packages:
 
-- **@repo/auth** - Clerk authentication (client, server, middleware, provider)
+- **@repo/auth** - better-auth authentication (client, server, middleware, provider); MongoDB adapter, organization plugin — active org id is the knowledge `tenantId`
 - **@repo/database** - Prisma ORM with Neon PostgreSQL adapter
   - Schema at `packages/database/prisma/schema.prisma`
   - Generated client at `packages/database/generated/client/`
@@ -133,7 +133,7 @@ Core infrastructure packages:
 - **Package Manager**: Bun 1.1.43
 - **Build Tool**: Turborepo 2.5.8
 - **Database**: PostgreSQL (Neon) via Prisma 6.18
-- **Auth**: Clerk
+- **Auth**: better-auth (email/password + organizations)
 - **Styling**: Tailwind CSS 4.1
 - **Linting**: Biome 2.3.1 with ultracite presets (core, react, next)
 - **Testing**: Bun test runner
