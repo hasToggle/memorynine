@@ -54,6 +54,8 @@ export type {
 export { runExtraction } from "./extraction-run";
 export type { GatewayConfig } from "./gateway";
 export { createGatewayGenerate } from "./gateway";
+export type { CreateEmailSourceResult, InboundEmail } from "./inbound";
+export { createEmailSource, parseInboundSenderMap } from "./inbound";
 export { keys } from "./keys";
 export type { SweepOptions, SweepReport } from "./pipeline";
 export { sweepPipeline } from "./pipeline";
