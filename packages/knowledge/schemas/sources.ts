@@ -3,6 +3,7 @@ import { baseDocFields } from "./shared";
 
 export const sourceStatusValues = [
   "received",
+  "transcribing",
   "transcribed",
   "extracting",
   "proposed",
@@ -49,6 +50,9 @@ export const sourceSchema = z.object({
   // retrying forever; a successful run clears it.
   extractionAttempts: z.number().int().min(0).optional(),
   status: z.enum(sourceStatusValues),
+  // Same failure-budget convention as extractionAttempts, for the
+  // transcription stage.
+  transcriptionAttempts: z.number().int().min(0).optional(),
   type: z.enum(["voice", "email", "manual"]),
 });
 export type Source = z.infer<typeof sourceSchema>;
