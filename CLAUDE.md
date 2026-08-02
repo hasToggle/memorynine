@@ -100,6 +100,13 @@ Core infrastructure packages:
 - **@repo/database** - Prisma ORM with Neon PostgreSQL adapter
   - Schema at `packages/database/prisma/schema.prisma`
   - Generated client at `packages/database/generated/client/`
+- **@repo/knowledge** - MongoDB data layer for the knowledge hub (source-only, no build)
+  - Zod v4 schemas in `schemas/` (organizations, people, engagements, sources, facts, proposals)
+  - Typed collections + idempotent indexes (`getCollections`, `ensureIndexes`)
+  - GDPR Art. 17 erasure cascade (`erasePerson`) and the review write path (`resolveProposalItems`)
+  - Atlas Search definitions/pipelines in `search.ts`; `bun setup-indexes` provisions them
+  - DB bootstrapping lives behind `@repo/knowledge/client` so the barrel stays runtime-portable
+  - Tests need `MONGODB_TEST_URI` (they skip cleanly without it)
 - **@repo/design-system** - shadcn/ui component library
   - Components in `components/` (auto-generated, excluded from Biome linting)
   - Providers for themes, tooltips, etc.
