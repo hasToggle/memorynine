@@ -50,14 +50,14 @@ describe.skipIf(!uri)("collections", () => {
     expect(found?.anchors.organizationId?.equals(orgId)).toBe(true);
   });
 
-  test("rejects duplicate gmailMessageId per tenant", async () => {
+  test("rejects duplicate messageId per tenant", async () => {
     const { sources } = getCollections(db);
     const emailSource = {
       capturedBy: "user_ceo1",
       createdAt: new Date(),
       email: {
         forwardedBy: "ceo1@seminarco.de",
-        gmailMessageId: "dup-123",
+        messageId: "dup-123",
         originalSender: "a@b.de",
         sentAt: new Date(),
         subject: "S",
@@ -94,9 +94,9 @@ describe.skipIf(!uri)("collections", () => {
     ).toBe(2);
   });
 
-  test("accepts the same gmailMessageId for a different tenant", async () => {
+  test("accepts the same messageId for a different tenant", async () => {
     const { sources } = getCollections(db);
-    // The "dup-123" gmailMessageId already exists for tenant "test-tenant"
+    // The "dup-123" messageId already exists for tenant "test-tenant"
     // from the duplicate-key test above; the unique index is scoped per
     // tenant, so the same message id under a different tenant must succeed.
     await expect(
@@ -106,7 +106,7 @@ describe.skipIf(!uri)("collections", () => {
         createdAt: new Date(),
         email: {
           forwardedBy: "ceo1@seminarco.de",
-          gmailMessageId: "dup-123",
+          messageId: "dup-123",
           originalSender: "a@b.de",
           sentAt: new Date(),
           subject: "S",

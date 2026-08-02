@@ -33,7 +33,7 @@ describe("sourceSchema", () => {
       content: "Sehr geehrte Damen und Herren …",
       email: {
         forwardedBy: "ceo1@seminarco.de",
-        gmailMessageId: "18c9a7b2f3d4e5f6",
+        messageId: "18c9a7b2f3d4e5f6",
         originalSender: "anna@mueller.de",
         sentAt: new Date("2026-07-01"),
         subject: "Workshop-Anfrage",
@@ -58,7 +58,7 @@ describe("sourceSchema", () => {
       content: "Anbei das Angebot.",
       email: {
         forwardedBy: "ceo1@seminarco.de",
-        gmailMessageId: "18c9a7b2f3d4e5f7",
+        messageId: "18c9a7b2f3d4e5f7",
         originalSender: "anna@mueller.de",
         sentAt: new Date("2026-07-02"),
         subject: "Angebot",

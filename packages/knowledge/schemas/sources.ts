@@ -38,7 +38,7 @@ export const sourceSchema = z.object({
   email: z
     .object({
       forwardedBy: z.string().min(1),
-      gmailMessageId: z.string().min(1),
+      messageId: z.string().min(1),
       originalSender: z.string().min(1),
       sentAt: z.date(),
       subject: z.string(),

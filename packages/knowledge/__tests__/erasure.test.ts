@@ -72,7 +72,7 @@ describe.skipIf(!uri)("erasePerson", () => {
       content: "Anna Schmidt und die Geschäftsführung planen das Q3-Programm.",
       email: {
         forwardedBy: "ceo@seminarco.de",
-        gmailMessageId: "msg-1",
+        messageId: "msg-1",
         originalSender: "anna@mueller.de",
         sentAt: new Date(),
         subject: "Q3 mit Anna Schmidt",
@@ -390,7 +390,7 @@ describe.skipIf(!uri)("erasePerson", () => {
       content: "Vertragsentwurf von Ida Brandt.",
       email: {
         forwardedBy: "ceo@seminarco.de",
-        gmailMessageId: "msg-ida-1",
+        messageId: "msg-ida-1",
         originalSender: "ida@nordwind.de",
         sentAt: new Date(),
         subject: "Vertrag",
