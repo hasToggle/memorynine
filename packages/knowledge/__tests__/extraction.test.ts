@@ -134,3 +134,93 @@ describe("parseExtractionResponse", () => {
     expect(parsed.kind).toBe("failure");
   });
 });
+
+describe("parseExtractionResponse with reasoning preamble", () => {
+  test("extracts the JSON object from leading narration", () => {
+    const raw = `We need answer only JSON. Let's parse the source. {"entities": [], "facts": [{"anchors": {"organizationId": "${knownOrgId}"}, "category": "logistics", "confidence": 0.8, "text": "Angebot bis Ende August."}]}`;
+    const parsed = parseExtractionResponse(raw);
+    expect(parsed.kind).toBe("proposal");
+  });
+
+  test("extracts a skip object from leading narration", () => {
+    const parsed = parseExtractionResponse(
+      'Thinking about it... {"skip": true, "reason": "nur Begrüßung"} done.'
+    );
+    expect(parsed).toEqual({ kind: "skip", reason: "nur Begrüßung" });
+  });
+
+  test("narration with braces in strings does not break extraction", () => {
+    const parsed = parseExtractionResponse(
+      `Note {weird} text first {"entities": [], "facts": [{"anchors": {"organizationId": "${knownOrgId}"}, "category": "other", "confidence": 0.5, "text": "Enthält {Klammern} im Text."}]}`
+    );
+    expect(parsed.kind).toBe("proposal");
+  });
+});
+
+describe("parseExtractionResponse candidate selection", () => {
+  const realProposal = JSON.stringify({
+    entities: [],
+    facts: [
+      {
+        anchors: { organizationId: knownOrgId },
+        category: "logistics",
+        confidence: 0.9,
+        text: "Angebot bis Ende August.",
+      },
+    ],
+  });
+
+  test("an empty-object fragment in the narration does not shadow the real answer", () => {
+    const parsed = parseExtractionResponse(
+      `Considering the shape {} of the reply... ${realProposal}`
+    );
+    expect(parsed.kind).toBe("proposal");
+  });
+
+  test("a skip example echoed from the prompt does not shadow the real answer", () => {
+    const parsed = parseExtractionResponse(
+      `Should I return {"skip": true, "reason": "..."}? No — there are facts. ${realProposal}`
+    );
+    expect(parsed.kind).toBe("proposal");
+  });
+
+  test("a lone unrelated object is a failure, not an empty proposal", () => {
+    expect(parseExtractionResponse('{"name": "x"}').kind).toBe("failure");
+  });
+
+  test("a facts-only reply without an entities key still parses", () => {
+    const parsed = parseExtractionResponse(
+      JSON.stringify({
+        facts: [
+          {
+            anchors: { organizationId: knownOrgId },
+            category: "logistics",
+            confidence: 0.9,
+            text: "Angebot bis Ende August.",
+          },
+        ],
+      })
+    );
+    expect(parsed.kind).toBe("proposal");
+  });
+});
+
+describe("parseExtractionResponse with unclosed braces in narration", () => {
+  test("a stray unclosed brace before the answer does not abort the scan", () => {
+    const real = JSON.stringify({
+      entities: [],
+      facts: [
+        {
+          anchors: { organizationId: knownOrgId },
+          category: "logistics",
+          confidence: 0.9,
+          text: "Angebot bis Ende August.",
+        },
+      ],
+    });
+    const parsed = parseExtractionResponse(
+      `We need shape { entities... hmm. Here: ${real}`
+    );
+    expect(parsed.kind).toBe("proposal");
+  });
+});
