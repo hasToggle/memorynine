@@ -16,9 +16,9 @@ const noContentPattern = /content/i;
 describe("parseInboundSenderMap", () => {
   test("maps lowercased sender addresses to tenant ids", () => {
     const map = parseInboundSenderMap(
-      '{"Eric@Forsuxess.de": "org_1", "assistant@firma.de": "org_2"}'
+      '{"Eric@SpiritsDontFly.de": "org_1", "assistant@firma.de": "org_2"}'
     );
-    expect(map.get("eric@forsuxess.de")).toBe("org_1");
+    expect(map.get("eric@spiritsdontfly.de")).toBe("org_1");
     expect(map.get("assistant@firma.de")).toBe("org_2");
   });
 
@@ -55,7 +55,7 @@ describe.skipIf(!uri)("createEmailSource", () => {
 
   const input = {
     content: "Sehr geehrte Damen und Herren, anbei die Anfrage …",
-    forwardedBy: "eric@forsuxess.de",
+    forwardedBy: "eric@spiritsdontfly.de",
     messageId: "re_msg_123",
     originalSender: "anna@nordwind.de",
     sentAt: new Date("2026-08-02T18:00:00Z"),
@@ -71,7 +71,7 @@ describe.skipIf(!uri)("createEmailSource", () => {
     expect(source?.status).toBe("received");
     expect(source?.content).toBe(input.content);
     expect(source?.email?.messageId).toBe("re_msg_123");
-    expect(source?.capturedBy).toBe("eric@forsuxess.de");
+    expect(source?.capturedBy).toBe("eric@spiritsdontfly.de");
   });
 
   test("webhook retries do not create duplicates", async () => {
