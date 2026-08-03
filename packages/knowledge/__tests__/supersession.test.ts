@@ -199,6 +199,106 @@ describe.skipIf(!uri)("resolveProposalItems supersession", () => {
     expect(current[0]?._id.equals(mergedId)).toBe(true);
   });
 
+  // Bi-temporal lifecycle: createdAt/supersededAt are system time (when we
+  // recorded a fact, when we stopped believing it); validFrom/validUntil are
+  // event time (when it was true in the world). Keeping them apart is what
+  // lets "what did we believe on date X" and "what was true on date X" be
+  // different questions.
+  test("retiring a fact stamps supersededAt and closes validUntil", async () => {
+    const proposalId = await insertConsolidationProposal([
+      {
+        anchors: { personId },
+        category: "preference",
+        confidence: 0.9,
+        supersedes: [oldFactA],
+        text: "Bevorzugt Termine am Nachmittag.",
+      },
+    ]);
+    const before = new Date();
+
+    const result = await resolveProposalItems(db, TENANT, {
+      facts: [{ action: "confirm", index: 0 }],
+      proposalId,
+      resolvedBy: "user_ceo1",
+    });
+
+    const retired = await facts.findOne({ _id: oldFactA });
+    expect(retired?.supersededAt).toBeInstanceOf(Date);
+    expect(retired?.supersededAt?.getTime()).toBeGreaterThanOrEqual(
+      before.getTime()
+    );
+    // Event time closes where the successor's event time opens.
+    const successor = await facts.findOne({
+      _id: result.createdFactIds[0] as ObjectId,
+    });
+    expect(retired?.validUntil).toEqual(
+      successor?.validFrom ?? (retired?.supersededAt as Date)
+    );
+  });
+
+  test("an ingestion fact inherits validFrom from its source's occurredAt", async () => {
+    const occurredAt = new Date("2026-03-11T09:30:00.000Z");
+    await sources.updateOne({ _id: sourceId }, { $set: { occurredAt } });
+    const proposalId = new ObjectId();
+    await proposals.insertOne({
+      _id: proposalId,
+      entityDrafts: [],
+      factDrafts: [
+        {
+          anchors: { personId },
+          category: "logistics",
+          confidence: 0.9,
+          resolution: { status: "pending" },
+          text: "Der Kickoff fand im März statt.",
+        },
+      ],
+      kind: "ingestion",
+      sourceId,
+      status: "open",
+      tenantId: TENANT,
+      ...now(),
+    } as never);
+
+    const result = await resolveProposalItems(db, TENANT, {
+      facts: [{ action: "confirm", index: 0 }],
+      proposalId,
+      resolvedBy: "user_ceo1",
+    });
+
+    const created = await facts.findOne({
+      _id: result.createdFactIds[0] as ObjectId,
+    });
+    expect(created?.validFrom).toEqual(occurredAt);
+  });
+
+  test("a merged fact inherits its earliest parent's validFrom", async () => {
+    const earlier = new Date("2026-01-05T00:00:00.000Z");
+    const later = new Date("2026-04-20T00:00:00.000Z");
+    await facts.updateOne({ _id: oldFactA }, { $set: { validFrom: later } });
+    await facts.updateOne({ _id: oldFactB }, { $set: { validFrom: earlier } });
+    const proposalId = await insertConsolidationProposal([
+      {
+        anchors: { personId },
+        category: "preference",
+        confidence: 0.9,
+        supersedes: [oldFactA, oldFactB],
+        text: "Bevorzugt Vormittage; freitags nie erreichbar.",
+      },
+    ]);
+
+    const result = await resolveProposalItems(db, TENANT, {
+      facts: [{ action: "confirm", index: 0 }],
+      proposalId,
+      resolvedBy: "user_ceo1",
+    });
+
+    const merged = await facts.findOne({
+      _id: result.createdFactIds[0] as ObjectId,
+    });
+    // The merge restates both parents, so it has held since the older one did.
+    expect(merged?.validFrom).toEqual(earlier);
+  });
+
   test("re-running the same consolidation decisions is idempotent", async () => {
     const proposalId = await insertConsolidationProposal([
       {

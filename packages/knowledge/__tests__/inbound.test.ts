@@ -74,6 +74,16 @@ describe.skipIf(!uri)("createEmailSource", () => {
     expect(source?.capturedBy).toBe("eric@spiritsdontfly.de");
   });
 
+  test("dates the source by when the mail was sent, not when it arrived", async () => {
+    const result = await createEmailSource(db, "org_1", input);
+
+    const source = await sources.findOne({ _id: result.sourceId });
+    // Facts extracted from this source inherit occurredAt as their validFrom,
+    // so a mail forwarded weeks later still dates from when it was written.
+    expect(source?.occurredAt).toEqual(input.sentAt);
+    expect(source?.createdAt).not.toEqual(input.sentAt);
+  });
+
   test("webhook retries do not create duplicates", async () => {
     const first = await createEmailSource(db, "org_1", input);
     const second = await createEmailSource(db, "org_1", input);
