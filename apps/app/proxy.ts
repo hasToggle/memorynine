@@ -11,9 +11,9 @@ const securityHeaders = env.FLAGS_SECRET
   ? securityMiddleware(noseconeOptionsWithToolbar)
   : securityMiddleware(noseconeOptions);
 
-// Clerk middleware wraps other middleware in its callback
-// For apps using Clerk, compose middleware inside authMiddleware callback
-// For apps without Clerk, use createNEMO for composition (see apps/web)
+// authMiddleware wraps the app's middleware chain; route protection lives
+// in the authenticated layout and per-page checks, not here (see apps/web
+// for createNEMO composition without the wrapper).
 export const proxy = authMiddleware(() =>
   securityHeaders()
 ) as unknown as NextProxy;

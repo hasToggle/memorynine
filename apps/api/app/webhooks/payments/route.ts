@@ -1,5 +1,5 @@
 import { analytics } from "@repo/analytics/server";
-import { clerkClient } from "@repo/auth/server";
+import { getUserByStripeCustomerId } from "@repo/auth/server";
 import { parseError } from "@repo/observability/error";
 import { log } from "@repo/observability/log";
 import type { Stripe } from "@repo/payments";
@@ -8,16 +8,10 @@ import { headers } from "next/headers";
 import { NextResponse } from "next/server";
 import { env } from "@/env";
 
-const getUserFromCustomerId = async (customerId: string) => {
-  const clerk = await clerkClient();
-  const users = await clerk.users.getUserList();
-
-  const user = users.data.find(
-    (currentUser) => currentUser.privateMetadata.stripeCustomerId === customerId
-  );
-
-  return user;
-};
+// The Stripe customer id lives on the auth-user document
+// (user.stripeCustomerId) — set it wherever checkout provisioning happens.
+const getUserFromCustomerId = (customerId: string) =>
+  getUserByStripeCustomerId(customerId);
 
 const handleCheckoutSessionCompleted = async (
   data: Stripe.Checkout.Session
@@ -35,8 +29,8 @@ const handleCheckoutSessionCompleted = async (
   }
 
   analytics.capture({
-    event: "User Subscribed",
     distinctId: user.id,
+    event: "User Subscribed",
   });
 };
 
@@ -56,8 +50,8 @@ const handleSubscriptionScheduleCanceled = async (
   }
 
   analytics.capture({
-    event: "User Unsubscribed",
     distinctId: user.id,
+    event: "User Unsubscribed",
   });
 };
 
@@ -97,7 +91,7 @@ export const POST = async (request: Request): Promise<Response> => {
 
     await analytics.shutdown();
 
-    return NextResponse.json({ result: event, ok: true });
+    return NextResponse.json({ ok: true, result: event });
   } catch (error) {
     const message = parseError(error);
 
