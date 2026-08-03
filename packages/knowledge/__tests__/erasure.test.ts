@@ -21,6 +21,7 @@ const annaIdentifiersPattern = /Anna Schmidt|anna@mueller\.de/i;
 const annaNamePattern = /Anna Schmidt/i;
 const leaIdentifiersPattern = /Lea|kunde\.de/;
 const leaNamePattern = /Lea Sommer/;
+const petraNamePattern = /Petra/i;
 
 describe.skipIf(!uri)("erasePerson", () => {
   const client = new MongoClient(uri ?? "mongodb://localhost:27017");
@@ -600,5 +601,172 @@ describe.skipIf(!uri)("blob cleanup helpers", () => {
     expect(source?.content).toBe("[REDACTED] Notiz.");
 
     expect(await listBlobCleanupCandidates(db)).toHaveLength(0);
+  });
+});
+
+// Consolidation merges facts under a single anchor, so a merged fact about a
+// person can end up anchored only to their organization. Step 1's
+// anchors.personId filter cannot see it, and nothing redacts fact text — so
+// the person's name survives erasure inside derived and sibling facts.
+describe.skipIf(!uri)("erasePerson — derived facts and fact text", () => {
+  const client = new MongoClient(uri ?? "mongodb://localhost:27017");
+  const db = client.db("knowledge_test_erasure_derived");
+  const personId = new ObjectId();
+  const orgId = new ObjectId();
+  const sourceId = new ObjectId();
+  const personFactId = new ObjectId();
+  const orgFactNamingPersonId = new ObjectId();
+  const mergedFactId = new ObjectId();
+  const deepMergeId = new ObjectId();
+  const unrelatedFactId = new ObjectId();
+  let report: Awaited<ReturnType<typeof erasePerson>>;
+
+  beforeAll(async () => {
+    await client.connect();
+    await db.dropDatabase();
+    await ensureIndexes(db);
+    const { organizations, people, sources, facts } = getCollections(db);
+
+    await organizations.insertOne({
+      _id: orgId,
+      domains: ["nordwind.de"],
+      name: "Nordwind GmbH",
+      status: "active",
+      tenantId: TENANT,
+      ...now(),
+    });
+    await people.insertOne({
+      _id: personId,
+      emails: ["petra@kunde.de"],
+      name: "Petra Vogel",
+      organizationId: orgId,
+      tenantId: TENANT,
+      ...now(),
+    });
+    await sources.insertOne({
+      _id: sourceId,
+      capturedBy: "user_1",
+      content: "Petra Vogel kritisierte den Q3-Zeitplan.",
+      status: "reviewed",
+      tenantId: TENANT,
+      type: "manual",
+      ...now(),
+    });
+    await facts.insertMany([
+      {
+        _id: personFactId,
+        anchors: { personId },
+        category: "preference",
+        confidence: 0.9,
+        confirmedBy: "user_1",
+        sourceId,
+        tenantId: TENANT,
+        text: "Petra Vogel bevorzugt Vormittagstermine.",
+        ...now(),
+      },
+      // Anchored to the org only, but names the person in its text.
+      {
+        _id: orgFactNamingPersonId,
+        anchors: { organizationId: orgId },
+        category: "objection",
+        confidence: 0.8,
+        confirmedBy: "user_1",
+        sourceId,
+        tenantId: TENANT,
+        text: "Petra Vogel hat den Q3-Zeitplan kritisiert.",
+        ...now(),
+      },
+      // A consolidation merge: org-anchored, derived from a person fact.
+      {
+        _id: mergedFactId,
+        anchors: { organizationId: orgId },
+        category: "objection",
+        confidence: 0.85,
+        confirmedBy: "user_2",
+        derivedFrom: [personFactId, orgFactNamingPersonId],
+        tenantId: TENANT,
+        text: "Petra Vogel und Lars Ohlsen kritisierten den Q3-Zeitplan.",
+        ...now(),
+      },
+      // A second-generation merge, to prove the walk is transitive.
+      {
+        _id: deepMergeId,
+        anchors: { organizationId: orgId },
+        category: "background",
+        confidence: 0.7,
+        confirmedBy: "user_2",
+        derivedFrom: [mergedFactId],
+        tenantId: TENANT,
+        text: "Zusammenfassung der Q3-Kritik.",
+        ...now(),
+      },
+      {
+        _id: unrelatedFactId,
+        anchors: { organizationId: orgId },
+        category: "background",
+        confidence: 0.9,
+        confirmedBy: "user_1",
+        sourceId,
+        tenantId: TENANT,
+        text: "Firma plant Q4-Budget.",
+        ...now(),
+      },
+    ]);
+
+    // Erase once for the whole block: every test below asserts on the
+    // resulting state, so none of them depend on another having run first.
+    report = await erasePerson(db, TENANT, personId);
+  });
+
+  afterAll(async () => {
+    await db.dropDatabase();
+    await client.close();
+  });
+
+  test("reports what it deleted and redacted", () => {
+    expect(report.factsDeleted).toBe(1);
+    expect(report.derivedFactsDeleted).toBe(2);
+    expect(report.factsRedacted).toBe(1);
+  });
+
+  test("redacts the person's name from surviving facts", async () => {
+    const { facts } = getCollections(db);
+    const survivor = await facts.findOne({ _id: orgFactNamingPersonId });
+
+    expect(survivor).not.toBeNull();
+    expect(survivor?.text).not.toMatch(petraNamePattern);
+    expect(survivor?.text).toBe("[REDACTED] hat den Q3-Zeitplan kritisiert.");
+  });
+
+  test("deletes facts derived from the erased person's facts", async () => {
+    const { facts } = getCollections(db);
+
+    expect(await facts.findOne({ _id: mergedFactId })).toBeNull();
+  });
+
+  test("follows derivedFrom transitively", async () => {
+    const { facts } = getCollections(db);
+
+    expect(await facts.findOne({ _id: deepMergeId })).toBeNull();
+  });
+
+  test("leaves unrelated facts untouched", async () => {
+    const { facts } = getCollections(db);
+    const untouched = await facts.findOne({ _id: unrelatedFactId });
+
+    expect(untouched?.text).toBe("Firma plant Q4-Budget.");
+  });
+
+  test("leaves no dangling derivedFrom references", async () => {
+    const { facts } = getCollections(db);
+    const surviving = await facts.find({ tenantId: TENANT }).toArray();
+    const liveIds = new Set(surviving.map((fact) => fact._id.toHexString()));
+    const dangling = surviving.flatMap((fact) =>
+      (fact.derivedFrom ?? [])
+        .filter((parent) => !liveIds.has(parent.toHexString()))
+        .map((parent) => `${fact._id.toHexString()} -> ${parent.toHexString()}`)
+    );
+
+    expect(dangling).toEqual([]);
   });
 });

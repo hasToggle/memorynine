@@ -4,6 +4,8 @@
 // `@repo/knowledge/client` subpath: the barrel must stay importable from
 // every server runtime (Next.js, the eve agent app, Bun tests).
 export { ObjectId } from "mongodb";
+export type { CandidateAnchor } from "./anchors";
+export { findCandidateAnchors } from "./anchors";
 export type { KnowledgeCollections } from "./collections";
 export { ensureIndexes, getCollections } from "./collections";
 export type {
@@ -21,6 +23,21 @@ export {
   runConsolidation,
   sweepConsolidation,
 } from "./consolidation";
+export type {
+  ContradictionFact,
+  ContradictionRunResult,
+  ContradictionSweepOptions,
+  ContradictionSweepReport,
+  LlmResolution,
+  ParsedContradiction,
+  RunContradictionCheckOptions,
+} from "./contradiction";
+export {
+  buildContradictionPrompt,
+  parseContradictionResponse,
+  runContradictionCheck,
+  sweepContradictions,
+} from "./contradiction";
 export type { Dossier, DossierAnchor } from "./dossier";
 export {
   composeDossier,
@@ -59,6 +76,22 @@ export { createEmailSource, parseInboundSenderMap } from "./inbound";
 export { keys } from "./keys";
 export type { SweepOptions, SweepReport } from "./pipeline";
 export { sweepPipeline } from "./pipeline";
+export type {
+  HybridFactsSearchOptions,
+  RerankableDocument,
+  RerankedDocument,
+  RetrievedFact,
+  RetrieveFactsOptions,
+  VoyageRerankConfig,
+} from "./retrieval";
+export {
+  buildHybridFactsPipeline,
+  createVoyageRerank,
+  FACTS_VECTOR_INDEX_NAME,
+  factsVectorIndexDefinition,
+  rankFusionWeights,
+  retrieveFacts,
+} from "./retrieval";
 export type {
   EntityDecision,
   FactDecision,

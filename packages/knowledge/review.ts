@@ -127,7 +127,18 @@ export const resolveProposalItems = async (
     throw new Error(`Proposal ${proposalId.toHexString()} not found`);
   }
 
-  const planned = planResolution(proposal, entities, factDecisions, resolvedBy);
+  // Event time inputs, loaded before planning so planFactWrite stays a pure
+  // synchronous materializer: an ingestion fact dates from its source's
+  // occurredAt, a merge from the earliest fact it restates.
+  const eventTime = await loadEventTime(collections, tenantId, proposal);
+
+  const planned = planResolution(
+    proposal,
+    entities,
+    factDecisions,
+    resolvedBy,
+    eventTime
+  );
   await validateSupersessions(collections.facts, tenantId, planned.factWrites);
   const writtenAt = new Date();
 
@@ -177,7 +188,17 @@ export const resolveProposalItems = async (
       // written by someone else between validation and here.
       await collections.facts.updateMany(
         { _id: { $in: draft.supersedes }, supersededBy: null, tenantId },
-        { $set: { supersededBy: factId, updatedAt: writtenAt } }
+        {
+          $set: {
+            supersededAt: writtenAt,
+            supersededBy: factId,
+            updatedAt: writtenAt,
+            // Event time closes where the successor's opens: the old fact
+            // stopped being true when the new one started. Without a known
+            // event time, the moment we learned is the best available.
+            validUntil: factDoc.validFrom ?? writtenAt,
+          },
+        }
       );
     }
     await collections.proposals.updateOne(
@@ -293,6 +314,61 @@ const validateSupersessions = async (
   }
 };
 
+// Event time is sourced from documents the planner does not otherwise read,
+// so it is gathered up front in one pass rather than making planning async.
+interface EventTimeContext {
+  /** validFrom of every fact a draft may supersede, keyed by hex id. */
+  parentValidFrom: Map<string, Date>;
+  /** validFrom for facts extracted from this proposal's source. */
+  sourceOccurredAt?: Date;
+}
+
+const loadEventTime = async (
+  collections: ReturnType<typeof getCollections>,
+  tenantId: string,
+  proposal: Proposal
+): Promise<EventTimeContext> => {
+  const parentIds = proposal.factDrafts.flatMap(
+    (draft) => draft.supersedes ?? []
+  );
+  const [source, parents] = await Promise.all([
+    proposal.sourceId
+      ? collections.sources.findOne({ _id: proposal.sourceId, tenantId })
+      : null,
+    parentIds.length > 0
+      ? collections.facts.find({ _id: { $in: parentIds }, tenantId }).toArray()
+      : [],
+  ]);
+
+  const parentValidFrom = new Map<string, Date>();
+  for (const parent of parents) {
+    if (parent.validFrom) {
+      parentValidFrom.set(parent._id.toHexString(), parent.validFrom);
+    }
+  }
+  return { parentValidFrom, sourceOccurredAt: source?.occurredAt ?? undefined };
+};
+
+// Consolidation and contradiction drafts are both derived from existing facts
+// they supersede, so their provenance is derivedFrom rather than a sourceId.
+const derivesFromFacts = (kind: Proposal["kind"]): boolean =>
+  kind === "consolidation" || kind === "contradiction";
+
+// A merge restates its parents, so it has held since the earliest of them did.
+const earliestParentValidFrom = (
+  supersedes: ObjectId[],
+  parentValidFrom: Map<string, Date>
+): Date | undefined => {
+  let earliest: Date | undefined;
+  for (const id of supersedes) {
+    const candidate = parentValidFrom.get(id.toHexString());
+    if (candidate && (!earliest || candidate < earliest)) {
+      earliest = candidate;
+    }
+  }
+  return earliest;
+};
+
 const entityCollectionFor = (
   collections: ReturnType<typeof getCollections>,
   draft: EntityDraft
@@ -372,7 +448,8 @@ const planFactWrite = (
   draft: FactDraft,
   resolvedBy: string,
   entityIdByDraftId: Map<string, ObjectId>,
-  discardedNow: Set<string>
+  discardedNow: Set<string>,
+  eventTime: EventTimeContext
 ): PlannedFact => {
   if (decision.action === "edit" && decision.finalText === undefined) {
     throw new Error(
@@ -380,11 +457,11 @@ const planFactWrite = (
     );
   }
   // Provenance per proposal kind: ingestion facts point at their source,
-  // consolidation facts at the facts they merge (which they also supersede).
-  if (proposal.kind === "consolidation") {
+  // derived facts at the facts they replace (which they also supersede).
+  if (derivesFromFacts(proposal.kind)) {
     if (!draft.supersedes?.length) {
       throw new Error(
-        `factDrafts[${decision.index}]: consolidation drafts must supersede at least one fact`
+        `factDrafts[${decision.index}]: ${proposal.kind} drafts must supersede at least one fact`
       );
     }
   } else if (!proposal.sourceId) {
@@ -406,6 +483,9 @@ const planFactWrite = (
   const factId = deterministicId(
     `${proposal._id.toHexString()}:fact:${decision.index}`
   );
+  const validFrom = derivesFromFacts(proposal.kind)
+    ? earliestParentValidFrom(draft.supersedes ?? [], eventTime.parentValidFrom)
+    : eventTime.sourceOccurredAt;
   const factDoc = factSchema.parse({
     _id: factId,
     anchors: resolveDraftAnchors(draft, decision.index, entityIdByDraftId),
@@ -413,12 +493,13 @@ const planFactWrite = (
     confidence: draft.confidence,
     confirmedBy: resolvedBy,
     createdAt: new Date(),
-    ...(proposal.kind === "consolidation"
+    ...(derivesFromFacts(proposal.kind)
       ? { derivedFrom: draft.supersedes }
       : { sourceId: proposal.sourceId }),
     tenantId: proposal.tenantId,
     text: decision.finalText ?? draft.text,
     updatedAt: new Date(),
+    ...(validFrom ? { validFrom } : {}),
   });
   return { decision, draft, factDoc, factId };
 };
@@ -431,7 +512,8 @@ const planResolution = (
   proposal: Proposal,
   entities: EntityDecision[],
   factDecisions: FactDecision[],
-  resolvedBy: string
+  resolvedBy: string,
+  eventTime: EventTimeContext
 ) => {
   const entityPlan = planEntityDecisions(proposal, entities);
   const discardedNow = new Set(entityPlan.discards);
@@ -457,7 +539,8 @@ const planResolution = (
         draft,
         resolvedBy,
         entityPlan.entityIdByDraftId,
-        discardedNow
+        discardedNow,
+        eventTime
       )
     );
   }

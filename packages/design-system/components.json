@@ -10,12 +10,15 @@
     "cssVariables": true,
     "prefix": ""
   },
+  "iconLibrary": "lucide",
   "aliases": {
     "components": "@repo/design-system/components",
     "utils": "@repo/design-system/lib/utils",
-    "hooks": "@repo/design-system/hooks",
+    "ui": "@repo/design-system/components/ui",
     "lib": "@repo/design-system/lib",
-    "ui": "@repo/design-system/components/ui"
+    "hooks": "@repo/design-system/hooks"
   },
-  "iconLibrary": "lucide"
+  "registries": {
+    "@ai-elements": "https://ai-sdk.dev/elements/api/registry/{name}.json"
+  }
 }

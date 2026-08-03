@@ -76,6 +76,10 @@ export const createEmailSource = async (
       sentAt: email.sentAt,
       subject: email.subject,
     },
+    // Event time, not arrival time: a thread forwarded weeks after the fact
+    // still describes what happened when it was written, and the facts
+    // extracted from it inherit this as their validFrom.
+    occurredAt: email.sentAt,
     status: "received",
     tenantId,
     type: "email",

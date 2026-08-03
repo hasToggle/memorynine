@@ -3,7 +3,6 @@ import type { Db } from "mongodb";
 import { ObjectId } from "mongodb";
 import { z } from "zod";
 import {
-  anchorDraftField,
   anchorFilter,
   anchorNameFor,
   findCandidateAnchors,
@@ -21,83 +20,98 @@ import type { Fact, FactAnchors } from "./schemas/facts";
 import { currentlyValidFilter, factCategoryValues } from "./schemas/facts";
 import { proposalSchema } from "./schemas/proposals";
 
-// The dream cycle: when an anchor accumulates redundant facts, propose
-// merges through the same review gate as everything else. A merge draft
-// supersedes ≥2 currently valid facts; on confirmation the review write
-// path stamps supersededBy and records derivedFrom — nothing here writes
-// knowledge directly.
+// Consolidation only proposes merges that reduce redundancy with zero
+// information loss, so contradictory facts — neither redundant nor mergeable
+// under those rules — are invisible to it. Extraction only sees a recency
+// window of the tenant's facts, so a contradiction between two sources
+// captured months apart is never detected by anything.
+//
+// This sweep closes that gap. Candidates are scoped to one anchor and one
+// category, which is the pairing constraint that keeps the comparison
+// tractable, and every resolution goes through the same review gate as
+// everything else: nothing here writes knowledge directly.
 
-export interface ConsolidationFact {
+export interface ContradictionFact {
   category: string;
   id: string;
   text: string;
+  validFrom?: Date;
 }
 
 const hexObjectId = z.string().regex(/^[0-9a-f]{24}$/);
 
-export const llmMergeSchema = z.object({
+export const llmResolutionSchema = z.object({
   category: z.enum(factCategoryValues),
   confidence: z.number().min(0).max(1),
+  // A resolution always replaces both sides of the contradiction it settles.
   supersedes: z.array(hexObjectId).min(2),
   text: z.string().min(1),
 });
-export type LlmMerge = z.infer<typeof llmMergeSchema>;
+export type LlmResolution = z.infer<typeof llmResolutionSchema>;
 
-export const llmConsolidationSchema = z.union([
+export const llmContradictionSchema = z.union([
   z.strictObject({
     reason: z.string().default(""),
     skip: z.literal(true),
   }),
   z.strictObject({
-    merges: z.array(llmMergeSchema),
+    resolutions: z.array(llmResolutionSchema),
   }),
 ]);
 
-export type ParsedConsolidation =
+export type ParsedContradiction =
   | { kind: "failure"; reason: string }
-  | { kind: "merges"; merges: LlmMerge[] }
+  | { kind: "resolutions"; resolutions: LlmResolution[] }
   | { kind: "skip"; reason: string };
 
-export const buildConsolidationPrompt = ({
+const isoDay = (date: Date | undefined) =>
+  date ? date.toISOString().slice(0, 10) : "unknown";
+
+export const buildContradictionPrompt = ({
   anchorName,
   facts,
 }: {
   anchorName: string;
-  facts: ConsolidationFact[];
+  facts: ContradictionFact[];
 }): string => {
   const factLines = facts
-    .map((fact) => `${fact.id} | ${fact.category} | ${fact.text}`)
+    .map(
+      (fact) =>
+        `${fact.id} | ${fact.category} | since ${isoDay(fact.validFrom)} | ${fact.text}`
+    )
     .join("\n");
 
-  return `You consolidate a company knowledge base. Below are the currently valid facts about "${anchorName}". Reviewers confirm every merge, so propose only merges that reduce redundancy with ZERO information loss — every detail, name, number, and causal link must survive into the merged text.
+  return `You audit a company knowledge base for contradictions. Below are the currently valid facts about "${anchorName}". Every fact here is believed to be true right now, so any pair that cannot both be true is a problem a reviewer must settle.
 
-Facts (id | category | text):
+Facts (id | category | since | text):
 ${factLines}
 
 Return ONLY JSON, no markdown fences, in exactly one of these two shapes:
 
-1. Redundancy found:
-{"merges": [{"text": "<merged fact, one self-contained sentence in the facts' language>", "category": "...", "confidence": 0.0-1.0, "supersedes": ["<fact id>", "<fact id>"]}]}
+1. Contradictions found:
+{"resolutions": [{"text": "<the statement that is true now, one self-contained sentence in the facts' language>", "category": "...", "confidence": 0.0-1.0, "supersedes": ["<fact id>", "<fact id>"]}]}
 
-2. Nothing worth merging:
+2. No contradictions:
 {"skip": true, "reason": "..."}
 
 Rules:
-- A merge must supersede at least TWO of the facts above, and only ids from the list may appear.
-- No fact id may appear in more than one merge.
-- Merge only facts that describe the same subject; never merge unrelated facts into a grab-bag sentence.
-- Do not invent, embellish, or drop information — compress wording, not meaning.
+- Two facts contradict only if they cannot both be true of the same subject at the same time. Different subjects, different time periods, or different aspects are NOT contradictions.
+- A change over time is a contradiction worth resolving: prefer the statement supported by the most recent "since" date, and say so in the resolved text.
+- Facts that merely differ in detail, or that add information, are NOT contradictions — leave them alone.
+- A resolution must supersede at least TWO of the facts above, and only ids from the list may appear.
+- No fact id may appear in more than one resolution.
+- Do not invent information. The resolved text must be supported by the facts it supersedes.
 - Categories: ${factCategoryValues.join(" | ")}.`;
 };
 
-export const parseConsolidationResponse = (
+export const parseContradictionResponse = (
   raw: string
-): ParsedConsolidation => {
+): ParsedContradiction => {
   const text = stripFences(raw);
   if (REFUSAL_REGEX.test(text)) {
     return { kind: "failure", reason: `model refused: ${text.slice(0, 200)}` };
   }
-  const data = extractLastValidObject(text, llmConsolidationSchema);
+  const data = extractLastValidObject(text, llmContradictionSchema);
   if (data === undefined) {
     return {
       kind: "failure",
@@ -107,40 +121,26 @@ export const parseConsolidationResponse = (
   if ("skip" in data) {
     return { kind: "skip", reason: data.reason };
   }
-  if (data.merges.length === 0) {
-    return { kind: "skip", reason: "no merges proposed" };
+  if (data.resolutions.length === 0) {
+    return { kind: "skip", reason: "no contradictions found" };
   }
-  return { kind: "merges", merges: data.merges };
+  return { kind: "resolutions", resolutions: data.resolutions };
 };
 
-export interface RunConsolidationOptions {
-  anchor: DossierAnchor;
-  generate: (prompt: string) => Promise<string>;
-  /** Facts an anchor needs before consolidation is worth an LLM call. */
-  minFacts?: number;
-}
-
-export interface ConsolidationRunResult {
-  proposalId?: ObjectId;
-  reason?: string;
-  status: "failure" | "proposed" | "skipped";
-}
-
-const DEFAULT_MIN_FACTS = 8;
-
-// The model may only merge ids it was shown, each at most once.
-const validateMerges = (
-  merges: LlmMerge[],
+// Same contract as consolidation's validateMerges: the model may only claim
+// ids it was shown, each at most once.
+const validateResolutions = (
+  resolutions: LlmResolution[],
   shownIds: Set<string>
 ): string | null => {
   const claimed = new Set<string>();
-  for (const [index, merge] of merges.entries()) {
-    for (const id of merge.supersedes) {
+  for (const [index, resolution] of resolutions.entries()) {
+    for (const id of resolution.supersedes) {
       if (!shownIds.has(id)) {
-        return `merges[${index}] supersedes unknown fact id ${id}`;
+        return `resolutions[${index}] supersedes unknown fact id ${id}`;
       }
       if (claimed.has(id)) {
-        return `merges[${index}] supersedes fact ${id}, which another merge already claims`;
+        return `resolutions[${index}] supersedes fact ${id}, which another resolution already claims`;
       }
       claimed.add(id);
     }
@@ -148,11 +148,30 @@ const validateMerges = (
   return null;
 };
 
-export const runConsolidation = async (
+export interface RunContradictionCheckOptions {
+  anchor: DossierAnchor;
+  generate: (prompt: string) => Promise<string>;
+  /** Facts an anchor needs before a check is worth an LLM call. Default 2. */
+  minFacts?: number;
+}
+
+export interface ContradictionRunResult {
+  proposalId?: ObjectId;
+  reason?: string;
+  status: "failure" | "proposed" | "skipped";
+}
+
+const DEFAULT_MIN_FACTS = 2;
+
+export const runContradictionCheck = async (
   db: Db,
   tenantId: string,
-  { anchor, generate, minFacts = DEFAULT_MIN_FACTS }: RunConsolidationOptions
-): Promise<ConsolidationRunResult> => {
+  {
+    anchor,
+    generate,
+    minFacts = DEFAULT_MIN_FACTS,
+  }: RunContradictionCheckOptions
+): Promise<ContradictionRunResult> => {
   const collections = getCollections(db);
   const { facts, proposals } = collections;
 
@@ -167,9 +186,8 @@ export const runConsolidation = async (
     };
   }
 
-  // One proposal per (anchor, exact fact set): the deterministic id makes
-  // re-runs idempotent AND remembers a reviewer's "no" — a resolved proposal
-  // for the same fact set blocks re-proposing until the facts change.
+  // One proposal per (anchor, exact fact set), like consolidation: re-runs are
+  // idempotent, and a reviewer's "no" is remembered until the facts change.
   const factSetHash = createHash("md5")
     .update(
       validFacts
@@ -179,60 +197,52 @@ export const runConsolidation = async (
     )
     .digest("hex");
   const proposalId = deterministicId(
-    `${tenantId}:consolidation:${anchor.kind}:${anchor.id.toHexString()}:${factSetHash}`
+    `${tenantId}:contradiction:${anchor.kind}:${anchor.id.toHexString()}:${factSetHash}`
   );
   const existing = await proposals.findOne({ _id: proposalId, tenantId });
   if (existing) {
     return existing.status === "open"
       ? { proposalId, status: "proposed" }
-      : {
-          reason: "this fact set was already reviewed",
-          status: "skipped",
-        };
+      : { reason: "this fact set was already reviewed", status: "skipped" };
   }
-  // Also hold off while ANY open consolidation proposal touches this anchor
-  // (an older fact set still awaiting review) — parallel proposals would
-  // race to supersede the same facts at confirmation time.
   const openForAnchor = await proposals.findOne({
     factDrafts: {
-      $elemMatch: {
-        [`anchors.${Object.keys(anchorDraftField(anchor))[0]}`]: anchor.id,
-      },
+      $elemMatch: { [`anchors.${anchor.kind}Id`]: anchor.id },
     },
-    kind: "consolidation",
+    kind: "contradiction",
     status: "open",
     tenantId,
   });
   if (openForAnchor) {
     return {
-      reason: `open consolidation proposal ${openForAnchor._id.toHexString()} already covers this anchor`,
+      reason: `open contradiction proposal ${openForAnchor._id.toHexString()} already covers this anchor`,
       status: "skipped",
     };
   }
 
   const anchorName = await anchorNameFor(collections, tenantId, anchor);
-
-  const prompt = buildConsolidationPrompt({
+  const prompt = buildContradictionPrompt({
     anchorName,
     facts: validFacts.map((fact) => ({
       category: fact.category,
       id: fact._id.toHexString(),
       text: fact.text,
+      validFrom: fact.validFrom,
     })),
   });
 
-  let parsed: ParsedConsolidation;
+  let parsed: ParsedContradiction;
   try {
-    parsed = parseConsolidationResponse(await generate(prompt));
+    parsed = parseContradictionResponse(await generate(prompt));
   } catch (error) {
     parsed = {
       kind: "failure",
       reason: `generate failed: ${error instanceof Error ? error.message : String(error)}`,
     };
   }
-  if (parsed.kind === "merges") {
-    const problem = validateMerges(
-      parsed.merges,
+  if (parsed.kind === "resolutions") {
+    const problem = validateResolutions(
+      parsed.resolutions,
       new Set(validFacts.map((fact) => fact._id.toHexString()))
     );
     if (problem) {
@@ -246,8 +256,6 @@ export const runConsolidation = async (
     return { reason: parsed.reason, status: "failure" };
   }
 
-  // Resolve each merge's anchors from its parents before writing anything: a
-  // conflict fails the whole run rather than emitting a half-anchored proposal.
   const factsById = new Map(
     validFacts.map((fact) => [fact._id.toHexString(), fact])
   );
@@ -258,23 +266,23 @@ export const runConsolidation = async (
     supersedes: ObjectId[];
     text: string;
   }[] = [];
-  for (const [index, merge] of parsed.merges.entries()) {
-    const parents = merge.supersedes
+  for (const [index, resolution] of parsed.resolutions.entries()) {
+    const parents = resolution.supersedes
       .map((hex) => factsById.get(hex))
       .filter((fact): fact is Fact => Boolean(fact));
     const resolved = unionAnchors(anchor, parents);
     if ("conflict" in resolved) {
       return {
-        reason: `merges[${index}] ${resolved.conflict}`,
+        reason: `resolutions[${index}] ${resolved.conflict}`,
         status: "failure",
       };
     }
     factDrafts.push({
       anchors: resolved.anchors,
-      category: merge.category,
-      confidence: merge.confidence,
-      supersedes: merge.supersedes.map((hex) => new ObjectId(hex)),
-      text: merge.text,
+      category: resolution.category,
+      confidence: resolution.confidence,
+      supersedes: resolution.supersedes.map((hex) => new ObjectId(hex)),
+      text: resolution.text,
     });
   }
 
@@ -284,7 +292,7 @@ export const runConsolidation = async (
     createdAt: writtenAt,
     entityDrafts: [],
     factDrafts,
-    kind: "consolidation",
+    kind: "contradiction",
     status: "open",
     tenantId,
     updatedAt: writtenAt,
@@ -293,28 +301,28 @@ export const runConsolidation = async (
   return { proposalId, status: "proposed" };
 };
 
-export interface ConsolidationSweepOptions {
+export interface ContradictionSweepOptions {
   generate: (prompt: string) => Promise<string>;
   /** Max candidate anchors per sweep. Default 10. */
   limit?: number;
   minFacts?: number;
 }
 
-export interface ConsolidationSweepReport {
+export interface ContradictionSweepReport {
   failures: string[];
   proposed: number;
   skipped: number;
 }
 
-export const sweepConsolidation = async (
+export const sweepContradictions = async (
   db: Db,
   {
     generate,
     limit = 10,
     minFacts = DEFAULT_MIN_FACTS,
-  }: ConsolidationSweepOptions
-): Promise<ConsolidationSweepReport> => {
-  const report: ConsolidationSweepReport = {
+  }: ContradictionSweepOptions
+): Promise<ContradictionSweepReport> => {
+  const report: ContradictionSweepReport = {
     failures: [],
     proposed: 0,
     skipped: 0,
@@ -324,7 +332,7 @@ export const sweepConsolidation = async (
   for (const candidate of candidates) {
     try {
       // biome-ignore lint/performance/noAwaitInLoops: sequential keeps LLM concurrency predictable
-      const result = await runConsolidation(db, candidate.tenantId, {
+      const result = await runContradictionCheck(db, candidate.tenantId, {
         anchor: candidate.anchor,
         generate,
         minFacts,

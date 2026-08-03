@@ -15,6 +15,7 @@ import { currentlyValidFilter } from "../schemas/facts";
 const uri = process.env.MONGODB_TEST_URI;
 const TENANT = "test-tenant";
 const now = () => ({ createdAt: new Date(), updatedAt: new Date() });
+const personAnchorConflictPattern = /personId/;
 
 describe.skipIf(!uri)("runConsolidation", () => {
   const client = new MongoClient(uri ?? "mongodb://localhost:27017");
@@ -91,6 +92,66 @@ describe.skipIf(!uri)("runConsolidation", () => {
     expect(proposal?.factDrafts[0]?.anchors.organizationId?.equals(orgId)).toBe(
       true
     );
+  });
+
+  // Consolidation writes merged drafts under the anchor it ran on. Parents
+  // carrying a person or engagement link lose it, which drops the merged fact
+  // out of that entity's dossier — and out of an anchor-scoped GDPR erasure.
+  const seedFactsWithAnchors = async (extra: Record<string, unknown>[]) => {
+    await facts.deleteMany({});
+    factIds = [];
+    for (let i = 0; i < 4; i += 1) {
+      const _id = new ObjectId();
+      factIds.push(_id);
+      // biome-ignore lint/performance/noAwaitInLoops: tiny fixture setup
+      await facts.insertOne({
+        _id,
+        anchors: { organizationId: orgId, ...(extra[i] ?? {}) },
+        category: "preference",
+        confidence: 0.8,
+        confirmedBy: "user_ceo1",
+        sourceId: new ObjectId(),
+        tenantId: TENANT,
+        text: `Fakt Nummer ${i}.`,
+        ...now(),
+      });
+    }
+  };
+
+  test("merged drafts carry the union of their parents' anchors", async () => {
+    const personId = new ObjectId();
+    const engagementId = new ObjectId();
+    await seedFactsWithAnchors([{ personId }, { engagementId }]);
+
+    const result = await runConsolidation(db, TENANT, {
+      anchor,
+      generate: () => Promise.resolve(mergeReply()),
+      minFacts: 3,
+    });
+
+    expect(result.status).toBe("proposed");
+    const proposal = await proposals.findOne({ _id: result.proposalId });
+    const anchors = proposal?.factDrafts[0]?.anchors;
+    expect(anchors?.organizationId?.equals(orgId)).toBe(true);
+    expect(anchors?.personId?.equals(personId)).toBe(true);
+    expect(anchors?.engagementId?.equals(engagementId)).toBe(true);
+  });
+
+  test("rejects a merge whose parents disagree on an anchor", async () => {
+    await seedFactsWithAnchors([
+      { personId: new ObjectId() },
+      { personId: new ObjectId() },
+    ]);
+
+    const result = await runConsolidation(db, TENANT, {
+      anchor,
+      generate: () => Promise.resolve(mergeReply()),
+      minFacts: 3,
+    });
+
+    expect(result.status).toBe("failure");
+    expect(result.reason).toMatch(personAnchorConflictPattern);
+    expect(await proposals.countDocuments({})).toBe(0);
   });
 
   test("a confirmed consolidation retires the merged facts end to end", async () => {

@@ -47,11 +47,19 @@ export const factSchema = z
     // Stubbed for later semantic search (EU embedding provider).
     embedding: z.array(z.number()).optional(),
     sourceId: zodObjectId.optional(),
+    // System time end, written alongside supersededBy: when we stopped
+    // believing this fact. validUntil says when it stopped being *true* —
+    // the two differ whenever we learn about a change after it happened.
+    supersededAt: z.date().nullish(),
     // Lifecycle fields are nullish, not just optional: the convention treats
     // null and missing alike, so the stored form the filter tolerates (and
     // the driver's Filter type derives from) must admit null too.
     supersededBy: zodObjectId.nullish(),
     text: z.string().min(1),
+    // Event time start: when the fact became true in the world, as distinct
+    // from createdAt (when we recorded it). An ingestion fact inherits it
+    // from its source's occurredAt; a merge inherits its earliest parent's.
+    validFrom: z.date().optional(),
     // Lifecycle (dream cycle): a fact is currently valid iff BOTH are absent.
     validUntil: z.date().nullish(),
   })

@@ -19,8 +19,12 @@ import { revalidatePath } from "next/cache";
 
 export interface ErasePersonActionResult {
   blobsDeleted: number;
+  /** Consolidated facts removed because a parent fact was erased. */
+  derivedFactsDeleted: number;
   error?: string;
   factsDeleted: number;
+  /** Facts anchored elsewhere whose text still named the person. */
+  factsRedacted: number;
   personDeleted: boolean;
   proposalsRedacted: number;
   sourcesRedacted: number;
@@ -34,8 +38,10 @@ export const erasePersonAction = async (
   const { orgId } = await auth();
   const failed = (error: string): ErasePersonActionResult => ({
     blobsDeleted: 0,
+    derivedFactsDeleted: 0,
     error,
     factsDeleted: 0,
+    factsRedacted: 0,
     personDeleted: false,
     proposalsRedacted: 0,
     sourcesRedacted: 0,
@@ -69,7 +75,9 @@ export const erasePersonAction = async (
   revalidatePath("/review");
   return {
     blobsDeleted,
+    derivedFactsDeleted: report.derivedFactsDeleted,
     factsDeleted: report.factsDeleted,
+    factsRedacted: report.factsRedacted,
     personDeleted: report.personDeleted,
     proposalsRedacted: report.proposalsRedacted,
     sourcesRedacted: report.sourcesRedacted,

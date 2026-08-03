@@ -53,7 +53,10 @@ export const proposalSchema = z.object({
   ...baseDocFields,
   entityDrafts: z.array(entityDraftSchema),
   factDrafts: z.array(factDraftSchema),
-  kind: z.enum(["ingestion", "consolidation"]),
+  // ingestion: drafts extracted from a source, provenance is that sourceId.
+  // consolidation / contradiction: drafts derived from existing facts, which
+  // they supersede — their provenance is derivedFrom, not a source.
+  kind: z.enum(["ingestion", "consolidation", "contradiction"]),
   resolvedAt: z.date().optional(),
   resolvedBy: z.string().optional(),
   sourceId: zodObjectId.optional(),
