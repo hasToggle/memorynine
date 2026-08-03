@@ -7,6 +7,7 @@ import {
 } from "@repo/knowledge";
 import { getKnowledgeDb } from "@repo/knowledge/client";
 import { del, issueSignedToken, presignUrl } from "@repo/storage";
+import { requireCronSecret } from "../auth";
 
 // Transcription polling dominates the runtime; a busy sweep with several
 // voice memos needs more than the default function budget.
@@ -33,11 +34,9 @@ const resolveAudioUrl = async (blobUrl: string): Promise<string> => {
 };
 
 export const GET = async (request: Request) => {
-  // Vercel Cron sends `authorization: Bearer ${CRON_SECRET}` when the env
-  // var is set. Without the secret configured, the route stays open (dev).
-  const secret = process.env.CRON_SECRET;
-  if (secret && request.headers.get("authorization") !== `Bearer ${secret}`) {
-    return new Response("Unauthorized", { status: 401 });
+  const unauthorized = requireCronSecret(request);
+  if (unauthorized) {
+    return unauthorized;
   }
 
   const db = getKnowledgeDb();

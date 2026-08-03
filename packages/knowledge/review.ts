@@ -349,6 +349,11 @@ const loadEventTime = async (
   return { parentValidFrom, sourceOccurredAt: source?.occurredAt ?? undefined };
 };
 
+// Consolidation and contradiction drafts are both derived from existing facts
+// they supersede, so their provenance is derivedFrom rather than a sourceId.
+const derivesFromFacts = (kind: Proposal["kind"]): boolean =>
+  kind === "consolidation" || kind === "contradiction";
+
 // A merge restates its parents, so it has held since the earliest of them did.
 const earliestParentValidFrom = (
   supersedes: ObjectId[],
@@ -452,11 +457,11 @@ const planFactWrite = (
     );
   }
   // Provenance per proposal kind: ingestion facts point at their source,
-  // consolidation facts at the facts they merge (which they also supersede).
-  if (proposal.kind === "consolidation") {
+  // derived facts at the facts they replace (which they also supersede).
+  if (derivesFromFacts(proposal.kind)) {
     if (!draft.supersedes?.length) {
       throw new Error(
-        `factDrafts[${decision.index}]: consolidation drafts must supersede at least one fact`
+        `factDrafts[${decision.index}]: ${proposal.kind} drafts must supersede at least one fact`
       );
     }
   } else if (!proposal.sourceId) {
@@ -478,13 +483,9 @@ const planFactWrite = (
   const factId = deterministicId(
     `${proposal._id.toHexString()}:fact:${decision.index}`
   );
-  const validFrom =
-    proposal.kind === "consolidation"
-      ? earliestParentValidFrom(
-          draft.supersedes ?? [],
-          eventTime.parentValidFrom
-        )
-      : eventTime.sourceOccurredAt;
+  const validFrom = derivesFromFacts(proposal.kind)
+    ? earliestParentValidFrom(draft.supersedes ?? [], eventTime.parentValidFrom)
+    : eventTime.sourceOccurredAt;
   const factDoc = factSchema.parse({
     _id: factId,
     anchors: resolveDraftAnchors(draft, decision.index, entityIdByDraftId),
@@ -492,7 +493,7 @@ const planFactWrite = (
     confidence: draft.confidence,
     confirmedBy: resolvedBy,
     createdAt: new Date(),
-    ...(proposal.kind === "consolidation"
+    ...(derivesFromFacts(proposal.kind)
       ? { derivedFrom: draft.supersedes }
       : { sourceId: proposal.sourceId }),
     tenantId: proposal.tenantId,
