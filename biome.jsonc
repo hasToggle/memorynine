@@ -12,6 +12,9 @@
     "includes": [
       "**/*",
       "!packages/design-system/components/ui",
+      // Vendored from the AI Elements registry, same as components/ui above.
+      // The two files we patched carry a comment explaining why.
+      "!packages/design-system/components/ai-elements",
       "!packages/design-system/lib",
       "!packages/design-system/hooks",
       "!packages/collaboration/config.ts",

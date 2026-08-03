@@ -288,3 +288,7 @@ packages/database/generated
 
 # Superpowers brainstorming companion
 .superpowers/
+
+# eve build artifacts
+.eve/
+.output/
