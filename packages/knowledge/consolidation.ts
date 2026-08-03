@@ -10,6 +10,7 @@ import {
   REFUSAL_REGEX,
   stripFences,
 } from "./llm-reply";
+import type { Fact, FactAnchors } from "./schemas/facts";
 import { currentlyValidFilter, factCategoryValues } from "./schemas/facts";
 import { proposalSchema } from "./schemas/proposals";
 
@@ -142,6 +143,41 @@ const anchorDraftField = (anchor: DossierAnchor) => {
   }
 };
 
+// A merge inherits every anchor its parents carried, not only the anchor the
+// consolidation ran on. Narrowing to the run anchor drops a merged fact out of
+// the other entities' dossiers — and out of an anchor-scoped GDPR erasure,
+// which is how a person's name survives in an org-anchored merge.
+//
+// Parents that disagree are a genuine ambiguity: factAnchorsSchema has one slot
+// per kind, so a merge spanning two people cannot be represented. Reject rather
+// than silently keep one, matching how validateMerges treats bad ids.
+const mergeAnchors = (
+  anchor: DossierAnchor,
+  parents: Fact[]
+): { anchors: FactAnchors } | { conflict: string } => {
+  const union: Record<string, ObjectId> = {};
+  for (const [key, value] of Object.entries(anchorDraftField(anchor))) {
+    if (value) {
+      union[key] = value;
+    }
+  }
+  for (const parent of parents) {
+    for (const [key, value] of Object.entries(parent.anchors)) {
+      if (!value) {
+        continue;
+      }
+      const existing = union[key];
+      if (existing && !existing.equals(value)) {
+        return {
+          conflict: `parents disagree on ${key} (${existing.toHexString()} vs ${value.toHexString()})`,
+        };
+      }
+      union[key] = value;
+    }
+  }
+  return { anchors: union as FactAnchors };
+};
+
 // The model may only merge ids it was shown, each at most once.
 const validateMerges = (
   merges: LlmMerge[],
@@ -271,18 +307,44 @@ export const runConsolidation = async (
     return { reason: parsed.reason, status: "failure" };
   }
 
+  // Resolve each merge's anchors from its parents before writing anything: a
+  // conflict fails the whole run rather than emitting a half-anchored proposal.
+  const factsById = new Map(
+    validFacts.map((fact) => [fact._id.toHexString(), fact])
+  );
+  const factDrafts: {
+    anchors: FactAnchors;
+    category: string;
+    confidence: number;
+    supersedes: ObjectId[];
+    text: string;
+  }[] = [];
+  for (const [index, merge] of parsed.merges.entries()) {
+    const parents = merge.supersedes
+      .map((hex) => factsById.get(hex))
+      .filter((fact): fact is Fact => Boolean(fact));
+    const resolved = mergeAnchors(anchor, parents);
+    if ("conflict" in resolved) {
+      return {
+        reason: `merges[${index}] ${resolved.conflict}`,
+        status: "failure",
+      };
+    }
+    factDrafts.push({
+      anchors: resolved.anchors,
+      category: merge.category,
+      confidence: merge.confidence,
+      supersedes: merge.supersedes.map((hex) => new ObjectId(hex)),
+      text: merge.text,
+    });
+  }
+
   const writtenAt = new Date();
   const doc = proposalSchema.parse({
     _id: proposalId,
     createdAt: writtenAt,
     entityDrafts: [],
-    factDrafts: parsed.merges.map((merge) => ({
-      anchors: anchorDraftField(anchor),
-      category: merge.category,
-      confidence: merge.confidence,
-      supersedes: merge.supersedes.map((hex) => new ObjectId(hex)),
-      text: merge.text,
-    })),
+    factDrafts,
     kind: "consolidation",
     status: "open",
     tenantId,

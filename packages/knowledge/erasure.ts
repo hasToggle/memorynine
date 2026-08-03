@@ -1,15 +1,25 @@
 import type { Collection, Db, ObjectId } from "mongodb";
 import { getCollections } from "./collections";
 import type { Person } from "./schemas/entities";
+import type { Fact } from "./schemas/facts";
 import type { Proposal } from "./schemas/proposals";
 import type { Source } from "./schemas/sources";
 
 const REDACTED = "[REDACTED]";
 
+// Depth cap for the derivedFrom walk. Consolidation merges of merges are rare
+// and shallow; the cap plus the visited set makes a cycle (derivedFrom is
+// written through an LLM-proposed review path) terminate instead of hanging.
+const MAX_DERIVATION_DEPTH = 8;
+
 export interface ErasureReport {
+  /** Consolidated facts deleted because a parent fact was erased. */
+  derivedFactsDeleted: number;
   /** Derived caches dropped wholesale; they rebuild lazily on next refresh. */
   dossiersDeleted: number;
   factsDeleted: number;
+  /** Surviving facts whose text still mentioned the person. */
+  factsRedacted: number;
   /** Audio and attachment blobs whose source no longer backs any fact. */
   orphanedBlobUrls: string[];
   personDeleted: boolean;
@@ -107,6 +117,76 @@ const redactSources = async (
     );
   }
   return redacted;
+};
+
+// Facts anchored elsewhere (an organization, an engagement) can still name the
+// person in their text — consolidation in particular merges under a single
+// anchor, so a person's statement ends up on an org-anchored fact. Deleting by
+// anchor alone leaves those identifiers behind.
+const redactFacts = async (
+  facts: Collection<Fact>,
+  tenantId: string,
+  { probe, redact }: Redactor
+): Promise<number> => {
+  const candidates = await facts
+    .find({ tenantId, text: { $regex: probe } })
+    .toArray();
+
+  let redacted = 0;
+  for (const fact of candidates) {
+    const text = redact(fact.text);
+    if (text === fact.text) {
+      continue;
+    }
+    redacted += 1;
+    // biome-ignore lint/performance/noAwaitInLoops: sequential redaction is deliberate — erasure is a rare admin operation over a small set of documents
+    await facts.updateOne(
+      { _id: fact._id, tenantId },
+      { $set: { text, updatedAt: new Date() } }
+    );
+  }
+  return redacted;
+};
+
+// A consolidation merge is lossless by construction ("ZERO information loss"),
+// so a fact derived from an erased person's fact still carries that person's
+// information — and its provenance now points at a deleted parent. Walk the
+// derivation graph forward from the deleted seeds and delete every descendant.
+const deleteDerivedFacts = async (
+  facts: Collection<Fact>,
+  tenantId: string,
+  seedIds: ObjectId[]
+): Promise<number> => {
+  const visited = new Set(seedIds.map((id) => id.toHexString()));
+  let frontier = seedIds;
+  let deleted = 0;
+
+  for (let depth = 0; depth < MAX_DERIVATION_DEPTH; depth += 1) {
+    if (frontier.length === 0) {
+      break;
+    }
+    // biome-ignore lint/performance/noAwaitInLoops: the walk is inherently sequential — each generation's ids come from the previous one
+    const children = await facts
+      .find({ derivedFrom: { $in: frontier }, tenantId })
+      .toArray();
+    const fresh = children.filter(
+      (child) => !visited.has(child._id.toHexString())
+    );
+    if (fresh.length === 0) {
+      break;
+    }
+    for (const child of fresh) {
+      visited.add(child._id.toHexString());
+    }
+    const ids = fresh.map((child) => child._id);
+    const { deletedCount } = await facts.deleteMany({
+      _id: { $in: ids },
+      tenantId,
+    });
+    deleted += deletedCount;
+    frontier = ids;
+  }
+  return deleted;
 };
 
 // Redact string values (and string-array items) in an entity draft's loose
@@ -259,8 +339,10 @@ export const erasePerson = async (
   const person = await people.findOne({ _id: personId, tenantId });
   if (!person) {
     return {
+      derivedFactsDeleted: 0,
       dossiersDeleted: 0,
       factsDeleted: 0,
+      factsRedacted: 0,
       orphanedBlobUrls: [],
       personDeleted: false,
       proposalsRedacted: 0,
@@ -272,8 +354,20 @@ export const erasePerson = async (
   // 1. Delete every fact anchored to the person; remember affected sources.
   const personFactFilter = { "anchors.personId": personId, tenantId };
   const affectedSourceIds = await facts.distinct("sourceId", personFactFilter);
+  const personFactIds = await facts.distinct("_id", personFactFilter);
   const { deletedCount: factsDeleted } =
     await facts.deleteMany(personFactFilter);
+
+  // 1b. Delete facts consolidated from those facts. An anchor-scoped delete
+  //     cannot see them: consolidation writes merged facts under a single
+  //     anchor, so a merge of a person fact and an org fact is anchored to the
+  //     org alone — while still carrying the person's information and a now
+  //     dangling derivedFrom pointer.
+  const derivedFactsDeleted = await deleteDerivedFacts(
+    facts,
+    tenantId,
+    personFactIds
+  );
 
   // 2. Discard pending fact drafts about the person in open proposals.
   //    Already-reviewed drafts keep their status: the audit trail records
@@ -297,9 +391,12 @@ export const erasePerson = async (
   const redactor = buildRedactor(person);
   let sourcesRedacted = 0;
   let proposalsRedacted = 0;
+  let factsRedacted = 0;
   if (redactor) {
     sourcesRedacted = await redactSources(sources, tenantId, redactor);
     proposalsRedacted = await redactProposals(proposals, tenantId, redactor);
+    // Facts anchored to other entities may still name the person in their text.
+    factsRedacted = await redactFacts(facts, tenantId, redactor);
   }
 
   // 4. Report audio and attachment blobs whose source no longer backs any
@@ -344,8 +441,10 @@ export const erasePerson = async (
   await people.deleteOne({ _id: personId, tenantId });
 
   return {
+    derivedFactsDeleted,
     dossiersDeleted,
     factsDeleted,
+    factsRedacted,
     orphanedBlobUrls,
     personDeleted: true,
     proposalsRedacted,

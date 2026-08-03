@@ -32,7 +32,7 @@ export const PersonRow = ({ person }: { person: PersonListItem }) => {
         return;
       }
       setSummary(
-        `Erased: ${result.factsDeleted} facts deleted, ${result.sourcesRedacted} sources and ${result.proposalsRedacted} proposals redacted, ${result.blobsDeleted} audio blobs removed.`
+        `Erased: ${result.factsDeleted + result.derivedFactsDeleted} facts deleted (${result.derivedFactsDeleted} consolidated), ${result.factsRedacted} facts, ${result.sourcesRedacted} sources and ${result.proposalsRedacted} proposals redacted, ${result.blobsDeleted} audio blobs removed.`
       );
       router.refresh();
     });
