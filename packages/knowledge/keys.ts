@@ -10,6 +10,7 @@ export const keys = () =>
       KNOWLEDGE_INBOUND_SENDERS: process.env.KNOWLEDGE_INBOUND_SENDERS,
       KNOWLEDGE_MONGODB_DB: process.env.KNOWLEDGE_MONGODB_DB,
       KNOWLEDGE_MONGODB_URI: process.env.KNOWLEDGE_MONGODB_URI,
+      VOYAGE_API_KEY: process.env.VOYAGE_API_KEY,
     },
     server: {
       // Optional here: only the pipeline workers need these, and each
@@ -21,5 +22,7 @@ export const keys = () =>
       KNOWLEDGE_INBOUND_SENDERS: z.string().min(1).optional(),
       KNOWLEDGE_MONGODB_DB: z.string().min(1).optional(),
       KNOWLEDGE_MONGODB_URI: z.string().min(1),
+      /** Cross-encoder reranking on the read path. */
+      VOYAGE_API_KEY: z.string().min(1).optional(),
     },
   });

@@ -5,6 +5,10 @@
 import { MongoClient } from "mongodb";
 import { ensureIndexes } from "../collections";
 import {
+  FACTS_VECTOR_INDEX_NAME,
+  factsVectorIndexDefinition,
+} from "../retrieval";
+import {
   FACTS_SEARCH_INDEX_NAME,
   factsSearchIndexDefinition,
   ORGANIZATIONS_SEARCH_INDEX_NAME,
@@ -13,21 +17,34 @@ import {
   peopleSearchIndexDefinition,
 } from "../search";
 
+// Note the fourth entry: three text indexes was the M0 ceiling, and the
+// vector index takes this past it. The autoEmbed index also needs a tier
+// that supports Automated Embedding — M0/Flex/M10+ — so an M0 cluster will
+// reject it and the script will report that rather than pretend it worked.
 const SEARCH_INDEXES = [
   {
     collection: "facts",
     definition: factsSearchIndexDefinition,
     name: FACTS_SEARCH_INDEX_NAME,
+    type: "search",
+  },
+  {
+    collection: "facts",
+    definition: factsVectorIndexDefinition,
+    name: FACTS_VECTOR_INDEX_NAME,
+    type: "vectorSearch",
   },
   {
     collection: "organizations",
     definition: organizationsSearchIndexDefinition,
     name: ORGANIZATIONS_SEARCH_INDEX_NAME,
+    type: "search",
   },
   {
     collection: "people",
     definition: peopleSearchIndexDefinition,
     name: PEOPLE_SEARCH_INDEX_NAME,
+    type: "search",
   },
 ] as const;
 
@@ -54,7 +71,7 @@ const run = async () => {
     await ensureIndexes(db);
     console.log("Regular indexes ensured.");
 
-    for (const { collection, definition, name } of SEARCH_INDEXES) {
+    for (const { collection, definition, name, type } of SEARCH_INDEXES) {
       let existing: { name?: string }[] = [];
       try {
         // biome-ignore lint/performance/noAwaitInLoops: sequential one-time setup script
@@ -76,8 +93,10 @@ const run = async () => {
         console.log(`Search index "${name}" already exists.`);
         continue;
       }
-      await db.collection(collection).createSearchIndex({ definition, name });
-      console.log(`Search index "${name}" created (builds async).`);
+      await db
+        .collection(collection)
+        .createSearchIndex({ definition, name, type });
+      console.log(`Search index "${name}" (${type}) created (builds async).`);
     }
   } finally {
     await client.close();

@@ -77,6 +77,22 @@ export { keys } from "./keys";
 export type { SweepOptions, SweepReport } from "./pipeline";
 export { sweepPipeline } from "./pipeline";
 export type {
+  HybridFactsSearchOptions,
+  RerankableDocument,
+  RerankedDocument,
+  RetrievedFact,
+  RetrieveFactsOptions,
+  VoyageRerankConfig,
+} from "./retrieval";
+export {
+  buildHybridFactsPipeline,
+  createVoyageRerank,
+  FACTS_VECTOR_INDEX_NAME,
+  factsVectorIndexDefinition,
+  rankFusionWeights,
+  retrieveFacts,
+} from "./retrieval";
+export type {
   EntityDecision,
   FactDecision,
   ResolveProposalItemsInput,
