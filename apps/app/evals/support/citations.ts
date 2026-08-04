@@ -14,17 +14,28 @@ export const citedIds = (reply: string | null): string[] =>
   [...(reply ?? "").matchAll(FACT_TAG)].map((match) => match[1] as string);
 
 interface SearchOutput {
-  facts?: { id: string }[];
+  facts?: { id: string; text: string }[];
 }
+
+/**
+ * Every fact search-knowledge returned in a session, keyed by id, with the
+ * fact text alongside it. `returnedIds` is the id-only projection of this;
+ * evals that need to inspect *what* a cited fact actually says (abstention)
+ * need the text too, so this is the base helper and `returnedIds` is built
+ * on top of it rather than duplicating the tool-output walk.
+ */
+export const returnedFacts = (
+  toolCalls: readonly { name: string; output?: unknown }[]
+): Map<string, string> => {
+  const facts = new Map<string, string>();
+  for (const call of toolCalls) {
+    for (const fact of (call.output as SearchOutput | undefined)?.facts ?? []) {
+      facts.set(fact.id, fact.text);
+    }
+  }
+  return facts;
+};
 
 export const returnedIds = (
   toolCalls: readonly { name: string; output?: unknown }[]
-): Set<string> => {
-  const ids = new Set<string>();
-  for (const call of toolCalls) {
-    for (const fact of (call.output as SearchOutput | undefined)?.facts ?? []) {
-      ids.add(fact.id);
-    }
-  }
-  return ids;
-};
+): Set<string> => new Set(returnedFacts(toolCalls).keys());

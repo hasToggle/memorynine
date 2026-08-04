@@ -351,6 +351,63 @@ verification against a live gateway.
 
 ---
 
+## F9 — No relevance floor on the read path: retrieval never comes back empty
+
+**Status:** open · **Severity:** medium (product design gap, not a bug) · **not fixed on this branch, by design**
+
+`abstention.eval.ts`'s first live run, against a real Atlas cluster, asked
+about "Quintus Federweiß von der Zabelthorpe Holding" — a person and an
+organization that do not exist anywhere in the corpus — and
+`search-knowledge` still came back with five facts: about Thorsten
+Wiechmann, Sabine Ohlsen, Petra Lindqvist and Jonas Reimer, none of them
+connected to the question in any way. The eval's original assertion (no
+`<fact id="…">` marker at all in an answer about a nonexistent person)
+failed, even though the agent answered correctly — it cited one of the
+five and said explicitly that the base held nothing on the person or
+organization actually asked about. The judge scored that response 100%.
+
+The cause is structural, not incidental. `packages/knowledge/retrieval.ts`
+fuses two arms with `$rankFusion`:
+
+- **Semantic arm:** `$vectorSearch` (`retrieval.ts:123-134`) returns its `k`
+  nearest neighbours by construction — cosine distance to *something* is
+  always defined, so there is no threshold below which a candidate is
+  dropped for being too dissimilar. The nearest neighbour to a query about a
+  person is returned whether it is 90% similar or barely related at all.
+- **Lexical arm:** the `$search` compound query (`retrieval.ts:97-117`) uses
+  `fuzzy: { maxEdits: 1 }`, which further widens the match rather than
+  narrowing it, and carries no minimum score either.
+
+Neither arm, nor the `$rankFusion` stage combining them, nor the optional
+Voyage reranker downstream, has a cutoff. So "the search comes back empty"
+is not a state `search-knowledge` can reach for any non-empty tenant corpus,
+regardless of how unrelated the query is to everything stored. The only
+thing that ever distinguishes "the base genuinely has nothing on this" from
+"the base has facts, and none of them are relevant" is the model's own
+judgement about what it was handed — there is no signal earlier in the
+pipeline it could consult instead.
+
+**Consequence for the eval suite:** `abstention.eval.ts` was rewritten (this
+finding's originating commit) to assert what is actually checkable given
+this: no fact the agent *cites* is itself about the asked-about entity,
+plus a judge call on whether the surrounding prose reads as "we have
+nothing" rather than as an answer. That is now the full extent of what a
+deterministic gate can promise here — retrieval provides no signal to check
+against, so the abstention property rests entirely on the model choosing
+not to over-claim relevance for what it was handed.
+
+**Fix:** not applied — this is a design decision for the maintainer, not a
+bug to patch reflexively. A relevance floor is a real option (e.g. a
+minimum fused/rerank score before a candidate is surfaced to the model at
+all, or before it is offered as citable), but it trades against recall on
+genuinely relevant-but-lexically-distant matches, and picking a threshold
+needs real traffic, not this synthetic corpus (see "What is deliberately
+NOT covered" in `evals/README.md` on why retrieval A/B tuning isn't done
+here). Flagging the gap is this finding's whole job; closing it is a
+separate, later decision.
+
+---
+
 ## Deferred minors
 
 Minor findings recorded during implementation review (see
