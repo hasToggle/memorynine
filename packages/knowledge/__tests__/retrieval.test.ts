@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { Document } from "mongodb";
 import { ObjectId } from "mongodb";
-import type { UsageContext } from "../gateway";
+import type { GatewayUsage, UsageContext } from "../gateway";
 import {
   buildHybridFactsPipeline,
   createVoyageRerank,
@@ -191,7 +191,7 @@ describe("createVoyageRerank", () => {
   });
 
   test("reports estimated usage from the token count it is given", async () => {
-    const seen: { estimated?: boolean; gatewayCost: number }[] = [];
+    const seen: GatewayUsage[] = [];
     const rerank = createVoyageRerank<{ text: string }>({
       apiKey: "test",
       fetchImpl: () =>
@@ -205,15 +205,27 @@ describe("createVoyageRerank", () => {
           )
         ),
       onUsage: (usage) => {
-        seen.push({ estimated: true, gatewayCost: usage.gatewayCost });
+        seen.push(usage);
       },
     });
 
     await rerank("q", [{ text: "a" }]);
 
     expect(seen).toHaveLength(1);
+    const [reportedUsage] = seen as [GatewayUsage];
     // One million tokens at the documented rate.
-    expect(seen[0]?.gatewayCost).toBeCloseTo(RERANK_COST_PER_MILLION_TOKENS, 6);
+    expect(reportedUsage.gatewayCost).toBeCloseTo(
+      RERANK_COST_PER_MILLION_TOKENS,
+      6
+    );
+    // Invariant that must hold for every usage row this system writes, from
+    // any source: gatewayCost === inferenceCost + surchargeCost. Rerank has
+    // no surcharge, so this also pins surchargeCost at 0 rather than letting
+    // it silently drift back to a fabricated copy of the total.
+    expect(reportedUsage.surchargeCost).toBe(0);
+    expect(reportedUsage.gatewayCost).toBe(
+      reportedUsage.inferenceCost + reportedUsage.surchargeCost
+    );
   });
 
   test("flags the context as estimated so recordUsage can mark the row", async () => {

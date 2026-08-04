@@ -311,12 +311,18 @@ export const createVoyageRerank = <T extends RerankableDocument>(
       const usage: GatewayUsage = {
         cachedTokens: 0,
         completionTokens: 0,
+        // Rerank has no surcharge — the estimated figure IS the inference
+        // cost. gatewayCost === inferenceCost + surchargeCost must hold for
+        // every row this system writes, from any source; setting
+        // surchargeCost to `cost` here would fabricate a surcharge that was
+        // never charged and double the true figure once gatewayCost is
+        // summed against it.
         gatewayCost: cost,
         inferenceCost: cost,
         model,
         promptTokens: totalTokens,
         reasoningTokens: 0,
-        surchargeCost: cost,
+        surchargeCost: 0,
       };
       // Telemetry must never fail the rerank call it's reporting on — same
       // contract as the gateway's onUsage.
