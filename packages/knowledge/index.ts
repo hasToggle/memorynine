@@ -146,3 +146,4 @@ export {
   DEFAULT_PII_POLICIES,
   runTranscription,
 } from "./transcription";
+export { createUsageRecorder, recordUsage } from "./usage";

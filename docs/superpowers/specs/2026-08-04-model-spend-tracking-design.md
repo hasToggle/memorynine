@@ -92,20 +92,32 @@ export interface GatewayUsage {
   gatewayCost: number;
 }
 
+// Passed PER CALL, not baked into GatewayConfig at construction time: one
+// `generate` is built once at the cron layer and shared across every tenant
+// in a sweep, so a client-scoped tenant id would mis-attribute every row to
+// whichever tenant happened to be active when the client was constructed.
+export interface UsageContext {
+  correlationId?: string;
+  operation: string;
+  tenantId: string;
+}
+
 export interface GatewayConfig {
   // …existing fields…
-  onUsage?: (usage: GatewayUsage) => void;
+  onUsage?: (usage: GatewayUsage, context?: UsageContext) => void;
 }
 ```
 
-The callback is fire-and-forget and must never throw into the caller: a
-telemetry failure must not fail an extraction. `createGatewayGenerate` wraps the
-invocation in a try/catch and swallows.
+The generate function's signature becomes `(prompt: string, context?:
+UsageContext) => Promise<string>`. The callback is fire-and-forget and must
+never throw into the caller: a telemetry failure must not fail an extraction.
+`createGatewayGenerate` wraps the invocation in a try/catch and swallows.
 
 **`createGatewayGenerate` does not write to MongoDB.** It stays a thin HTTP
 client with no database dependency — that is what lets the eval scripts use it
 with no cluster at all. The caller, which is the only thing that knows the
-tenant and the operation, decides what to do with the usage.
+tenant and the operation for a given call, passes both in as `context` on that
+call and decides what to do with the usage.
 
 ### Storage
 
