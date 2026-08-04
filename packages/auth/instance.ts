@@ -32,7 +32,11 @@ const client =
 if (process.env.NODE_ENV !== "production") {
   globalForAuth.authMongo = client;
 }
-const db = client.db();
+// MONGODB_URI has no database path, so the driver would otherwise default to
+// "test". @repo/database resolves the same URI to "app" — this must agree,
+// or every better-auth collection (user, session, organization, member, …)
+// lives somewhere no other consumer of MONGODB_URI ever looks.
+const db = client.db(process.env.MONGODB_DB ?? "app");
 
 export const authInstance = betterAuth({
   baseURL: keys().BETTER_AUTH_URL,

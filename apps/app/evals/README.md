@@ -22,9 +22,9 @@ would measure model self-agreement, not correctness.
 
 ```bash
 cd apps/app
-bunx eve eval                 # all — DO NOT run this bare, see "Why two passes" below
-bunx eve eval citations       # one
-bunx eve eval --strict        # soft threshold misses fail too (use in CI)
+EVAL_TENANT_ID=eval-tenant-alpha bunx eve eval                 # all — DO NOT run this bare, see "Why two passes" below
+EVAL_TENANT_ID=eval-tenant-alpha bunx eve eval citations       # one
+EVAL_TENANT_ID=eval-tenant-alpha bunx eve eval --exclude-tag mutates-db --strict   # soft threshold misses fail too (use in CI)
 ```
 
 ## What these need
@@ -38,7 +38,7 @@ Unlike the `@repo/knowledge` unit suite, none of this is hermetic:
   (`bun scripts/setup-indexes.ts` in `packages/knowledge`). Without
   `facts_search` and `facts_vector` the search tool errors and every eval
   fails for the same uninteresting reason.
-- **A tenant with facts in it** (`bun scripts/seed-evals.ts`). `citations`
+- **A tenant with facts in it** (`bun scripts/seed-evals.cli.ts`). `citations`
   asserts a property that only has teeth once search returns something;
   against an empty tenant it passes vacuously, which is why it also checks
   that a non-empty result set produced at least one citation.
@@ -131,7 +131,7 @@ actually trying to measure.
 
 ```bash
 cd packages/knowledge
-KNOWLEDGE_MONGODB_URI=… bun scripts/seed-evals.ts
+KNOWLEDGE_MONGODB_URI=… bun scripts/seed-evals.cli.ts
 ```
 
 Wipes and reseeds only the two eval tenants (`eval-tenant-alpha`,
@@ -140,6 +140,17 @@ Wipes and reseeds only the two eval tenants (`eval-tenant-alpha`,
 tenant data removes only fixture rows. Idempotent; rerun any time the corpus
 needs to be reset to its known-good state (in particular, after a `post-erasure`
 run that did not reach its `finally`).
+
+**Wait for search indexes to catch up before querying.** `autoEmbed`
+generates vectors asynchronously, off the insert path — the 80 seeded facts
+exist in Mongo the moment `insertMany` returns, but the vector arm of hybrid
+search has nothing to return until Atlas finishes embedding them, on its own
+schedule, after this step completes. Confirm the index is caught up before
+running Substrate A (in Atlas: Search → `facts_vector` → Status, or query the
+same fact via `packages/knowledge`'s vector search path and confirm it comes
+back). This applies every time this step runs, not just the first — in
+particular after step 5's `post-erasure` pass, whose `finally` reseeds the
+corpus and immediately hands off to the next `pass^3` run.
 
 **4. Run Substrate B (gateway only, no Atlas needed):**
 
@@ -164,6 +175,15 @@ Needs `KNOWLEDGE_MONGODB_URI` (indexed and seeded, steps 2–3) and
 `AI_GATEWAY_API_KEY` for the app to boot and reach the gateway;
 `VOYAGE_API_KEY` is optional — without it the read path returns fusion order
 instead of reranked order.
+
+Before the first pass, and before every repeat when running `pass^3` below,
+re-check the same "search indexes caught up" gate from step 3 — the second
+command here (`--tag mutates-db`, i.e. `post-erasure`) reseeds the corpus in
+its own `finally`, so runs 2 and 3 of `pass^3` start against a freshly
+re-inserted corpus whose vectors have not necessarily finished embedding yet.
+Marginal retrievals degrade first (`contradiction` needs both facts 30/31 in
+the top 20, `injection` needs fact 40), and a failure caused by index lag
+looks identical to an agent failure unless you've ruled the lag out first.
 
 ### Why two passes
 

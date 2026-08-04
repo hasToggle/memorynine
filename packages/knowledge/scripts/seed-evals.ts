@@ -1,12 +1,14 @@
-// One-time / idempotent seed of the synthetic eval corpus into Atlas:
-//   KNOWLEDGE_MONGODB_URI=... bun scripts/seed-evals.ts
+// One-time / idempotent seed of the synthetic eval corpus into Atlas. This
+// module holds only `seedEvals` itself — eval files (post-erasure's restore
+// step) import it directly, so it must stay free of CJS-only globals like
+// `require`/`module`. The CLI entrypoint lives in seed-evals.cli.ts:
+//   KNOWLEDGE_MONGODB_URI=... bun scripts/seed-evals.cli.ts
 //
 // Wipes and reseeds the two eval tenants only. Every delete below is scoped
 // by `tenantId: { $in: EVAL_TENANTS }`, so running this against a cluster
 // holding real data removes only fixture rows — that scoping is the entire
 // safety mechanism, and there is deliberately no confirmation prompt.
 import type { Db } from "mongodb";
-import { MongoClient } from "mongodb";
 import { ensureIndexes, getCollections } from "../collections";
 import {
   engagements,
@@ -55,44 +57,3 @@ export const seedEvals = async (db: Db): Promise<void> => {
       `${facts.length} facts across ${EVAL_TENANTS.length} tenants`
   );
 };
-
-const run = async () => {
-  const uri = process.env.KNOWLEDGE_MONGODB_URI;
-  if (!uri) {
-    console.error("KNOWLEDGE_MONGODB_URI is required");
-    process.exit(1);
-  }
-
-  const client = new MongoClient(uri, {
-    // Mirrors client.ts and is load-bearing, not cosmetic: the fact
-    // lifecycle convention is "currently valid iff `supersededBy` and
-    // `validUntil` are BOTH ABSENT" (see currentlyValidFilter in
-    // schemas/facts.ts), and `{ field: null }` matches null-or-missing in
-    // MongoDB. Without this option the driver would serialize the
-    // fixtures' `undefined` optional fields as explicit BSON null, so
-    // seeded facts would behave differently under that filter than facts
-    // the application writes at runtime. This keeps present-but-undefined
-    // keys omitted instead, matching both the lifecycle convention and the
-    // Zod schemas (`.optional()`, not `.nullable()`).
-    ignoreUndefined: true,
-  });
-  const db = client.db(process.env.KNOWLEDGE_MONGODB_DB ?? "knowledge");
-
-  try {
-    await seedEvals(db);
-  } finally {
-    await client.close();
-  }
-};
-
-// Guarded so importing `seedEvals` for tests (or any other module) never
-// triggers a live run — only executing this file directly does. `require`
-// is available even though this file is written as ESM: the package has no
-// "type": "module" in its package.json, so both tsc (module: NodeNext) and
-// Bun treat it as CommonJS, and `import.meta` is unusable in that mode.
-if (require.main === module) {
-  run().catch((error) => {
-    console.error(error);
-    process.exit(1);
-  });
-}

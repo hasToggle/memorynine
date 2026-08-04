@@ -12,9 +12,12 @@ const client =
     appName: "app-database",
     connectTimeoutMS: 10_000,
     maxIdleTimeMS: 30_000,
-    // Matches @repo/knowledge/client.ts: every warm serverless instance holds
-    // its own pool, and small Atlas tiers cap at 500 connections cluster-wide.
-    // Both packages point at the same cluster, so sizing only one is pointless.
+    // maxPoolSize sizing matches @repo/knowledge/client.ts's rationale (not
+    // its full option set — that client also sets ignoreUndefined and a
+    // different appName, neither of which this package needs): every warm
+    // serverless instance holds its own pool, and small Atlas tiers cap at
+    // 500 connections cluster-wide. Both packages point at the same cluster,
+    // so sizing only one is pointless.
     maxPoolSize: 5,
     serverSelectionTimeoutMS: 10_000,
     socketTimeoutMS: 60_000,
