@@ -11,7 +11,8 @@
     "seed-evals": "bun scripts/seed-evals.cli.ts",
     "setup-indexes": "bun scripts/setup-indexes.ts",
     "test": "bun test",
-    "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+    "typecheck": "tsc --noEmit --emitDeclarationOnly false",
+    "usage-report": "bun scripts/usage-report.cli.ts"
   },
   "dependencies": {
     "@t3-oss/env-nextjs": "^0.13.11",
