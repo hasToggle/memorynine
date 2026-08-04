@@ -6,6 +6,8 @@ export {
   personSchema,
 } from "../schemas/entities";
 export { factSchema } from "../schemas/facts";
+export { sourceSchema } from "../schemas/sources";
 export * from "./corpus";
 export * from "./facts";
 export * from "./ids";
+export * from "./sources";

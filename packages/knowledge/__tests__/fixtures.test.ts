@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+  EXPECTED_EXTRACTIONS,
   engagementSchema,
   engagements,
   factSchema,
@@ -10,9 +11,12 @@ import {
   PLANTED,
   people,
   personSchema,
+  sourceSchema,
+  sources,
   TENANT_ALPHA,
   TENANT_BETA,
 } from "../fixtures";
+import type { Source } from "../schemas/sources";
 
 const isCurrent = (f: (typeof facts)[number]) =>
   !(f.supersededBy || f.validUntil);
@@ -138,5 +142,72 @@ describe("fact fixtures", () => {
     expect(derived?.anchors.personId).toBeUndefined();
     expect(derived?.derivedFrom?.length).toBeGreaterThan(0);
     expect(derived?.text).toContain("Petra");
+  });
+});
+
+describe("source fixtures", () => {
+  test("all sources parse", () => {
+    for (const source of sources) {
+      expect(() => sourceSchema.parse(source)).not.toThrow();
+    }
+  });
+
+  test("every source has content and an occurredAt", () => {
+    for (const source of sources) {
+      expect(source.content?.length ?? 0).toBeGreaterThan(40);
+      expect(source.occurredAt).toBeInstanceOf(Date);
+    }
+  });
+
+  test("sources are ingested out of chronological order", () => {
+    // createdAt is capture time, occurredAt is event time. If they sort
+    // identically the out-of-order ingestion case is not being exercised.
+    const byCapture = [...sources].sort((a, b) => +a.createdAt - +b.createdAt);
+    const eventTime = (s: (typeof sources)[number]) =>
+      +(s.occurredAt ?? new Date(0));
+    const byEvent = [...sources].sort((a, b) => eventTime(a) - eventTime(b));
+    expect(byCapture.map((s) => s._id.toHexString())).not.toEqual(
+      byEvent.map((s) => s._id.toHexString())
+    );
+  });
+
+  test("the type mix is roughly half email, a third voice", () => {
+    const count = (t: Source["type"]) =>
+      sources.filter((s) => s.type === t).length;
+    expect(count("email")).toBeGreaterThanOrEqual(15);
+    expect(count("voice")).toBeGreaterThanOrEqual(10);
+    expect(count("manual")).toBeGreaterThanOrEqual(3);
+  });
+
+  test("every source has an expected extraction, and skips are represented", () => {
+    expect(EXPECTED_EXTRACTIONS).toHaveLength(sources.length);
+    const ids = new Set(sources.map((s) => s._id.toHexString()));
+    for (const expected of EXPECTED_EXTRACTIONS) {
+      expect(ids).toContain(expected.sourceId.toHexString());
+      if (expected.shouldSkip) {
+        expect(expected.plantedFacts).toHaveLength(0);
+      } else {
+        expect(expected.plantedFacts.length).toBeGreaterThan(0);
+      }
+    }
+    // Terminverschiebungen and greetings must be present, or the skip branch
+    // of the extraction prompt is never measured.
+    expect(
+      EXPECTED_EXTRACTIONS.filter((e) => e.shouldSkip).length
+    ).toBeGreaterThanOrEqual(3);
+  });
+
+  test("email sources carry the email envelope with a unique messageId", () => {
+    const emails = sources.filter((s) => s.type === "email");
+    const ids = new Set<string>();
+    for (const source of emails) {
+      const { email } = source;
+      expect(email).toBeDefined();
+      if (!email) {
+        continue;
+      }
+      expect(ids).not.toContain(email.messageId);
+      ids.add(email.messageId);
+    }
   });
 });
