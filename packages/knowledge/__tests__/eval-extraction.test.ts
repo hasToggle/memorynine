@@ -494,7 +494,7 @@ describe("cost reporting", () => {
     const text = renderCostSection(costEntries).join("\n");
 
     expect(text).toContain("## Cost");
-    expect(text).toContain("total gatewayCost: $0.0004 across 2 model calls");
+    expect(text).toContain("total gatewayCost: $0.0004 across 2 responses");
     expect(text).toContain("extraction: $0.0001");
     expect(text).toContain("judge: $0.0003");
     expect(text).toContain("total tokens: 300");
@@ -508,7 +508,7 @@ describe("cost reporting", () => {
 
   test("renderCostSection reports zero, honestly, when no gateway client fired", () => {
     const text = renderCostSection([]).join("\n");
-    expect(text).toContain("total gatewayCost: $0.0000 across 0 model calls");
+    expect(text).toContain("total gatewayCost: $0.0000 across 0 responses");
     expect(text).toContain("total tokens: 0");
   });
 

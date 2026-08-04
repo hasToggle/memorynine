@@ -501,7 +501,7 @@ const renderCostSection = (costEntries: CostEntry[]): string[] => {
   );
   return [
     "## Cost",
-    `- total gatewayCost: ${fmtUsd(totalCost)} across ${costEntries.length} model call${costEntries.length === 1 ? "" : "s"}`,
+    `- total gatewayCost: ${fmtUsd(totalCost)} across ${costEntries.length} response${costEntries.length === 1 ? "" : "s"} carrying usage (onUsage fires once per response with a usage block, not once per call attempted)`,
     `  - extraction: ${fmtUsd(extractionCost)}`,
     `  - judge: ${fmtUsd(judgeCost)}`,
     `- total tokens: ${totalTokens}`,

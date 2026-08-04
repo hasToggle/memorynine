@@ -68,8 +68,8 @@ const spendAccumulators = {
 /**
  * Per-tenant, per-operation spend over `[from, to)`. `to` is exclusive: to
  * cover a whole calendar day/month, pass the day/month *after* the last one
- * you want — this mirrors the TTL index convention in collections.ts and
- * avoids an off-by-one that silently drops the last day from a report.
+ * you want — this avoids an off-by-one that silently drops the last day
+ * from a report.
  */
 export const buildTenantSpendPipeline = ({
   from,
