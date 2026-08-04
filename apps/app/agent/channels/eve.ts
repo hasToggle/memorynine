@@ -60,10 +60,17 @@ export const evalTenant = (request: Request) => {
   };
 };
 
+// Exported (not just inlined below) so a test can pin the order: evalTenant
+// must run before localDev(), or a loopback eval request never reaches it —
+// localDev() unconditionally accepts any loopback request, so if it came
+// first it would win every time and evalTenant would become dead code with
+// every test still green (this is what F1's fix actually depends on).
+export const channelAuth = [betterAuthSession, evalTenant, localDev()];
+
 // NOTE: route auth authenticates the caller, it does not prove that this caller
 // owns the session id in the URL. eve treats a session id as a bearer
 // capability, so before this is exposed beyond internal users we need to
 // persist session → tenant ownership and check it on resume and on stream.
 export default eveChannel({
-  auth: [betterAuthSession, evalTenant, localDev()],
+  auth: channelAuth,
 });

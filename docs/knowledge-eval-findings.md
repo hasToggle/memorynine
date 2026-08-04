@@ -70,10 +70,12 @@ CLAUDE.md describes Prisma with a Neon PostgreSQL adapter, a schema at
 `packages/database/generated/client/`, and `bun migrate` / `bunx prisma studio`
 commands.
 
-None of it exists. There is no `schema.prisma` anywhere in the repo, no `prisma`
-dependency in any `package.json`, and no `migrate` script in the root
-`package.json`. `packages/database` is a thin MongoDB wrapper exposing two
-collections, `subscribers` and `digests`.
+None of it exists for `packages/database`. There is no `schema.prisma`
+anywhere in the repo and no `migrate` script in the root `package.json`.
+`packages/database` is a thin MongoDB wrapper exposing two collections,
+`subscribers` and `digests`. (A `prisma` dependency does exist elsewhere in
+the repo — `apps/studio/package.json` — but its `dev` script points at that
+same nonexistent schema; see the fix note below.)
 
 This is actively misleading to any agent reading CLAUDE.md as authoritative —
 which is what it is for.
@@ -88,7 +90,10 @@ future pass: `apps/studio/package.json` still carries an unused `prisma`
 devDependency and a `dev` script pointing at the same nonexistent
 `schema.prisma`, and `.vscode/extensions.json` still recommends the Prisma
 extension — both are template leftovers, out of this fix's scope (CLAUDE.md
-and `packages/database` only), but the same staleness.
+and `packages/database` only), but the same staleness. CLAUDE.md's
+Applications list also still advertises **studio — Database management UI**
+as a working app; it cannot start, for the same reason (`prisma studio`
+against a schema file that does not exist).
 
 ---
 
@@ -122,6 +127,16 @@ neither `test.subscribers` nor `test.digests` exists, and no data has ever been
 written there — the writing code in `apps/web` (newsletter confirm) and
 `apps/app` (digests) is inherited from the forked template and has never run
 against this cluster.
+
+**`test` is not vacated — do not drop it.** This fix moved only
+`@repo/database`'s own default. `packages/auth/instance.ts` calls the same
+`client.db()` with no argument against the same `MONGODB_URI`, and holds
+every better-auth collection (`user`, `session`, `organization`, `member`,
+…) there — real, live, in-use data, unrelated to `subscribers`/`digests`.
+That was a gap this branch itself introduced (moving `@repo/database` off
+`test` without moving `@repo/auth` alongside it — `apps/email/scripts/digest.ts`
+had the same gap for `subscribers`/`digests` specifically) and it is fixed:
+both now default to `MONGODB_DB ?? "app"` too, so all three agree.
 
 ---
 
@@ -316,13 +331,22 @@ instead of living only in a gitignored file.
   count sits exactly at the `>= 10` floor a fixture test enforces, after one
   source moved from voice to email during the Task 3 fix round; any future
   voice→email change will break that type-mix test.
-- **Task 5** (`docs/knowledge-eval-findings.md`) — F5 originally cited an
-  unreachable commit sha (`9710484`, written before the plan was amended);
-  corrected to `ce4f927` here.
-- **Task 5** (`packages/database/index.ts`) — its comment claims to match
-  `@repo/knowledge/client.ts`'s Mongo client options, but omits
-  `ignoreUndefined`, which the comment's target deliberately sets. Harmless
-  today, but the comment invites an assumption of parity that does not hold.
+- **Task 4** (`apps/app/agent/channels/eve.ts`) — nothing asserted the
+  composed order of the auth array. `eval-tenant.test.ts` only exercised
+  `evalTenant` in isolation, so a refactor moving it after `localDev()` would
+  make F1's fix dead code (every loopback eval request satisfied by
+  `localDev()` first) with all tests still green. **Fixed in the final review
+  pass**: `channelAuth` is now exported and `eval-tenant.test.ts` pins
+  `evalTenant` at index 1, ahead of the anonymous `localDev()` verifier.
+- **Task 5** (`docs/knowledge-eval-findings.md`) — F2, F3, F4 and the F6 note
+  originally cited an unreachable commit sha (`9710484`, written before the
+  plan was amended); corrected to `ce4f927` in each. (Not F5 — F5 never cited
+  that sha.)
+- **Task 5** (`packages/database/index.ts`) — its comment claimed to match
+  `@repo/knowledge/client.ts`'s Mongo client options in full, but omitted that
+  the target also sets `ignoreUndefined` and a different `appName`. Harmless,
+  but invited an assumption of parity that didn't hold. **Fixed in the final
+  review pass**: reworded to scope the parity claim to `maxPoolSize` only.
 - **Task 6** (`packages/knowledge/scripts/seed-evals.ts` tests) — the insert
   assertions only check that `insertMany` was called once per collection,
   not which fixture array was passed to which collection; a refactor that
@@ -342,6 +366,58 @@ instead of living only in a gitignored file.
   "floor" eval brushes against the temporal-mechanics territory that
   `knowledge-update.eval.ts` is meant to own exclusively.
 
+The following were surfaced by the final whole-branch review and explicitly
+scoped out of that fix wave — recorded here, not actioned:
+
+- **Final review** (`packages/knowledge/scripts/eval-extraction.ts`) — the
+  grading-failure path (`parseFailed`, `scoredSources` exclusion, "GRADING
+  FAILED" rendering) is untested. Extraction failures are also folded into
+  Overall as recall-0 sources (`:299-306`), so a gateway hiccup is
+  indistinguishable from a real recall miss.
+- **Final review** (`packages/database/index.ts`, `packages/auth/instance.ts`,
+  `apps/email/scripts/digest.ts`, `apps/api/app/cron/keep-alive/route.ts`) —
+  `MONGODB_DB` is read via raw `process.env` in all four, bypassing each
+  package's `keys.ts` env schema.
+- **Final review** (`packages/knowledge/scripts/eval-extraction.ts:479-481`) —
+  a residual "source 5 not evaluated" fallback; the `37c1409` guard only
+  forbids the literal string `"not scored"`.
+- **Final review** (`packages/knowledge/scripts/eval-extraction.ts` and its
+  stub) — the injection source is identified by array position
+  (`ordinal === 5`) in both the script and its stub, so both move together
+  silently if the fixtures are ever reordered. Should use
+  `PLANTED.injection.sourceId`.
+- **Final review** (`packages/knowledge/scripts/eval-extraction.ts:32`) —
+  asserts "The user has ZDR enabled account-wide" as settled fact; F8
+  explicitly declines to settle it. Substrate B also routes through
+  `createGatewayGenerate` and therefore does **not** request ZDR (F8).
+- **Final review** (`apps/app/agent/channels/eve.ts:42-45`) — "grants no
+  access that is not already granted" is imprecise: `localDev()` yields
+  `attributes: {}` and reaches no data; `evalTenant` adds the `tenantId` that
+  unlocks it. The real gate is `EVAL_TENANT_ID` being unset. Consider also
+  gating on `VERCEL_ENV !== "production"`.
+- **Final review** (this doc) — nits: `packages/database/index.ts:14` should
+  read `:15`; F6's "499 errors" is now 497; F6's erroring-file list is a
+  sample presented as exhaustive (~108 files); F7's "~0.7–0.85" should read
+  "~0.7–0.9".
+- **Final review** (`docs/superpowers/plans/2026-08-03-knowledge-evals.md`) —
+  the plan file's `probe-zdr` command omits `AI_GATEWAY_API_KEY` (the
+  README's copy is correct).
+- **Final review** (`CLAUDE.md`) — pre-existing drift, not introduced by this
+  branch: Turborepo 2.5.8→2.10.8, Biome 2.3.1→2.5.6, TypeScript
+  5.9→^7.0.0; line 26 `bun test` is Bun's builtin runner, not the workspace
+  script, and line 28 duplicates it; no mention of eve, `bunx eve eval`,
+  `EVAL_TENANT_ID`, or the two-pass rule.
+- **Final review** — never carried forward from the implementation review:
+  `injection`'s retrieval gate (fact 40, confidence 0.5) is a likely flake
+  needing empirical tuning; no tenant-beta engagement exists in the fixtures.
+- **Final review** — weak tests: `eval-extraction.test.ts:299-309`,
+  `:336-342` (asserts "tenant-alpha only" while actually checking for no
+  tenant), `:344-346`; and `fixtures.test.ts:195` asserts `shouldSkip >= 3`
+  while `eval-extraction.test.ts:210` asserts `=== 3`.
+- **Final review** (`packages/knowledge/schemas/facts.ts:47-48`) — the dead
+  `embedding` field is now **confirmed** dead: no write, no read, no index
+  anywhere in the package. Safe to remove in a follow-up.
+
 ---
 
 ## Open questions
@@ -354,7 +430,3 @@ instead of living only in a gitignored file.
   Consolidation structurally cannot: it asks only for merges that reduce
   redundancy, and contradictory facts are neither redundant nor mergeable. The
   `contradiction` eval answers this.
-- **`packages/knowledge/schemas/facts.ts:48`** still declares an `embedding`
-  field described as "stubbed for later semantic search". The read path moved to
-  Atlas `autoEmbed`, where vectors live in an internal system collection. The
-  field appears to be dead — confirm and remove.
