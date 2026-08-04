@@ -61,7 +61,7 @@ import {
   sources,
   TENANT_ALPHA,
 } from "../fixtures";
-import { createGatewayGenerate } from "../gateway";
+import { createGatewayGenerate, type GatewayUsage } from "../gateway";
 import { extractLastValidObject, stripFences } from "../llm-reply";
 import type { Source } from "../schemas/sources";
 
@@ -462,6 +462,54 @@ const persistRaw = async (
   );
 };
 
+// --- Cost accounting ---------------------------------------------------------
+//
+// The eval constructs two gateway clients — extraction (the model under
+// test) and judge — and each is wired with its own `onUsage` so a call's
+// cost is tagged by which client made it, not inferred after the fact.
+
+export interface CostEntry {
+  client: "extraction" | "judge";
+  usage: GatewayUsage;
+}
+
+const fmtUsd = (n: number) => `$${n.toFixed(4)}`;
+
+// This script only sees Substrate B (the extraction + judge calls it makes
+// directly through createGatewayGenerate). Substrate A — the nine `eve eval`
+// agent evals — calls models through eve's own routing, which this script
+// never touches, so it has no way to observe or report that cost. Stating
+// that explicitly matters more than the number itself: a total that silently
+// covered only half the run would read as complete when it is not.
+const SUBSTRATE_A_NOTE =
+  "Substrate A (the nine `eve eval` agent evals) is NOT included above — those calls go through eve's own model routing, not this gateway client, so this script cannot see or report their cost.";
+
+const renderCostSection = (costEntries: CostEntry[]): string[] => {
+  const totalCost = costEntries.reduce(
+    (sum, e) => sum + e.usage.gatewayCost,
+    0
+  );
+  const extractionCost = costEntries
+    .filter((e) => e.client === "extraction")
+    .reduce((sum, e) => sum + e.usage.gatewayCost, 0);
+  const judgeCost = costEntries
+    .filter((e) => e.client === "judge")
+    .reduce((sum, e) => sum + e.usage.gatewayCost, 0);
+  const totalTokens = costEntries.reduce(
+    (sum, e) => sum + e.usage.promptTokens + e.usage.completionTokens,
+    0
+  );
+  return [
+    "## Cost",
+    `- total gatewayCost: ${fmtUsd(totalCost)} across ${costEntries.length} model call${costEntries.length === 1 ? "" : "s"}`,
+    `  - extraction: ${fmtUsd(extractionCost)}`,
+    `  - judge: ${fmtUsd(judgeCost)}`,
+    `- total tokens: ${totalTokens}`,
+    `- ${SUBSTRATE_A_NOTE}`,
+    "",
+  ];
+};
+
 // --- Report rendering --------------------------------------------------------
 
 const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
@@ -481,7 +529,8 @@ const renderReport = (
   overall: SourceMetrics,
   skip: ReturnType<typeof skipAccuracy>,
   gradingFailedOrdinals: number[],
-  alphaFactsAvailable: number
+  alphaFactsAvailable: number,
+  costEntries: CostEntry[]
 ): string => {
   const lines: string[] = [];
   lines.push("# Extraction eval report\n");
@@ -512,6 +561,7 @@ const renderReport = (
     `- ${skip.correct}/${skip.total} correctly declined (${fmtPct(skip.accuracy)})`
   );
   lines.push("");
+  lines.push(...renderCostSection(costEntries));
 
   const injectionResult = results.find((r) => r.ordinal === 5);
   lines.push(
@@ -592,8 +642,17 @@ const JUDGE_MODEL = "anthropic/claude-sonnet-5";
 export const runEvalExtraction = async (
   options: RunEvalExtractionOptions = {}
 ): Promise<EvalExtractionReport> => {
+  // Accumulates across the whole run so the report can total and split cost
+  // by client. Only populated when the default gateway clients below are
+  // actually used — an injected extractionGenerate/judgeGenerate (as the
+  // stub-driven tests use) bypasses the gateway entirely, so it reports no
+  // cost, honestly, rather than a fabricated figure.
+  const costEntries: CostEntry[] = [];
   const extractionGenerate =
-    options.extractionGenerate ?? createGatewayGenerate();
+    options.extractionGenerate ??
+    createGatewayGenerate({
+      onUsage: (usage) => costEntries.push({ client: "extraction", usage }),
+    });
   // reasoningEffort: null is load-bearing here, not stylistic — see the
   // comment on GatewayConfig.reasoningEffort in ../gateway.ts. It exists to
   // contain DeepSeek's tendency to narrate its whole budget away; the judge
@@ -601,7 +660,11 @@ export const runEvalExtraction = async (
   // entirely, so it must be omitted rather than defaulted.
   const judgeGenerate =
     options.judgeGenerate ??
-    createGatewayGenerate({ model: JUDGE_MODEL, reasoningEffort: null });
+    createGatewayGenerate({
+      model: JUDGE_MODEL,
+      onUsage: (usage) => costEntries.push({ client: "judge", usage }),
+      reasoningEffort: null,
+    });
   const outDir = options.outDir ?? DEFAULT_OUT_DIR;
   const writeRaw = options.writeRaw ?? true;
   const runId = randomUUID();
@@ -642,7 +705,8 @@ export const runEvalExtraction = async (
     overall,
     skip,
     gradingFailedOrdinals,
-    alphaFactsAvailable
+    alphaFactsAvailable,
+    costEntries
   );
 
   return { gradingFailedOrdinals, overall, perSource, reportText, skip };
@@ -654,6 +718,7 @@ export {
   buildKnownEntities,
   checkInjectionCompliance,
   countCurrentlyValidAlphaFacts,
+  renderCostSection,
 };
 
 const run = async () => {
