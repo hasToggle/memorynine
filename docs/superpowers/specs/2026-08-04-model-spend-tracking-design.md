@@ -158,13 +158,21 @@ to the cent.
 
 ### Retention
 
-One row per model call grows without bound. A TTL index expires raw rows after
-**90 days**. A monthly roll-up (`tenantId`, `month`, `operation`, summed costs
-and tokens, call count) is written by the same cron that runs the existing
-sweeps, and is not expired.
+One row per model call grows without bound, and this ships with **no TTL**.
+The original plan was a 90-day TTL on raw rows plus a monthly roll-up
+(`tenantId`, `month`, `operation`, summed costs and tokens, call count) that
+would survive past it — only the TTL got built, and shipping that half alone
+would have made the spec's own headline question ("what has tenant X cost")
+silently unanswerable past 90 days, with no roll-up to fall back on. Rather
+than ship that, the TTL was removed instead.
 
-Ninety days keeps "what did that ingest cost" answerable for a quarter;
-the roll-up keeps "what did tenant X cost in March" answerable forever.
+At this volume the trade is easy: one tenant, low volume, on the order of
+100k small documents even in a busy year — unbounded growth of a collection
+that size is a non-problem. Deleting the only record of what things cost on a
+timer is a real problem, and it is a one-way door: adding a TTL later, once a
+roll-up exists to hand off to, is trivial; un-deleting expired rows is not.
+Raw rows are kept indefinitely until a roll-up ships alongside a TTL, at
+which point both land together.
 
 ### Reporting
 

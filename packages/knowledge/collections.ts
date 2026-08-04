@@ -100,14 +100,18 @@ export const ensureIndexes = async (db: Db): Promise<void> => {
         key: { tenantId: 1, operation: 1, createdAt: -1 },
         name: "tenant_operation_recency",
       },
-      // Raw rows are one per model call and grow without bound. Ninety days
-      // keeps "what did that ingest cost" answerable for a quarter; the
-      // monthly roll-up in usage-report.ts is what survives beyond it.
-      {
-        expireAfterSeconds: 90 * 24 * 60 * 60,
-        key: { createdAt: 1 },
-        name: "ttl_90d",
-      },
+      // No TTL here, deliberately. Raw rows are kept indefinitely: this is
+      // billing history, and the plan's original shape was a 90-day TTL plus
+      // a monthly roll-up that would survive it — only the TTL got built.
+      // Shipping that half was worse than shipping neither: at one tenant's
+      // volume, even a busy year is on the order of 100k small documents,
+      // which MongoDB does not notice, so unbounded growth here is a
+      // non-problem. Silently deleting the only record of what a tenant cost
+      // is a real one, and it is a one-way door — a TTL can always be added
+      // later once a roll-up exists to hand off to, but there is no adding
+      // back rows a TTL already expired. So: keep everything, add the
+      // roll-up + TTL together when retention actually needs to bound this
+      // collection's size.
     ]),
   ]);
 };
