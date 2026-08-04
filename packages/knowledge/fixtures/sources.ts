@@ -69,10 +69,10 @@ export const sources: Source[] = [
       die neu ins Projekt kommen — die betreiben drei Umschlaglager im
       Hamburger Hafengebiet und beschäftigen etwa 140 Mitarbeitende, das
       sollte jeder im Team wissen, der mit Anke Feldmann spricht. Und dann
-      noch kurz zu Brauhaus an der Elbe: die QM-Workshops laufen jetzt fest
-      im Rhythmus, jeden zweiten Donnerstag in der Braustätte in Ottensen,
-      das hat sich seit ein paar Wochen eingespielt und sollte so im
-      Projektplan stehen.`,
+      noch kurz zu Brauhaus an der Elbe: die Workshops zur Einführung des
+      Qualitätsmanagementsystems laufen jetzt fest im Rhythmus, jeden
+      zweiten Donnerstag in der Braustätte in Ottensen, das hat sich seit
+      ein paar Wochen eingespielt und sollte so im Projektplan stehen.`,
     email: {
       forwardedBy: JANA,
       messageId: messageId(1),
@@ -112,7 +112,7 @@ export const sources: Source[] = [
   source({
     capturedBy: JANA,
     content: `Also, zwei Dinge kurz für die Akte. Erstens Hafenlogistik
-      Nord: Anke Feldmann leitet die Firma ja schon seit 2018, und, ähm,
+      Nord: Anke Feldmann leitet das Unternehmen ja schon seit 2018, und, ähm,
       sie hat das quasi vom Familienbetrieb zum regionalen Marktführer
       hochgezogen, das kam heute nochmal im Gespräch, falls wir das für
       das Onboarding-Deck brauchen. Und zweitens, das hatte ich fast
@@ -133,8 +133,8 @@ export const sources: Source[] = [
       Lagerprozesse, bitte nicht mehr direkt an Anke Feldmann eskalieren,
       das nervt sie mittlerweile. Und Sabine Ohlsen bei Brauhaus hat mir
       heute nochmal explizit gesagt: sie mag kurze, wöchentliche
-      Statusmails viel lieber als lange Berichte — also bitte in Zukunft
-      Bullet Points statt PDF-Anhang.`,
+      Statusmails gegenüber langen Berichten, viel lieber — also bitte in
+      Zukunft Bullet Points statt PDF-Anhang.`,
     email: {
       forwardedBy: JANA,
       messageId: messageId(4),
@@ -185,8 +185,9 @@ export const sources: Source[] = [
   // --- 6: HfN Scanner-Entscheidung + Vogelsang Firmenprofil ------------
   source({
     capturedBy: JANA,
-    content: `Kurz zur Scanner-Entscheidung bei Hafenlogistik Nord: die
-      wird gemeinsam von Anke Feldmann und Jonas Reimers getroffen, nicht
+    content: `Kurz zur Entscheidung über die Scanner-Hardware bei
+      Hafenlogistik Nord: die wird gemeinsam von Anke Feldmann und Jonas
+      Reimers getroffen, nicht
       allein vom Einkauf, das hat Anke heute nochmal klargestellt, damit
       wir da niemanden übergehen. Und für alle, die noch nicht bei
       Vogelsang Maschinenbau waren: die fertigen Sondermaschinen für die
@@ -210,8 +211,9 @@ export const sources: Source[] = [
     content: `So, der Abschlussbericht zur Digitalisierung der
       Lagerverwaltung ist raus, hab ihn heute persönlich an Anke Feldmann
       übergeben, war ein gutes Gespräch, sie war zufrieden. Ähm, und
-      nebenbei, für die Vogelsang-Akte: Katrin Suhrbier leitet da die
-      Konstruktionsabteilung schon seit fünf Jahren, das ist wichtig zu
+      nebenbei, für die Vogelsang-Maschinenbau-Akte: Katrin Suhrbier
+      leitet da die Konstruktionsabteilung schon seit fünf Jahren, das
+      ist wichtig zu
       wissen, wenn wir später über die Prozessoptimierung sprechen, sie
       kennt jeden Handgriff in der Fertigung.`,
     n: 7,
@@ -261,7 +263,8 @@ export const sources: Source[] = [
     type: "email",
   }),
 
-  // --- 10: HfN Anke Feldmann — role BEFORE (superseded by 11) ---------
+  // --- 10: HfN Anke Feldmann — role BEFORE (superseded by 11) + --------
+  // Vogelsang Petra Lindqvist role
   source({
     capturedBy: JANA,
     content: `Kurz zur Governance bei Hafenlogistik Nord, damit wir das
@@ -270,13 +273,18 @@ export const sources: Source[] = [
       trifft die Geschäftsführung gemeinsam, sie hat ja noch einen
       Co-Geschäftsführer, der bei größeren Sachen mit am Tisch sitzt. Also
       für alles, was über den normalen Projektalltag hinausgeht, brauchen
-      wir formal beide im Boot, nicht nur Anke allein.`,
+      wir formal beide im Boot, nicht nur Anke allein. Und, ähm, ganz kurz
+      noch zu Vogelsang Maschinenbau, falls das schon wer für die
+      Stammdaten braucht: Petra Lindqvist ist dort als Projektleiterin
+      für die Koordination mit externen Dienstleistern zuständig, sie ist
+      unsere Hauptschnittstelle, wenn's um Fremdgewerke geht.`,
     n: 10,
     occurredAt: at("2025-09-08T16:30:00.000Z"),
     type: "voice",
   }),
 
-  // --- 11: HfN Anke Feldmann — role AFTER (supersedes 10) --------------
+  // --- 11: HfN Anke Feldmann — role AFTER (supersedes 10) + Vogelsang --
+  // CNC-Erweiterung
   source({
     capturedBy: JANA,
     content: `Update zur Geschäftsführung bei Hafenlogistik Nord, das
@@ -285,7 +293,10 @@ export const sources: Source[] = [
       Gründen. Anke Feldmann trifft strategische Entscheidungen jetzt
       allein, es gibt aktuell keinen zweiten Geschäftsführer. Bitte ab
       sofort alle größeren Entscheidungsvorlagen direkt an sie, nicht mehr
-      an beide.`,
+      an beide. Nur als Randnotiz für die Vogelsang-Maschinenbau-Akte:
+      dort wird intern über eine Erweiterung der Fertigungshalle um zwei
+      zusätzliche CNC-Linien nachgedacht, für 2026 angedacht, aber noch
+      nicht offiziell freigegeben.`,
     email: {
       forwardedBy: JANA,
       messageId: messageId(11),
@@ -298,20 +309,27 @@ export const sources: Source[] = [
     type: "email",
   }),
 
-  // --- 12: HfN Martin Kowalski — role BEFORE (superseded by 13) -------
+  // --- 12: HfN Martin Kowalski — role BEFORE (superseded by 13) + ------
+  // Vogelsang Katrin Suhrbier Meeting-Präferenz
   source({
     capturedBy: JANA,
     content: `Notiz Martin Kowalski, Hafenlogistik Nord:
       - aktuell nur zuständig für laufende Bestellungen im Lager
       - keine Verhandlungsvollmacht bei Rahmenverträgen
       - Ansprechpartner für Vertragsfragen bleibt vorerst die
-        Rechtsabteilung direkt`,
+        Rechtsabteilung direkt
+
+      Notiz Katrin Suhrbier, Vogelsang Maschinenbau:
+      - bevorzugt technische Abstimmungen in kleiner Runde direkt an der
+        Konstruktionszeichnung
+      - lehnt große Meetings für Detailfragen eher ab`,
     n: 12,
     occurredAt: at("2025-09-12T10:00:00.000Z"),
     type: "manual",
   }),
 
-  // --- 13: HfN Martin Kowalski — role AFTER (supersedes 12) -----------
+  // --- 13: HfN Martin Kowalski — role AFTER (supersedes 12) + Vogelsang
+  // Steering-Meeting (Prozessoptimierung)
   source({
     capturedBy: JANA,
     content: `Kurzes Update zu Martin Kowalski bei Hafenlogistik Nord: er
@@ -320,21 +338,28 @@ export const sources: Source[] = [
       nicht mehr nur laufende Bestellungen, sondern auch die
       Vertragsverhandlungen selbst. Für uns heißt das: Vertragsthemen
       können jetzt direkt über ihn laufen, nicht mehr zwingend über die
-      Rechtsabteilung.`,
+      Rechtsabteilung. Achja, und schon mal vorgemerkt für später: für das
+      Projekt Prozessoptimierung Fertigung bei Vogelsang ist, sobald es
+      startet, ein wöchentliches Steering-Meeting mit Katrin Suhrbier und
+      Bjarne Petersen angedacht.`,
     n: 13,
     occurredAt: at("2025-12-16T09:00:00.000Z"),
     type: "voice",
   }),
 
-  // --- 14: Brauhaus Sabine Ohlsen — role BEFORE (superseded by 15) ----
+  // --- 14: Brauhaus Sabine Ohlsen — role BEFORE (superseded by 15) + ---
+  // Vogelsang Bestandskunde
   source({
     capturedBy: FELIX,
-    content: `Zur Einordnung für alle, die neu ins Brauhaus-Projekt
-      kommen: Sabine Ohlsen ist als Vertriebsleiterin aktuell nur für die
+    content: `Zur Einordnung für alle, die neu ins Projekt bei Brauhaus an
+      der Elbe kommen: Sabine Ohlsen ist als Vertriebsleiterin aktuell nur für die
       Vertriebsregion Nord zuständig, es gibt noch weitere Regionalleiter
       für Süd und West. Bitte bei überregionalen Themen also nicht
       automatisch bei ihr anfragen, sondern erst prüfen, welche Region
-      betroffen ist.`,
+      betroffen ist. Kurzer Reminder zur Vogelsang-Akte, falls das für die
+      Angebotsvorlage relevant ist: Vogelsang Maschinenbau ist schon seit
+      über zehn Jahren Bestandskunde von uns bei Nordlicht Consulting und
+      wir haben dort bereits zwei frühere Projekte gemeinsam umgesetzt.`,
     email: {
       forwardedBy: FELIX,
       messageId: messageId(14),
@@ -347,31 +372,57 @@ export const sources: Source[] = [
     type: "email",
   }),
 
-  // --- 15: Brauhaus Sabine Ohlsen — role AFTER (supersedes 14) --------
+  // --- 15: Brauhaus Sabine Ohlsen — role AFTER (supersedes 14) + -------
+  // Vogelsang Petra Lindqvist Sorge Q3-Zeitplan (per E-Mail, siehe
+  // erasureTarget)
   source({
     capturedBy: FELIX,
-    content: `Wichtiges Update von Sabine Ohlsen selbst: seit April ist
-      sie jetzt für den gesamten Vertrieb der Brauhaus an der Elbe AG
-      verantwortlich, nicht mehr nur für die Region Nord. Die anderen
-      Regionalleiter sind wohl im Zuge einer Umstrukturierung
-      weggefallen, sie hat das quasi mit übernommen. Für unsere
-      Kommunikation heißt das: ab jetzt läuft wirklich alles Vertriebliche
-      nur noch über sie.`,
+    content: `Weiterleitung: Petra Lindqvist von Vogelsang Maschinenbau
+      hat sich heute per E-Mail besorgt über den Zeitplan des
+      Q3-Projekts geäußert, sie befürchtet wohl, dass die Timeline bei
+      der aktuellen Ressourcenlage zu eng gestrickt ist. Original-Mail
+      unten dran, bitte im nächsten Steering ansprechen.
+
+      --- Weitergeleitete Nachricht ---
+      Von: petra.lindqvist@vogelsang-maschinenbau.de
+      Betreff: Sorge wegen Q3-Zeitplan
+      Hallo, ich mache mir ehrlich gesagt Sorgen um den Zeitplan für Q3,
+      das wirkt bei der aktuellen Ressourcenlage sehr ambitioniert.
+      Können wir da nochmal gemeinsam draufschauen?
+      --- Ende der weitergeleiteten Nachricht ---
+
+      Kurz noch als Reminder von der Brauhaus-Seite: Sabine Ohlsen
+      verantwortet ja seit April den gesamten Vertrieb der Brauhaus an
+      der Elbe AG, nicht mehr nur die Region Nord, falls das noch wer
+      nicht mitbekommen hat.`,
+    email: {
+      forwardedBy: FELIX,
+      messageId: messageId(15),
+      originalSender: "petra.lindqvist@vogelsang-maschinenbau.de",
+      sentAt: at("2026-06-10T09:00:00.000Z"),
+      subject: "Weiterleitung: Sorge wegen Q3-Zeitplan + Update Sabine Ohlsen",
+    },
     n: 15,
-    occurredAt: at("2026-04-02T10:00:00.000Z"),
-    type: "voice",
+    occurredAt: at("2026-06-10T09:00:00.000Z"),
+    type: "email",
   }),
 
-  // --- 16: Vogelsang Bjarne Petersen — role BEFORE (superseded by 17) -
+  // --- 16: Vogelsang Bjarne Petersen — role BEFORE (superseded by 17) +
+  // Petra Lindqvist Bedenken Q3-Zeitplan (siehe erasureTarget)
   source({
     capturedBy: FELIX,
-    content: `Notiz Bjarne Petersen, Vogelsang Maschinenbau:
-      - aktuell nur Betreuung Bestandskunden im Vertrieb
-      - keine aktive Neukundengewinnung in seinem Aufgabenbereich
-      - Neukundenakquise läuft laut Katrin Suhrbier separat über die
-        Geschäftsführung`,
+    content: `Notiz aus dem Projektmeeting bei Vogelsang Maschinenbau
+      (12.06.2026):
+      - Petra Lindqvist äußerte Bedenken, dass der Zeitplan für Q3 zu
+        ambitioniert sei
+      - soll im nächsten Steering nochmal besprochen werden
+
+      Zur Erinnerung (Historie Bjarne Petersen, Stand vor Januar 2026):
+      - war damals nur für Betreuung Bestandskunden im Vertrieb zuständig
+      - keine aktive Neukundengewinnung in seinem damaligen
+        Aufgabenbereich`,
     n: 16,
-    occurredAt: at("2025-09-22T09:00:00.000Z"),
+    occurredAt: at("2026-06-12T09:30:00.000Z"),
     type: "manual",
   }),
 
@@ -460,12 +511,13 @@ export const sources: Source[] = [
   source({
     capturedBy: JANA,
     content: `Kranich Versicherung, Statuswechsel:
-      - Schadenprozess-Audit war in Vorbereitung, Kickoff war für Anfang
-        Oktober 2025 geplant
-      - Audit wurde storniert, Mandat gilt seit der Stornierung als
-        beendet
-      - Kranich gilt ab sofort als ehemaliger Kunde von Nordlicht
-        Consulting, nicht mehr als aktives Mandat`,
+      - Schadenprozess-Audit befand sich in der Vorbereitungsphase,
+        Kickoff war für Anfang Oktober 2025 geplant
+      - das Audit wurde storniert, Mandat gilt seit der Stornierung des
+        Audits als beendet
+      - Kranich gilt seit der Stornierung des Audits ab sofort als
+        ehemaliger Kunde von Nordlicht Consulting, nicht mehr als
+        aktives Mandat`,
     n: 21,
     occurredAt: at("2025-10-20T09:30:00.000Z"),
     type: "manual",
@@ -527,14 +579,20 @@ export const sources: Source[] = [
     type: "email",
   }),
 
-  // --- 25: Brauhaus Thorsten Wiechmann — retracted preference ----------
+  // --- 25: Brauhaus Thorsten Wiechmann — retracted preference + --------
+  // Vogelsang Katrin Suhrbier Projektleitung (multiHop, siehe fact 61)
   source({
     capturedBy: FELIX,
     content: `Notiz Thorsten Wiechmann, Braumeister bei Brauhaus an der
       Elbe:
       - bevorzugt aktuell rein postalische Kommunikation, keine E-Mail
       - Grund: er ist selten am Rechner, meist in der Braustätte
-      - für dringende Themen bitte über Sabine Ohlsen als Zwischenstation`,
+      - für dringende Themen bitte über Sabine Ohlsen als Zwischenstation
+
+      Vorgemerkt für später (Vogelsang Maschinenbau, Prozessoptimierung
+      Fertigung):
+      - Katrin Suhrbier wird die fachliche Projektleiterin vor Ort sein,
+        sobald das Projekt startet`,
     n: 25,
     occurredAt: at("2025-09-02T09:00:00.000Z"),
     type: "manual",
@@ -604,10 +662,10 @@ export const sources: Source[] = [
     content: `Zwei Notizen. Thorsten Wiechmann ist gelernter Braumeister
       und für die Rezeptur aller Kernsorten der Brauhaus an der Elbe AG
       verantwortlich — für alle, die neu im Projekt sind, das ist
-      relevantes Hintergrundwissen. Und bei Steinweg: die gelten aktuell
-      noch als Lead, aber ein Folgeauftrag über eine Standortanalyse wird
-      für Q3 2026 geprüft, Malte Ehlers hat das heute angedeutet, noch
-      nichts Schriftliches.`,
+      relevantes Hintergrundwissen. Und bei Steinweg Immobilien: die
+      gelten aktuell noch als Lead, aber ein Folgeauftrag über eine
+      Standortanalyse wird für Q3 2026 geprüft, Malte Ehlers hat das
+      heute angedeutet, noch nichts Schriftliches.`,
     email: {
       forwardedBy: FELIX,
       messageId: messageId(29),
@@ -620,7 +678,8 @@ export const sources: Source[] = [
     type: "email",
   }),
 
-  // --- 30: HfN Martin Kowalski — vormittags (contradiction A) ---------
+  // --- 30: HfN Martin Kowalski — vormittags (contradiction A) + --------
+  // Steinweg Vor-Ort-Termine
   source({
     capturedBy: JANA,
     content: `Kurz zur Terminplanung mit Martin Kowalski bei
@@ -628,7 +687,10 @@ export const sources: Source[] = [
       Vormittag, weil er nachmittags meistens im Lager unterwegs ist und
       dann schlecht ans Telefon oder in Calls kann. Also für die
       nächsten Steering-Termine bitte vormittags einplanen, wenn's um ihn
-      geht.`,
+      geht. Und übrigens, für die Steinweg-Akte: alle Vor-Ort-Termine bei
+      Steinweg Immobilien finden im Büro am Baumwall statt, nicht in der
+      Hauptverwaltung, das hatte Malte Ehlers extra betont, damit wir
+      nicht am falschen Ort auftauchen.`,
     n: 30,
     occurredAt: at("2025-10-05T09:00:00.000Z"),
     type: "voice",
@@ -685,7 +747,7 @@ export const sources: Source[] = [
   // --- 34: Vogelsang Katrin — Workshops Harburg (contradiction A) -----
   source({
     capturedBy: FELIX,
-    content: `Zu den Workshop-Standorten für die Prozessoptimierung bei
+    content: `Zum Standort der Workshops zur Prozessoptimierung bei
       Vogelsang: Katrin Suhrbier zufolge finden die am Standort Vogelsang
       in Hamburg-Harburg statt, das hat sie mir heute in der Vorbereitung
       so bestätigt, war für sie offenbar selbstverständlich, dass es dort
@@ -772,24 +834,31 @@ export const EXPECTED_EXTRACTIONS: ExpectedExtraction[] = [
   extraction(9, [], true),
   extraction(10, [
     "Anke Feldmann war für das Tagesgeschäft zuständig bei Hafenlogistik Nord; strategische Entscheidungen traf die Geschäftsführung gemeinsam mit dem Co-Geschäftsführer (Stand vor Februar 2026)",
+    "Petra Lindqvist ist bei Vogelsang Maschinenbau als Projektleiterin für die Koordination mit externen Dienstleistern zuständig",
   ]),
   extraction(11, [
     "Anke Feldmann trifft strategische Entscheidungen bei Hafenlogistik Nord inzwischen allein, seit ihr Co-Geschäftsführer das Unternehmen zum 01.02.2026 verlassen hat",
+    "Vogelsang Maschinenbau plant für 2026 eine Erweiterung der Fertigungshalle um zwei zusätzliche CNC-Linien",
   ]),
   extraction(12, [
     "Martin Kowalski war bei Hafenlogistik Nord ursprünglich nur für laufende Bestellungen im Lager zuständig, ohne Verhandlungsvollmacht bei Rahmenverträgen",
+    "Katrin Suhrbier bevorzugt technische Abstimmungen in kleiner Runde direkt an der Konstruktionszeichnung statt in großen Meetings",
   ]),
   extraction(13, [
     "Martin Kowalski verantwortet bei Hafenlogistik Nord inzwischen auch die Verhandlung der Rahmenverträge mit Lieferanten",
+    "Für das Projekt Prozessoptimierung Fertigung bei Vogelsang Maschinenbau wurde ein wöchentliches Steering-Meeting mit Katrin Suhrbier und Bjarne Petersen vereinbart",
   ]),
   extraction(14, [
     "Sabine Ohlsen war bei Brauhaus an der Elbe zunächst nur für die Vertriebsregion Nord zuständig",
+    "Vogelsang Maschinenbau ist seit über zehn Jahren Bestandskunde von Nordlicht Consulting und hat bereits zwei frühere Projekte gemeinsam umgesetzt",
   ]),
   extraction(15, [
     "Sabine Ohlsen verantwortet seit April 2026 den gesamten Vertrieb der Brauhaus an der Elbe AG, nicht mehr nur die Region Nord",
+    "Petra Lindqvist hat sich in einer E-Mail besorgt über den Zeitplan des Q3-Projekts bei Vogelsang Maschinenbau geäußert",
   ]),
   extraction(16, [
     "Bjarne Petersen war bei Vogelsang Maschinenbau zunächst nur für die Betreuung von Bestandskunden im Vertrieb zuständig",
+    "Petra Lindqvist äußerte im Projektmeeting Bedenken, dass der Zeitplan für Q3 zu ambitioniert sei",
   ]),
   extraction(17, [
     "Bjarne Petersen ist seit Januar 2026 auch für die Neukundengewinnung bei Vogelsang Maschinenbau verantwortlich",
@@ -821,6 +890,7 @@ export const EXPECTED_EXTRACTIONS: ExpectedExtraction[] = [
   extraction(24, [], true),
   extraction(25, [
     "Thorsten Wiechmann bevorzugte ursprünglich rein postalische Kommunikation ohne E-Mail",
+    "Katrin Suhrbier ist die fachliche Projektleiterin vor Ort für das Projekt Prozessoptimierung Fertigung bei Vogelsang Maschinenbau",
   ]),
   extraction(26, [
     "Brauhaus an der Elbe AG braut seit 1897 in Hamburg-Ottensen und beliefert vor allem die Gastronomie in Norddeutschland",
@@ -837,6 +907,7 @@ export const EXPECTED_EXTRACTIONS: ExpectedExtraction[] = [
   ]),
   extraction(30, [
     "Martin Kowalski bevorzugt Termine am Vormittag, da er nachmittags meist im Lager unterwegs ist",
+    "Alle Vor-Ort-Termine bei Steinweg Immobilien finden im Büro am Baumwall statt, nicht in der Hauptverwaltung",
   ]),
   extraction(31, [
     "Martin Kowalski will Meetings grundsätzlich nur nachmittags; vormittags ist er laut eigener Aussage nicht erreichbar",

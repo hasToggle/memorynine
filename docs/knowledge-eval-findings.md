@@ -167,6 +167,56 @@ Note: `packages/database/index.ts` and `keys.ts` have two trivial
 
 ---
 
+## F7 — Two structural dangling-reference gaps in the source/fact fixtures
+
+**Status:** open · **Severity:** low (both fail safe today)
+
+`fixtures/facts.ts`'s `srcId(n) = ((n - 1) % 35) + 1` assigns every one of the
+80 facts a source ordinal independent of tenant or topic. Two consequences of
+that independence are permanent, by-design gaps that a later implementer
+could otherwise mistake for bugs in their own code:
+
+**1. Facts on `shouldSkip` sources have no supporting content, on purpose.**
+Every one of the 35 source ordinals has at least one fact pointing at it —
+there is no "empty" ordinal to give to a genuinely content-free skip source
+(bare Terminbestätigung / thank-you / OOO autoreply). The three chosen skip
+sources (ordinals 9, 24, 28) still have facts 9, 44, 24, 59, 28, 63 pointing
+at their `sourceId`, but those sources' `content` is intentionally pure noise
+and does not support them. All six are low-confidence filler facts (~0.7–0.85)
+outside every `PLANTED` bucket, chosen specifically to minimize the blast
+radius — see `packages/knowledge/fixtures/sources.ts`'s per-source comments
+and `.superpowers/sdd/2026-08-03-knowledge-evals/task-3-report.md` for the
+selection rationale. Task 8's extraction eval should not expect these six
+facts' text to be derivable from their nominal source.
+
+**2. BETA facts (ordinals 66–80) cite `sourceId`s from ALPHA-only sources.**
+All 35 sources are `tenantId: TENANT_ALPHA` (by design — see the task-3
+brief). The same topic-blind `srcId` formula still stamps a `sourceId` from
+that ALPHA-only set onto every `TENANT_BETA` fact. In a real system a
+Beta-tenant fact would never be extracted from an Alpha-tenant source, so
+those 15 `sourceId`s are permanently dangling references — the source they
+point at exists, but its content has nothing to do with the Beta fact and
+was never written to.
+
+This is safe today because, per the reviewer of Task 3: every
+`sources.findOne` / `countDocuments` call site in `@repo/knowledge` filters
+by `{ _id, tenantId }` together, so a Beta-tenant read scoped correctly will
+never resolve these into cross-tenant content — it fails closed, not open.
+No code path was found that reads `fact.sourceId` without also filtering by
+`fact.tenantId` on the source lookup.
+
+**Fix:** none needed for the eval corpus itself — both are consequences of
+`srcId`'s fixed formula, which `fixtures/facts.ts` is a contract Tasks 6 and
+9–11 depend on (Task 3 must not change fact-to-source assignments). If a
+future implementer wants `sourceId` to imply tenant/content coherence
+universally, `srcId` would need to become tenant- and topic-aware, which is
+a `facts.ts` change, not a `sources.ts` one. Flagging here so it isn't
+rediscovered as a "bug" by Task 6 (consolidation), Task 9 (contradiction),
+or Task 11 (post-erasure) implementers who grep for a fact's `sourceId` and
+find content that doesn't match.
+
+---
+
 ## Open questions
 
 - **Is `anthropic/claude-sonnet-5` ZDR-covered through the AI Gateway?** One
