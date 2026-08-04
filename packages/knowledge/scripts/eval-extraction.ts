@@ -576,7 +576,12 @@ export interface EvalExtractionReport {
 // import.meta.dirname is NOT usable here (TS1470) — this package has no
 // "type": "module" in package.json, so tsc (module: NodeNext) compiles this
 // file to CommonJS. See the require.main guard at the bottom of this file
-// and the matching comment in scripts/seed-evals.ts.
+// and the matching comment in scripts/seed-evals.cli.ts. Unlike
+// seed-evals.ts, nothing imports this module from an eval file, so the
+// guard here is not currently subject to the ESM-bundling failure that
+// forced seed-evals.ts to split its CLI entrypoint out (see C1 in
+// docs/knowledge-eval-findings.md) — flagging that explicitly rather than
+// leaving it ambiguous, not asserting it needs the same split today.
 // biome-ignore lint/correctness/noGlobalDirnameFilename: see comment above
 const DEFAULT_OUT_DIR = path.join(__dirname, "..", ".context");
 const JUDGE_MODEL = "anthropic/claude-sonnet-5";

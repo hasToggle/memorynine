@@ -144,9 +144,14 @@ const run = async () => {
 };
 
 // Guarded so importing `classifyZdrResponse` for tests never triggers a live
-// call — only executing this file directly does. See seed-evals.ts for why
-// `require.main === module` is the right guard in this package (CommonJS
-// output, no `import.meta`).
+// call — only executing this file directly does. See seed-evals.cli.ts for
+// why `require.main === module` is the right guard in this package (CommonJS
+// output, no `import.meta`). Unlike the old seed-evals.ts, nothing imports
+// this module from an eval file, so this guard is not currently subject to
+// the ESM-bundling failure that forced seed-evals.ts to split its CLI
+// entrypoint out (see C1 in docs/knowledge-eval-findings.md) — noting that
+// explicitly rather than leaving it ambiguous, not claiming it needs the
+// same split today.
 if (require.main === module) {
   run().catch((error) => {
     console.error(error);
