@@ -55,7 +55,20 @@ const source = ({
   ),
   ...(email ? { email } : {}),
   occurredAt,
-  status: "received",
+  // Terminal ("reviewed") for email/manual sources, not the pipeline's
+  // entry status ("received"): apps/api/vercel.json runs
+  // /cron/knowledge-pipeline every 5 minutes, and sweepPipeline
+  // (pipeline.ts) selects *across all tenants* on
+  // `{ content: {$exists}, status: "received", type: {$in: ["email",
+  // "manual"]} }`. Left at "received", these 25 fixtures would be picked up
+  // by the real production cron within minutes of seeding and run through
+  // real (unbudgeted) gateway extraction, writing proposals into
+  // eval-tenant-alpha that can crowd the planted facts this whole suite's
+  // deterministic id assertions depend on out of retrieval's top-20.
+  // The 10 voice fixtures stay "received": sweepPipeline's transcription
+  // stage additionally requires `audio.blobUrl`, which they deliberately
+  // lack, so they are never live input regardless of status.
+  status: type === "voice" ? "received" : "reviewed",
   tenantId: TENANT_ALPHA,
   type,
   updatedAt: occurredAt,

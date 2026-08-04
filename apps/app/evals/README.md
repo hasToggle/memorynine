@@ -141,6 +141,18 @@ tenant data removes only fixture rows. Idempotent; rerun any time the corpus
 needs to be reset to its known-good state (in particular, after a `post-erasure`
 run that did not reach its `finally`).
 
+**This seeds into the same cluster and database production points at**, and
+`apps/api/vercel.json` runs `/cron/knowledge-pipeline` every 5 minutes,
+sweeping across all tenants. The 25 email/manual fixture sources are seeded
+with `status: "reviewed"` (terminal), not `"received"` (the pipeline's entry
+status), specifically so the cron's extraction stage never picks them up —
+left at `"received"` they would match its selection filter exactly and start
+real, unbudgeted gateway extraction over the fixture corpus within minutes of
+every reseed, writing proposals that can crowd the planted facts this suite's
+deterministic id assertions depend on out of retrieval's top-20. The 10 voice
+fixtures stay `"received"`; they lack `audio.blobUrl`, so the cron's
+transcription stage never matches them either.
+
 **Wait for search indexes to catch up before querying.** `autoEmbed`
 generates vectors asynchronously, off the insert path — the 80 seeded facts
 exist in Mongo the moment `insertMany` returns, but the vector arm of hybrid
