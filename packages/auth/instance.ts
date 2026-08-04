@@ -32,11 +32,17 @@ const client =
 if (process.env.NODE_ENV !== "production") {
   globalForAuth.authMongo = client;
 }
-// MONGODB_URI has no database path, so the driver would otherwise default to
-// "test". @repo/database resolves the same URI to "app" — this must agree,
-// or every better-auth collection (user, session, organization, member, …)
-// lives somewhere no other consumer of MONGODB_URI ever looks.
-const db = client.db(process.env.MONGODB_DB ?? "app");
+// Deliberately NOT client.db(process.env.MONGODB_DB ?? "app") like its three
+// siblings (packages/database/index.ts, apps/email/scripts/digest.ts,
+// apps/api/app/cron/keep-alive/route.ts). Those move "subscribers"/"digests"
+// off the driver's implicit "test" default, which is safe because those
+// collections were confirmed empty. better-auth's collections (user,
+// session, organization, member, …) predate that rename and already hold
+// live data in "test" — moving them requires an actual migration decision
+// (migrate the data to "app", or keep reading "test" permanently) that this
+// repo has not made. Until that decision is made, stay on the driver
+// default so auth keeps reading where its data actually is.
+const db = client.db();
 
 export const authInstance = betterAuth({
   baseURL: keys().BETTER_AUTH_URL,
