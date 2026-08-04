@@ -1,6 +1,6 @@
 import { defineEval } from "eve/evals";
 import { satisfies } from "eve/evals/expect";
-import { citedIds, returnedFacts } from "./support/citations";
+import { citedIds, returnedFacts, returnedIds } from "./support/citations";
 
 // Abstention is the behaviour public memory benchmarks measure least and
 // production needs most: a knowledge base that fills gaps with plausible
@@ -38,6 +38,7 @@ export default defineEval({
     t.calledTool("search-knowledge");
 
     const facts = returnedFacts(turn.toolCalls);
+    const returned = returnedIds(turn.toolCalls);
 
     // The property that actually matters: no fact the agent cites is itself
     // about the asked-about entity. Since that entity does not exist in the
@@ -53,6 +54,27 @@ export default defineEval({
         (ids: string[]) =>
           ids.every((id) => !ASKED_ABOUT_ENTITY.test(facts.get(id) ?? "")),
         "no fact cited in the reply is itself about the asked-about entity"
+      )
+    );
+
+    // Same property citations.eval.ts asserts, against a different question
+    // — repeated here rather than assumed, because abstention is precisely
+    // the condition under which a model is most tempted to invent an id.
+    // Asked about someone who does not exist, it cannot cite a real fact
+    // *about* them (that fact cannot exist), so under pressure to answer
+    // anyway, fabricating a plausible-looking id is the path of least
+    // resistance. A hallucinated id is invisible to a reader — it looks
+    // exactly like a real one — so this is the one check in this file that
+    // a reader could never catch by eye. It is independent of the check
+    // above: an id that was never returned by search-knowledge has no entry
+    // in `facts`, so `facts.get(id) ?? ""` is the empty string and the
+    // entity-mention check above passes it vacuously. Only this check
+    // catches a hallucinated id.
+    t.check(
+      citedIds(t.reply),
+      satisfies(
+        (ids: string[]) => ids.every((id) => returned.has(id)),
+        "every cited fact id was returned by search-knowledge"
       )
     );
 
