@@ -1,11 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import type { Document } from "mongodb";
 import { ObjectId } from "mongodb";
+import type { UsageContext } from "../gateway";
 import {
   buildHybridFactsPipeline,
   createVoyageRerank,
   FACTS_VECTOR_INDEX_NAME,
   factsVectorIndexDefinition,
+  RERANK_COST_PER_MILLION_TOKENS,
   rankFusionWeights,
 } from "../retrieval";
 
@@ -186,5 +188,103 @@ describe("createVoyageRerank", () => {
 
     expect(ranked).toHaveLength(1);
     expect(ranked[0].document.text).toBe("a");
+  });
+
+  test("reports estimated usage from the token count it is given", async () => {
+    const seen: { estimated?: boolean; gatewayCost: number }[] = [];
+    const rerank = createVoyageRerank<{ text: string }>({
+      apiKey: "test",
+      fetchImpl: () =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              data: [{ index: 0, relevance_score: 0.9 }],
+              usage: { total_tokens: 1_000_000 },
+            }),
+            { status: 200 }
+          )
+        ),
+      onUsage: (usage) => {
+        seen.push({ estimated: true, gatewayCost: usage.gatewayCost });
+      },
+    });
+
+    await rerank("q", [{ text: "a" }]);
+
+    expect(seen).toHaveLength(1);
+    // One million tokens at the documented rate.
+    expect(seen[0]?.gatewayCost).toBeCloseTo(RERANK_COST_PER_MILLION_TOKENS, 6);
+  });
+
+  test("flags the context as estimated so recordUsage can mark the row", async () => {
+    const contexts: (UsageContext | undefined)[] = [];
+    const rerank = createVoyageRerank<{ text: string }>({
+      apiKey: "test",
+      fetchImpl: () =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              data: [{ index: 0, relevance_score: 0.9 }],
+              usage: { total_tokens: 100 },
+            }),
+            { status: 200 }
+          )
+        ),
+      onUsage: (_usage, context) => {
+        contexts.push(context);
+      },
+    });
+
+    await rerank("q", [{ text: "a" }], {
+      operation: "rerank",
+      tenantId: "org_1",
+    });
+
+    expect(contexts).toHaveLength(1);
+    expect(contexts[0]).toEqual({
+      estimated: true,
+      operation: "rerank",
+      tenantId: "org_1",
+    });
+  });
+
+  test("a throwing onUsage does not fail the rerank call", async () => {
+    const rerank = createVoyageRerank<{ text: string }>({
+      apiKey: "test",
+      fetchImpl: () =>
+        Promise.resolve(
+          new Response(
+            JSON.stringify({
+              data: [{ index: 0, relevance_score: 0.9 }],
+              usage: { total_tokens: 100 },
+            }),
+            { status: 200 }
+          )
+        ),
+      onUsage: (): void => {
+        throw new Error("telemetry boom");
+      },
+    });
+
+    const ranked = await rerank("q", [{ text: "a" }]);
+
+    expect(ranked).toHaveLength(1);
+    expect(ranked[0]?.relevanceScore).toBe(0.9);
+  });
+
+  test("never calls onUsage when the service is unreachable", async () => {
+    let calls = 0;
+    const rerank = createVoyageRerank<{ text: string }>({
+      apiKey: "test",
+      fetchImpl: () => Promise.resolve(new Response("nope", { status: 500 })),
+      onUsage: () => {
+        calls += 1;
+      },
+    });
+
+    await expect(rerank("q", [{ text: "a" }])).rejects.toThrow(
+      rerankErrorPattern
+    );
+    expect(calls).toBe(0);
   });
 });

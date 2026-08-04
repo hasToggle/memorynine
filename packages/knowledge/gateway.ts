@@ -56,6 +56,13 @@ export interface GatewayUsage {
 export interface UsageContext {
   /** A sourceId, an anchor id, an eval run id — whatever groups the spend. */
   correlationId?: string;
+  /**
+   * True when cost was computed from a rate constant rather than reported by
+   * the vendor (currently: rerank, which the gateway never sees). Set by the
+   * caller that did the computing, not invented downstream — an estimate
+   * must never be mistaken for an exact figure.
+   */
+  estimated?: boolean;
   operation: string;
   tenantId: string;
 }

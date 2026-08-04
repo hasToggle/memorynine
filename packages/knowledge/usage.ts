@@ -41,6 +41,9 @@ export const recordUsage = async (
       ? {}
       : { correlationId: context.correlationId }),
     createdAt: now,
+    ...(context.estimated === undefined
+      ? {}
+      : { estimated: context.estimated }),
     operation: context.operation,
     tenantId: context.tenantId,
     updatedAt: now,

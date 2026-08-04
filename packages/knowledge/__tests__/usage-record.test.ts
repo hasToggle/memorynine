@@ -53,6 +53,22 @@ describe("recordUsage", () => {
     ).resolves.toBeUndefined();
     expect(inserted).toHaveLength(0);
   });
+
+  test("carries context.estimated through to the stored row", async () => {
+    const { db, inserted } = stubDb();
+    await recordUsage(db, USAGE, {
+      estimated: true,
+      operation: "rerank",
+      tenantId: "t1",
+    });
+    expect(inserted[0]).toMatchObject({ estimated: true, operation: "rerank" });
+  });
+
+  test("omits estimated entirely when the context does not set it", async () => {
+    const { db, inserted } = stubDb();
+    await recordUsage(db, USAGE, { operation: "extraction", tenantId: "t1" });
+    expect(inserted[0]).not.toHaveProperty("estimated");
+  });
 });
 
 describe("createUsageRecorder", () => {
