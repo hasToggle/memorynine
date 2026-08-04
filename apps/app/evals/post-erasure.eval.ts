@@ -14,17 +14,34 @@ import { citedIds, returnedIds } from "./support/citations";
 // return or a thrown assertion — everything that touches the erased state
 // lives inside the `try`.
 //
-// eve's eval runner gives no file-ordering control: EveEvalConfigInput
-// (node_modules/eve/dist/src/evals/types.d.ts) has no sequencing field, and
-// evals.config.ts sets maxConcurrency: 2, i.e. evals run concurrently, not
-// serially by filename. Any other eval that reads Petra Lindqvist's facts
-// while this one has erased-but-not-yet-restored them would observe a
-// transient false negative that has nothing to do with its own assertion.
-// Until the runner offers ordering or per-file isolation, run this file by
-// itself and the rest of the suite separately:
+// eve's eval runner gives no file-ordering control (EveEvalConfigInput /
+// EveEvalBase in node_modules/eve/dist/src/evals/types.d.ts expose no
+// sequencing field), and it genuinely runs evals concurrently, not serially
+// by filename: node_modules/eve/dist/src/evals/runner/run-evals.js keeps a
+// work queue and an in-flight Set, starting the next eval whenever
+// `m.size < maxConcurrency` — evals.config.ts sets maxConcurrency: 2, so two
+// evals are in flight for the whole run. Any other eval that reads Petra
+// Lindqvist's facts while this one has erased-but-not-yet-restored them (or
+// while seedEvals is still re-inserting her, in the `finally`) would observe
+// a transient false negative that has nothing to do with its own assertion —
+// and a plain `bunx eve eval` provides no ordering guarantee that this file,
+// alphabetically last, runs after every other eval has already finished
+// reading that data.
 //
-//   EVAL_TENANT_ID=eval-tenant-alpha bunx eve eval post-erasure
-//   EVAL_TENANT_ID=eval-tenant-alpha bunx eve eval   # (minus post-erasure)
+// The `tags: ["mutates-db"]` below is the actual enforcement mechanism, not
+// a convention: node_modules/eve/dist/src/evals/cli/filter.js's
+// `filterEvalsByTags` reads each discovered eval's `tags` (passed straight
+// through from this file's `defineEval()` input by
+// evals/runner/discover.js's `importEvalFile`) against `--tag`/
+// `--exclude-tag`. Always invoke the suite as two passes so the two never
+// overlap:
+//
+//   EVAL_TENANT_ID=eval-tenant-alpha bunx eve eval --exclude-tag mutates-db  # the other 8, safe concurrently
+//   EVAL_TENANT_ID=eval-tenant-alpha bunx eve eval --tag mutates-db          # this one, alone
+//
+// Do not remove the tag to "simplify" a run — the concurrency described
+// above is real, not hypothetical, and this eval deletes and restores real
+// rows in whatever database KNOWLEDGE_MONGODB_URI points at while it runs.
 //
 // Restoration reuses Task 6's seeder (packages/knowledge/scripts/seed-evals.ts)
 // rather than duplicating its delete/insert logic or shelling out to it.
@@ -33,6 +50,7 @@ const PETRA_REGEX = /petra/i;
 export default defineEval({
   description:
     "After erasePerson removes Petra Lindqvist, she is unreachable through the agent AND actually gone from the database — not just missing from one retrieval.",
+  tags: ["mutates-db"],
   async test(t) {
     const db = getKnowledgeDb();
     const { facts } = getCollections(db);
