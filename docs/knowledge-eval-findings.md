@@ -63,7 +63,7 @@ whole ballgame."*
 
 ## F2 — CLAUDE.md documents a database stack that does not exist
 
-**Status:** open · **Severity:** medium
+**Status:** fixed · **Severity:** medium
 
 CLAUDE.md describes Prisma with a Neon PostgreSQL adapter, a schema at
 `packages/database/prisma/schema.prisma`, a generated client at
@@ -80,11 +80,21 @@ which is what it is for.
 
 **Fix:** rewrite the Database sections of CLAUDE.md to describe what is there.
 
+Fixed in `9710484`: removed `bun migrate`, `bunx prisma studio`, `bunx
+prisma generate`, the `schema.prisma` Key Files entry, and the generated-client
+Development Notes line; rewrote the `@repo/database` bullet and the Technology
+Stack `Database` line to describe the actual MongoDB client. Note left for a
+future pass: `apps/studio/package.json` still carries an unused `prisma`
+devDependency and a `dev` script pointing at the same nonexistent
+`schema.prisma`, and `.vscode/extensions.json` still recommends the Prisma
+extension — both are template leftovers, out of this fix's scope (CLAUDE.md
+and `packages/database` only), but the same staleness.
+
 ---
 
 ## F3 — `@repo/database` writes to a database named `test`
 
-**Status:** open · **Severity:** medium
+**Status:** fixed · **Severity:** medium
 
 `packages/database/index.ts:14` calls `client.db()` with no argument, so the
 driver uses the database named in the connection string's path. `MONGODB_URI`
@@ -106,11 +116,18 @@ it is not removable, and `@repo/knowledge` is deliberately runtime-portable with
 its own client bootstrap. Two names for one cluster costs nothing and keeps the
 option to split later.
 
+Fixed in `9710484`: `client.db()` now takes `process.env.MONGODB_DB ?? "app"`
+explicitly. Confirmed safe to change the default outright (no migration owed):
+neither `test.subscribers` nor `test.digests` exists, and no data has ever been
+written there — the writing code in `apps/web` (newsletter confirm) and
+`apps/app` (digests) is inherited from the forked template and has never run
+against this cluster.
+
 ---
 
 ## F4 — `@repo/database` undoes the connection-pool sizing `@repo/knowledge` sets
 
-**Status:** open · **Severity:** medium
+**Status:** fixed · **Severity:** medium
 
 `packages/knowledge/client.ts:32` sets `maxPoolSize: 5` with a comment
 explaining that every warm serverless instance holds its own pool and small
@@ -122,6 +139,11 @@ same cluster, from three apps. The care taken in one package is silently undone
 by the other.
 
 **Fix:** pass the same pool and timeout options in `@repo/database`.
+
+Fixed in `9710484`: `@repo/database`'s `MongoClient` now takes the same
+`appName`, `connectTimeoutMS`, `maxIdleTimeMS`, `maxPoolSize: 5`,
+`serverSelectionTimeoutMS`, and `socketTimeoutMS` options as
+`@repo/knowledge/client.ts`.
 
 ---
 
@@ -167,8 +189,9 @@ Two separate consequences:
 follow-up PR adding a CI workflow, and a decision on whether to bulk-fix or
 baseline the 499.
 
-Note: `packages/database/index.ts` and `keys.ts` have two trivial
-`useSortedKeys` errors that ARE in scope, since Task 5 modifies both files.
+Note: `packages/database/index.ts` and `keys.ts` had two trivial
+`useSortedKeys` errors that were in scope, since Task 5 modified both files —
+fixed alongside F2/F3/F4 in `9710484`.
 
 ---
 
