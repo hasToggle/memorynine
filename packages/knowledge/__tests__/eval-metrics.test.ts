@@ -7,14 +7,14 @@ import {
 } from "../eval-metrics";
 
 describe("scoreSource", () => {
-  test("zero extracted facts: precision is vacuously 1, invention rate is 0", () => {
+  test("zero extracted facts: nonInventionRate is vacuously 1, invention rate is 0", () => {
     const metrics = scoreSource({
       extractedCount: 0,
       groundTruthCount: 3,
       invented: 0,
       matched: 0,
     });
-    expect(metrics.precision).toBe(1);
+    expect(metrics.nonInventionRate).toBe(1);
     expect(metrics.inventionRate).toBe(0);
     // Nothing was extracted, so nothing could have been matched either.
     expect(metrics.recall).toBe(0);
@@ -38,18 +38,18 @@ describe("scoreSource", () => {
       matched: 0,
     });
     expect(metrics.recall).toBe(1);
-    expect(metrics.precision).toBe(1);
+    expect(metrics.nonInventionRate).toBe(1);
     expect(metrics.inventionRate).toBe(0);
   });
 
-  test("all-invented: precision 0, invention rate 1", () => {
+  test("all-invented: nonInventionRate 0, invention rate 1", () => {
     const metrics = scoreSource({
       extractedCount: 3,
       groundTruthCount: 2,
       invented: 3,
       matched: 0,
     });
-    expect(metrics.precision).toBe(0);
+    expect(metrics.nonInventionRate).toBe(0);
     expect(metrics.inventionRate).toBe(1);
     expect(metrics.recall).toBe(0);
   });
@@ -62,11 +62,11 @@ describe("scoreSource", () => {
       matched: 2,
     });
     expect(metrics.recall).toBe(1);
-    expect(metrics.precision).toBe(1);
+    expect(metrics.nonInventionRate).toBe(1);
     expect(metrics.inventionRate).toBe(0);
   });
 
-  test("mixed case computes recall, precision and invention rate independently", () => {
+  test("mixed case computes recall, nonInventionRate and invention rate independently", () => {
     // 2 ground truth facts, 3 extracted: 1 matched, 1 invented, 1 neither
     // (a paraphrase/split the judge treated as non-invented but also
     // non-matching — this is a legitimate zone, not a bug).
@@ -77,7 +77,7 @@ describe("scoreSource", () => {
       matched: 1,
     });
     expect(metrics.recall).toBe(0.5);
-    expect(metrics.precision).toBeCloseTo(2 / 3, 10);
+    expect(metrics.nonInventionRate).toBeCloseTo(2 / 3, 10);
     expect(metrics.inventionRate).toBeCloseTo(1 / 3, 10);
   });
 });
@@ -163,7 +163,7 @@ describe("aggregateMetrics", () => {
   test("empty list of sources is the all-zero vacuous case", () => {
     const overall = aggregateMetrics([]);
     expect(overall.recall).toBe(1);
-    expect(overall.precision).toBe(1);
+    expect(overall.nonInventionRate).toBe(1);
     expect(overall.inventionRate).toBe(0);
     expect(overall.groundTruthCount).toBe(0);
     expect(overall.extractedCount).toBe(0);

@@ -19,8 +19,18 @@ export interface SourceGradeCounts {
 export interface SourceMetrics extends SourceGradeCounts {
   /** invented / extracted. Vacuously 0 when nothing was extracted. */
   inventionRate: number;
-  /** (extracted - invented) / extracted. Vacuously 1 when nothing was extracted. */
-  precision: number;
+  /**
+   * (extracted - invented) / extracted. Vacuously 1 when nothing was
+   * extracted. Deliberately NOT named `precision`: it is 1 - inventionRate
+   * by construction, the same number reported under a name that would imply
+   * the standard IR definition (true positives / all positives). Real
+   * precision is not computable from the current JudgeVerdict shape — there
+   * is no signal distinguishing "extracted and correct" from "extracted,
+   * unplanted, but still true" beyond the invented/not-invented split this
+   * already is. Kept as a field (some callers want "how much of what came
+   * back wasn't invented" as a single number) but under its actual name.
+   */
+  nonInventionRate: number;
   /** matched / groundTruth. Vacuously 1 when there was no ground truth to find. */
   recall: number;
 }
@@ -35,7 +45,7 @@ export interface SourceMetrics extends SourceGradeCounts {
 export const scoreSource = (counts: SourceGradeCounts): SourceMetrics => {
   const { extractedCount, groundTruthCount, invented, matched } = counts;
   const recall = groundTruthCount === 0 ? 1 : matched / groundTruthCount;
-  const precision =
+  const nonInventionRate =
     extractedCount === 0 ? 1 : (extractedCount - invented) / extractedCount;
   const inventionRate = extractedCount === 0 ? 0 : invented / extractedCount;
   return {
@@ -44,7 +54,7 @@ export const scoreSource = (counts: SourceGradeCounts): SourceMetrics => {
     invented,
     inventionRate,
     matched,
-    precision,
+    nonInventionRate,
     recall,
   };
 };

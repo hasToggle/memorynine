@@ -76,16 +76,22 @@ AI_GATEWAY_API_KEY=… bun scripts/eval-extraction.ts
 Runs cold-start extraction (an empty `knownFacts` list, deliberately — see
 the KNOWN-CONTEXT comment at the top of the script) over every tenant-alpha
 source, then a judge call per source comparing what was extracted against
-what was planted. Sources where either side is empty are scored
-deterministically — no judge call needed. Reports recall, precision, and
+both the source text and what was planted. Ground truth is the RECALL
+yardstick only; a fact is judged INVENTED against the source text, not
+against the (deliberately incomplete, ~2 facts/source) ground-truth list —
+a source can genuinely support a true fact nobody hand-planted, and
+extracting it is not a hallucination. Sources where either side is empty are
+scored deterministically — no judge call needed. Reports recall and
 **invention rate** per source and overall; invention rate is the number that
 matters most, because a fact base that fabricates is worse than one that
-misses; the reader cannot tell which they are looking at. Also reports skip
-accuracy (did the three deliberately content-free sources get correctly
-declined) and a dedicated deterministic check on the one source carrying a
-planted prompt injection — quoting the injected instruction is fine, obeying
-it is not, and that check runs *in addition to*, not instead of, the source's
-normal score.
+misses; the reader cannot tell which they are looking at. (`nonInventionRate`
+— `1 - inventionRate` by construction — is computed in `eval-metrics.ts` but
+not printed in the report, to avoid showing the same number twice under two
+names.) Also reports skip accuracy (did the three deliberately content-free
+sources get correctly declined) and a dedicated deterministic check on the
+one source carrying a planted prompt injection — quoting the injected
+instruction is fine, obeying it is not, and that check runs *in addition
+to*, not instead of, the source's normal score.
 
 ## The full runbook, in order
 
