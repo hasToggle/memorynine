@@ -2,7 +2,7 @@ import type { Db } from "mongodb";
 import { ObjectId } from "mongodb";
 import { getCollections } from "./collections";
 import type { GatewayUsage, UsageContext } from "./gateway";
-import type { UsageOperation } from "./schemas/usage";
+import { usageOperationValues } from "./schemas/usage";
 
 // Spend telemetry. `recordUsage` writes one row per model call so a later
 // report can group by tenant/operation/correlationId to answer "what did
@@ -10,11 +10,29 @@ import type { UsageOperation } from "./schemas/usage";
 // gateway's `onUsage` callback shape: fire-and-forget, because telemetry
 // must never fail the pipeline call it's reporting on.
 
+const isUsageOperation = (
+  value: string
+): value is (typeof usageOperationValues)[number] =>
+  (usageOperationValues as readonly string[]).includes(value);
+
 export const recordUsage = async (
   db: Db,
   usage: GatewayUsage,
   context: UsageContext
 ): Promise<void> => {
+  // `UsageContext.operation` is plain `string` (gateway.ts is Task 1's and
+  // deliberately carries no dependency on the usage schema), so a typo'd
+  // operation from a caller compiles fine. Mongo does not enforce Zod at
+  // write time, so guard here: drop the row rather than writing one that
+  // fails `usageSchema`. A warning keeps a typo discoverable instead of
+  // silently invisible, without risking the pipeline call it's reporting on.
+  if (!isUsageOperation(context.operation)) {
+    console.warn(
+      `usage: dropping row with unknown operation "${context.operation}"`
+    );
+    return;
+  }
+
   const now = new Date();
   await getCollections(db).usage.insertOne({
     _id: new ObjectId(),
@@ -23,7 +41,7 @@ export const recordUsage = async (
       ? {}
       : { correlationId: context.correlationId }),
     createdAt: now,
-    operation: context.operation as UsageOperation,
+    operation: context.operation,
     tenantId: context.tenantId,
     updatedAt: now,
   });

@@ -42,6 +42,17 @@ describe("recordUsage", () => {
       tenantId: "t1",
     });
   });
+
+  test("drops the row rather than throwing when the operation is not in usageOperationValues", async () => {
+    const { db, inserted } = stubDb();
+    await expect(
+      recordUsage(db, USAGE, {
+        operation: "mining",
+        tenantId: "t1",
+      })
+    ).resolves.toBeUndefined();
+    expect(inserted).toHaveLength(0);
+  });
 });
 
 describe("createUsageRecorder", () => {
