@@ -10,7 +10,12 @@ Status: `open` · `fixed` · `wontfix` · `external`
 
 ## F1 — Eval sessions carry no tenant, so every eval fails on plumbing
 
-**Status:** open · **Severity:** blocker
+**Status:** fixed · **Severity:** blocker
+
+Resolved in `d1d5941` by inserting `evalTenant` between `betterAuthSession`
+and `localDev()` in `apps/app/agent/channels/eve.ts`, exactly as proposed
+below, plus `apps/app/__tests__/eval-tenant.test.ts` covering the unset,
+non-loopback, and loopback-with-tenant cases.
 
 `agent/channels/eve.ts:40` chains `[betterAuthSession, localDev()]`. Under
 `eve eval` there is no better-auth cookie, so the walk falls through to
