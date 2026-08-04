@@ -69,8 +69,8 @@ export type {
   RunExtractionOptions,
 } from "./extraction-run";
 export { runExtraction } from "./extraction-run";
-export type { GatewayConfig } from "./gateway";
-export { createGatewayGenerate } from "./gateway";
+export type { GatewayConfig, GatewayUsage, UsageContext } from "./gateway";
+export { createGatewayGenerate, parseGatewayUsage } from "./gateway";
 export type { CreateEmailSourceResult, InboundEmail } from "./inbound";
 export { createEmailSource, parseInboundSenderMap } from "./inbound";
 export { keys } from "./keys";
