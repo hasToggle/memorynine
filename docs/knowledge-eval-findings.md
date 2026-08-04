@@ -129,14 +129,30 @@ written there — the writing code in `apps/web` (newsletter confirm) and
 against this cluster.
 
 **`test` is not vacated — do not drop it.** This fix moved only
-`@repo/database`'s own default. `packages/auth/instance.ts` calls the same
-`client.db()` with no argument against the same `MONGODB_URI`, and holds
-every better-auth collection (`user`, `session`, `organization`, `member`,
-…) there — real, live, in-use data, unrelated to `subscribers`/`digests`.
-That was a gap this branch itself introduced (moving `@repo/database` off
-`test` without moving `@repo/auth` alongside it — `apps/email/scripts/digest.ts`
-had the same gap for `subscribers`/`digests` specifically) and it is fixed:
-both now default to `MONGODB_DB ?? "app"` too, so all three agree.
+`@repo/database`'s own default, plus `apps/email/scripts/digest.ts` and
+`apps/api/app/cron/keep-alive/route.ts`, its two other consumers writing
+`subscribers`/`digests` — all three were confirmed empty, so moving them to
+`app` cost nothing.
+
+`packages/auth/instance.ts` calls the same `client.db()` with no argument
+against the same `MONGODB_URI`, and holds every better-auth collection
+(`user`, `session`, `organization`, `member`, …) there — real, live,
+in-use data, unrelated to `subscribers`/`digests`. A later pass in this
+branch briefly moved it to `MONGODB_DB ?? "app"` too, on the assumption
+that it had the same "never written" gap as the other three; it does not.
+That would have pointed a deployed app at an empty database and made every
+existing user, session and organization (and, since the active
+organization id is the knowledge hub's `tenantId`, every knowledge feature
+gated on it) unreachable. Reverted: `packages/auth/instance.ts` still calls
+plain `client.db()`, so auth keeps reading `test`, where its data actually
+is.
+
+So today: `subscribers`/`digests` are in `app`; better-auth's collections
+are still in `test`; `test` must not be dropped. Whether to eventually
+migrate the auth collections into `app` (and drop this exception) or leave
+them in `test` permanently is an open decision — it needs an explicit
+migration plan and a maintainer's sign-off, not a silent default change,
+because it means moving live user data.
 
 ---
 
