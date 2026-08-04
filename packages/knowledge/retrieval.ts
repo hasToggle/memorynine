@@ -203,7 +203,13 @@ export interface VoyageRerankConfig {
   topK?: number;
 }
 
-const DEFAULT_RERANK_BASE_URL = "https://api.voyageai.com/v1";
+// MongoDB acquired Voyage AI and now serves the same models from its own
+// endpoint, authenticated with an Atlas *model* API key rather than a
+// voyageai.com key. The wire format is unchanged — same request fields, same
+// `{ data: [{ index, relevance_score }] }` response, same model names — so
+// only the host differs. Pointing an Atlas key at api.voyageai.com returns a
+// 403 that names the mismatch, which is how this was found.
+const DEFAULT_RERANK_BASE_URL = "https://ai.mongodb.com/v1";
 // The lite model is the interactive default: the quality gap on short
 // candidates is small and this sits on the latency-sensitive path.
 const DEFAULT_RERANK_MODEL = "rerank-2.5-lite";
