@@ -301,7 +301,7 @@ export const runConsolidation = async (
 };
 
 export interface ConsolidationSweepOptions {
-  generate: (prompt: string) => Promise<string>;
+  generate: (prompt: string, context?: UsageContext) => Promise<string>;
   /** Max candidate anchors per sweep. Default 10. */
   limit?: number;
   minFacts?: number;

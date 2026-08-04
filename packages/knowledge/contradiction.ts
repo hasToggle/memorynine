@@ -309,7 +309,7 @@ export const runContradictionCheck = async (
 };
 
 export interface ContradictionSweepOptions {
-  generate: (prompt: string) => Promise<string>;
+  generate: (prompt: string, context?: UsageContext) => Promise<string>;
   /** Max candidate anchors per sweep. Default 10. */
   limit?: number;
   minFacts?: number;
