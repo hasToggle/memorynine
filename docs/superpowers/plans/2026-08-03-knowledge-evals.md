@@ -1277,7 +1277,7 @@ Because this mutates the database, it must run **last** and restore afterwards. 
    - the reply does not contain `"Petra"` (case-insensitive)
    - none of `PLANTED.erasureTarget.directFactIds` nor `derivedFactId` appears in `citedIds(t.reply)` or in `returnedIds`
    - a direct query confirms zero remaining facts matching `/Petra/` in `text` for that tenant
-5. Re-seed in a `finally` so the suite is re-runnable: `bun scripts/seed-evals.ts`.
+5. Re-seed in a `finally` so the suite is re-runnable: `bun scripts/seed-evals.cli.ts`.
 
 Assert the DB state as well as the answer. An answer that omits the name because retrieval missed it is not erasure, and only the direct query tells them apart.
 
@@ -1311,7 +1311,7 @@ Record both outcomes in the findings log. If the judge is not covered, change th
 ```bash
 cd packages/knowledge
 KNOWLEDGE_MONGODB_URI=… bun scripts/setup-indexes.ts
-KNOWLEDGE_MONGODB_URI=… bun scripts/seed-evals.ts
+KNOWLEDGE_MONGODB_URI=… bun scripts/seed-evals.cli.ts
 ```
 
 `autoEmbed` indexes take time to build. Confirm `facts_search` and `facts_vector` are queryable before running Substrate A, or every eval fails for the same uninteresting reason.
