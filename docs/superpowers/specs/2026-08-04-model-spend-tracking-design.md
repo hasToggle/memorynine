@@ -54,10 +54,10 @@ closes finding F8.
 
 | Path | Route | Attribution |
 |---|---|---|
-| extraction, consolidation, contradiction | `createGatewayGenerate` | exact, per tenant |
-| eval Substrate B | `createGatewayGenerate` | exact, per run |
+| extraction, consolidation, contradiction | `createGatewayGenerate` | exact, per tenant, written to `usage` |
+| eval Substrate B | `createGatewayGenerate` | exact cost computed and **printed** to the eval report; no `usage` row is written |
 | chat / ask | eve's own model routing | **not captured** |
-| rerank | MongoDB endpoint | tokens only — cost estimated |
+| rerank | MongoDB endpoint | capture is **implemented but not wired**: `createVoyageRerank`'s `onUsage` exists, but the only production caller (`apps/app/agent/tools/search-knowledge.ts`) passes no rerank function, and `RetrieveFactsOptions.rerank` isn't threaded a context — so no rerank row is ever written today |
 | autoEmbed, transcription | MongoDB / AssemblyAI | out of scope |
 
 **Production chat attribution is deliberately deferred.** eve's `model` accepts
@@ -181,17 +181,24 @@ conventions of the existing scripts. Two modes:
 
 - **per tenant** — total `gatewayCost` by tenant over a date range, split by
   operation.
-- **unit economics** — cost per source ingested and cost per eval run, derived
-  by grouping on `correlationId`.
+- **unit economics** — cost per source ingested, derived by grouping on
+  `correlationId`. Eval runs are not part of this: see Eval cost below —
+  eval cost is printed by the eval script itself, not stored in `usage`, so
+  it never appears in this report and `--mode=unit` can never return an eval
+  run.
 
 Text table to stdout. No UI, no API route — this is an operator tool.
 
 ### Eval cost
 
 The eval scripts already call `createGatewayGenerate`, so `onUsage` gives
-Substrate B its cost with no extra work. `eval-extraction.ts` prints total
-spend alongside recall and invention rate, and states plainly that Substrate A's
-cost is not captured rather than implying the figure is the whole run.
+Substrate B its cost with no extra work. `eval-extraction.ts` **prints** that
+total spend alongside recall and invention rate — it never writes a `usage`
+row, so this cost is visible only in the eval's own console/report output,
+not in `usage-report.ts` or anywhere the `eval-extraction`/`eval-judge`
+`UsageOperation` enum values would suggest. The script also states plainly
+that Substrate A's cost is not captured, rather than implying the figure is
+the whole run.
 
 ### Rerank
 
@@ -200,6 +207,17 @@ returns `{"usage":{"total_tokens":N}}` — tokens only. Cost is computed from a
 rate constant and the row is flagged `estimated: true`, so an estimate can never
 be mistaken for a vendor-reported figure. The constant lives in one place with a
 comment naming the date it was checked.
+
+**Not wired into production.** `onUsage` is implemented and unit-tested on
+`createVoyageRerank`, but the only production caller
+(`apps/app/agent/tools/search-knowledge.ts`) constructs its rerank function
+with no `onUsage`, and `RetrieveFactsOptions.rerank` isn't typed to accept a
+context to pass one through. So no rerank row is written by anything running
+today, and `usage-report.ts`'s `Estimated*` column reads `$0.0000` in every
+real report — that reflects "we capture no rerank usage yet," not "rerank has
+zero estimated cost." Wiring this up is a real change (a signature change to
+`RetrieveFactsOptions.rerank` plus updating the `apps/app` call site) and is
+out of scope here; it belongs in its own change.
 
 ## Testing
 

@@ -153,7 +153,9 @@ const ESTIMATED_FOOTNOTE =
   "* Estimated cost is computed from a rate constant (currently only " +
   "rerank), not reported by the vendor. It is already included in Gateway " +
   "Cost above and broken out here so it is never mistaken for an exact, " +
-  "vendor-reported figure.";
+  "vendor-reported figure. Rerank's onUsage is not yet wired into any " +
+  "production caller, so this column reads $0.0000 today — that means " +
+  '"no rerank usage captured yet," not "rerank costs nothing."';
 
 export interface TableRange {
   readonly from: Date;
