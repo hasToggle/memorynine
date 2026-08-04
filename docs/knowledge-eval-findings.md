@@ -80,7 +80,7 @@ which is what it is for.
 
 **Fix:** rewrite the Database sections of CLAUDE.md to describe what is there.
 
-Fixed in `9710484`: removed `bun migrate`, `bunx prisma studio`, `bunx
+Fixed in `ce4f927`: removed `bun migrate`, `bunx prisma studio`, `bunx
 prisma generate`, the `schema.prisma` Key Files entry, and the generated-client
 Development Notes line; rewrote the `@repo/database` bullet and the Technology
 Stack `Database` line to describe the actual MongoDB client. Note left for a
@@ -116,7 +116,7 @@ it is not removable, and `@repo/knowledge` is deliberately runtime-portable with
 its own client bootstrap. Two names for one cluster costs nothing and keeps the
 option to split later.
 
-Fixed in `9710484`: `client.db()` now takes `process.env.MONGODB_DB ?? "app"`
+Fixed in `ce4f927`: `client.db()` now takes `process.env.MONGODB_DB ?? "app"`
 explicitly. Confirmed safe to change the default outright (no migration owed):
 neither `test.subscribers` nor `test.digests` exists, and no data has ever been
 written there — the writing code in `apps/web` (newsletter confirm) and
@@ -140,7 +140,7 @@ by the other.
 
 **Fix:** pass the same pool and timeout options in `@repo/database`.
 
-Fixed in `9710484`: `@repo/database`'s `MongoClient` now takes the same
+Fixed in `ce4f927`: `@repo/database`'s `MongoClient` now takes the same
 `appName`, `connectTimeoutMS`, `maxIdleTimeMS`, `maxPoolSize: 5`,
 `serverSelectionTimeoutMS`, and `socketTimeoutMS` options as
 `@repo/knowledge/client.ts`.
@@ -191,7 +191,7 @@ baseline the 499.
 
 Note: `packages/database/index.ts` and `keys.ts` had two trivial
 `useSortedKeys` errors that were in scope, since Task 5 modified both files —
-fixed alongside F2/F3/F4 in `9710484`.
+fixed alongside F2/F3/F4 in `ce4f927`.
 
 ---
 
@@ -242,6 +242,105 @@ a `facts.ts` change, not a `sources.ts` one. Flagging here so it isn't
 rediscovered as a "bug" by Task 6 (consolidation), Task 9 (contradiction),
 or Task 11 (post-erasure) implementers who grep for a fact's `sourceId` and
 find content that doesn't match.
+
+---
+
+## F8 — ZDR is not requested on any production model call
+
+**Status:** open · **Severity:** medium (predates this branch, contradicts a stated assumption)
+
+`packages/knowledge/gateway.ts`'s `GatewayConfig` has no `providerOptions`
+field, and `createGatewayGenerate`'s fetch body sends only `model`,
+`max_tokens`, `messages` and optionally `reasoning_effort` — there is no
+`providerOptions.gateway.zeroDataRetention` anywhere in it.
+
+That same function is what production extraction runs on:
+`apps/api/app/cron/knowledge-pipeline/route.ts:44` calls
+`createGatewayGenerate()` with no config, inside `sweepPipeline`, which is the
+cron sweep that processes captured sources (meeting transcripts, forwarded
+client email) into fact proposals.
+
+ZDR at the Vercel AI Gateway is enforced **per request**, via
+`providerOptions.gateway.zeroDataRetention`, and hard-fails (`400
+no_providers_available`) when no covered provider exists for that request —
+`packages/knowledge/scripts/probe-zdr.ts` and `evals.config.ts`'s judge both
+set the flag explicitly and rely on exactly that hard-fail behaviour. Without
+the flag, there is nothing to hard-fail: the request is simply not asking for
+ZDR.
+
+**Consequence:** real extraction traffic is not requesting ZDR today. This
+predates this branch — `gateway.ts` was introduced in f5f6598/95273fe, well
+before this plan started — so it is not a regression introduced here, but it
+contradicts an assumption the user has stated explicitly (that ZDR applies to
+extraction), and they should hear that directly rather than have it stay
+buried in this log.
+
+**What is NOT known:** whether Vercel's account-level ZDR setting
+independently covers traffic that carries no per-request flag. The Vercel AI
+Gateway docs describe the per-request `providerOptions` mechanism in detail
+and are silent on whether an account-wide ZDR toggle also blankets requests
+that omit it. Do not assume either way — this needs confirming with Vercel
+support or a controlled test, not inference from the docs' silence. Until
+confirmed, treat production extraction traffic as **unconfirmed** for ZDR
+coverage, not as a confirmed leak.
+
+**Fix:** add a `providerOptions` passthrough to `GatewayConfig` and set
+`{ gateway: { zeroDataRetention: true } }` at both call sites that construct
+a production generator (the extraction worker's `createGatewayGenerate()` in
+`apps/api/app/cron/knowledge-pipeline/route.ts`, and any other production
+caller of `createGatewayGenerate`). Out of scope for this branch — Task 12 is
+env-independent documentation only; this is a code change that itself needs
+verification against a live gateway.
+
+---
+
+## Deferred minors
+
+Minor findings recorded during implementation review (see
+`.superpowers/sdd/2026-08-03-knowledge-evals/progress.md` for the full
+ledger) that were deliberately not fixed on this branch, scope-limited to the
+task that surfaced them. Listed here so they are visible to a reviewer
+instead of living only in a gitignored file.
+
+- **Task 2** (`packages/knowledge/fixtures/facts.ts`) — facts 12 and 16 have
+  `supersededAt` only 8h after `validUntil`, so 2 of 4 role changes read as
+  an accidental edit rather than a genuine "found out later" gap.
+- **Task 2** (`packages/knowledge/fixtures/facts.ts`) — curly vs. straight
+  quotes are inconsistent for the same engagement title across facts 44/18
+  vs. 48/60.
+- **Task 2** (`packages/knowledge/fixtures/facts.ts`) — fact 52's text says
+  "Jonas Reimer"; the entity is "Jonas Reimers" (mandated verbatim by the
+  original brief). Latent risk only if a future eval name-matches on fact
+  text rather than id.
+- **Task 3** (`packages/knowledge/fixtures/sources.ts`) — the voice source
+  count sits exactly at the `>= 10` floor a fixture test enforces, after one
+  source moved from voice to email during the Task 3 fix round; any future
+  voice→email change will break that type-mix test.
+- **Task 5** (`docs/knowledge-eval-findings.md`) — F5 originally cited an
+  unreachable commit sha (`9710484`, written before the plan was amended);
+  corrected to `ce4f927` here.
+- **Task 5** (`packages/database/index.ts`) — its comment claims to match
+  `@repo/knowledge/client.ts`'s Mongo client options, but omits
+  `ignoreUndefined`, which the comment's target deliberately sets. Harmless
+  today, but the comment invites an assumption of parity that does not hold.
+- **Task 6** (`packages/knowledge/scripts/seed-evals.ts` tests) — the insert
+  assertions only check that `insertMany` was called once per collection,
+  not which fixture array was passed to which collection; a refactor that
+  swapped, say, `sources` and `facts` would still pass.
+- **Task 7** (`packages/knowledge/scripts/probe-zdr.ts` tests) — the
+  generic-400 (neither ZDR-related nor a model-not-found) classification
+  branch is verified correct by hand but has no committed regression test
+  pinning it.
+- **Task 8** (`packages/knowledge/scripts/eval-extraction.ts`) — when every
+  source fails grading, the report renders `"100.0% (0/0)"` rather than a
+  banner calling out that nothing was actually scored.
+- **Task 8** (`packages/knowledge/scripts/eval-extraction.ts` tests) —
+  nothing spies on `buildExtractionPrompt`'s `knownFacts` argument to pin
+  that cold-start extraction really does pass an empty list.
+- **Task 9** (`apps/app/evals/lookup.eval.ts`) — the lookup eval's target
+  fact (ordinal 11) is itself one half of a supersession pair, so this
+  "floor" eval brushes against the temporal-mechanics territory that
+  `knowledge-update.eval.ts` is meant to own exclusively.
 
 ---
 

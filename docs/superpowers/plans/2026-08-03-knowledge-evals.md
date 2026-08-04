@@ -1325,14 +1325,26 @@ Record recall, precision, invention rate and skip accuracy.
 
 - [ ] **Step 4: Run Substrate A three times**
 
+**Two passes, never a bare full-suite run.** `post-erasure` deletes facts from the
+shared eval database, and eve's runner is genuinely concurrent — `runEvals` keeps
+an in-flight Set and starts a new eval whenever `size < maxConcurrency`, which
+`evals.config.ts` sets to 2. A bare `bunx eve eval` would therefore run
+`post-erasure` alongside another eval, which would then query a corpus mid-erasure
+and fail spuriously with no way to attribute it. `post-erasure` carries
+`tags: ["mutates-db"]` so this is enforced rather than remembered:
+
 ```bash
 cd apps/app
-EVAL_TENANT_ID=eval-tenant-alpha bunx eve eval
+EVAL_TENANT_ID=eval-tenant-alpha bunx eve eval --exclude-tag mutates-db
+EVAL_TENANT_ID=eval-tenant-alpha bunx eve eval --tag mutates-db
 ```
 
-Run three times and compute **`pass^3`** per eval — the fraction passing all three runs, not the fraction passing at least one. At 75% per-trial success `pass@3` reads 98% and `pass^3` reads 42%.
+Run both passes three times and compute **`pass^3`** per eval — the fraction
+passing all three runs, not the fraction passing at least one. At 75% per-trial
+success `pass@3` reads 98% and `pass^3` reads 42%.
 
-Note that `post-erasure` re-seeds, so ordering matters; run it last or accept the reseed between passes.
+`post-erasure` restores the corpus in a `finally`, so the second pass leaves the
+database seeded and the cycle is repeatable.
 
 - [ ] **Step 5: Rewrite the README's "What is still missing" section**
 
