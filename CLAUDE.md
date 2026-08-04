@@ -88,10 +88,11 @@ The repository uses **Bun workspaces** with two main directories:
 
 Core infrastructure packages:
 
-- **@repo/auth** - better-auth authentication (client, server, middleware, provider); MongoDB adapter, organization plugin — active org id is the knowledge `tenantId`
+- **@repo/auth** - better-auth authentication (client, server, middleware, provider); MongoDB adapter, organization plugin — active org id is the knowledge `tenantId`. Collections live in the `app` database (`MONGODB_DB ?? "app"`), same as `@repo/database`; migrated there from the driver's implicit `test` default via `packages/auth/scripts/migrate-to-app-db.ts`.
 - **@repo/database** - MongoDB client for the app's own collections
-  (`subscribers`, `digests`). Separate from `@repo/knowledge`, which has its
-  own client and its own database on the same cluster.
+  (`subscribers`, `digests`), same `app` database as `@repo/auth`. Separate
+  from `@repo/knowledge`, which has its own client and its own database on
+  the same cluster.
 - **@repo/knowledge** - MongoDB data layer for the knowledge hub (source-only, no build)
   - Zod v4 schemas in `schemas/` (organizations, people, engagements, sources, facts, proposals)
   - Typed collections + idempotent indexes (`getCollections`, `ensureIndexes`)

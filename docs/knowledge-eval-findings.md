@@ -99,7 +99,7 @@ against a schema file that does not exist).
 
 ## F3 — `@repo/database` writes to a database named `test`
 
-**Status:** fixed · **Severity:** medium
+**Status:** fixed · **Severity:** medium · **migration must run before deploy**
 
 `packages/database/index.ts:14` calls `client.db()` with no argument, so the
 driver uses the database named in the connection string's path. `MONGODB_URI`
@@ -143,16 +143,30 @@ that it had the same "never written" gap as the other three; it does not.
 That would have pointed a deployed app at an empty database and made every
 existing user, session and organization (and, since the active
 organization id is the knowledge hub's `tenantId`, every knowledge feature
-gated on it) unreachable. Reverted: `packages/auth/instance.ts` still calls
-plain `client.db()`, so auth keeps reading `test`, where its data actually
-is.
+gated on it) unreachable. Reverted at the time: `packages/auth/instance.ts`
+went back to plain `client.db()`, so auth kept reading `test`, where its
+data actually was.
 
-So today: `subscribers`/`digests` are in `app`; better-auth's collections
-are still in `test`; `test` must not be dropped. Whether to eventually
-migrate the auth collections into `app` (and drop this exception) or leave
-them in `test` permanently is an open decision — it needs an explicit
-migration plan and a maintainer's sign-off, not a silent default change,
-because it means moving live user data.
+**Resolved:** the maintainer decided to migrate rather than leave the
+exception permanently in place, so every non-knowledge collection ends up
+in one database and `test` can eventually be dropped.
+`packages/auth/scripts/migrate-to-app-db.ts` copies every collection in
+`test` (and its non-`_id` indexes) into `MONGODB_DB ?? "app"` — dry-run by
+default, gated behind `--apply`, safe to re-run (a document already present
+at the same `_id` is left alone, not duplicated or overwritten), and it
+never deletes anything from `test`. `packages/auth/instance.ts` now calls
+`client.db(process.env.MONGODB_DB ?? "app")`, the same as its three
+siblings.
+
+**Ordering, load-bearing:** the migration must be run with `--apply`, and
+its verify pass must come back clean, *before* a deploy carrying the
+`instance.ts` change ships. Deploying first points the running app at an
+empty `app` database and signs every user out — the exact failure mode the
+revert above exists to document. This does not vacate `test`: the
+migration is copy-forward, not a move, so `test` still holds every
+document it did before. Dropping `test` is a separate, later, manual
+decision the maintainer makes only after confirming login still works
+against `app`.
 
 ---
 
@@ -278,7 +292,7 @@ find content that doesn't match.
 
 ## F8 — ZDR is not requested on any production model call
 
-**Status:** open · **Severity:** medium (predates this branch, contradicts a stated assumption)
+**Status:** open · **Severity:** medium (predates this branch, contradicts a stated assumption) · **maintainer accepts account-level ZDR as sufficient — see decision note below**
 
 `packages/knowledge/gateway.ts`'s `GatewayConfig` has no `providerOptions`
 field, and `createGatewayGenerate`'s fetch body sends only `model`,
@@ -314,6 +328,18 @@ that omit it. Do not assume either way — this needs confirming with Vercel
 support or a controlled test, not inference from the docs' silence. Until
 confirmed, treat production extraction traffic as **unconfirmed** for ZDR
 coverage, not as a confirmed leak.
+
+**Maintainer decision:** the maintainer has configured Zero Data Retention
+at the Vercel AI Gateway account level and considers that sufficient
+coverage for production extraction traffic, without also setting the
+per-request `providerOptions.gateway.zeroDataRetention` flag. This is
+recorded as the maintainer's decision, not as a technical confirmation —
+the observation above stands unchanged: `createGatewayGenerate` still does
+not send the per-request flag, and the Vercel AI Gateway docs describe
+enforcement in per-request terms and are silent on whether an
+account-level toggle independently covers requests that omit it. Nothing
+here resolves that gap technically; it records that the maintainer has
+chosen to rely on the account-level setting rather than wait for it.
 
 **Fix:** add a `providerOptions` passthrough to `GatewayConfig` and set
 `{ gateway: { zeroDataRetention: true } }` at both call sites that construct
