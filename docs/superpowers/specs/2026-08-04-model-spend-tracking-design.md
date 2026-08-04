@@ -239,3 +239,16 @@ All hermetic. No live model call in any test.
   neither is per-call attributable from inside this system today.
 - Reconciliation automation against Vercel's billing API. `generationId` is
   stored so it is possible later; nothing consumes it yet.
+- Awaiting in-flight `usage` inserts before a serverless cron route responds.
+  Measured locally, inserts landed before `sweepPipeline` (and the other
+  sweeps) returned, so only the tail end of a sweep — a row whose insert is
+  still in flight when the function is frozen or torn down — is at risk of
+  being lost. Not built; revisit if usage rows start going missing in
+  practice.
+- `usage.correlationId` keeps pointing at a `sourceId` (or other anchor id)
+  after `erasePerson` runs its cascade; usage rows are not touched by
+  erasure. This is a deliberate decision, not an oversight: a usage row holds
+  no personal content — tokens, model name, cost, and an id, never the
+  underlying text — so leaving `correlationId` as a now-dangling reference
+  does not retain anything GDPR Art. 17 requires gone. Revisit only if a
+  future field on `usage` starts carrying content.
