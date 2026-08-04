@@ -367,12 +367,15 @@ const evaluateSource = async (
 
   if (groundTruthCount === 0) {
     // Deterministic, no judge call: these are the shouldSkip sources, and by
-    // construction (see F7 in docs/knowledge-eval-findings.md) their content
-    // is deliberately content-free noise — a bare confirmation, thank-you,
-    // or OOO autoreply. Nothing in the SOURCE TEXT supports any extracted
-    // fact, which is what makes this invented under the same "not supported
-    // by the source text" definition the judge applies below; the empty
-    // ground-truth list is a byproduct of that, not the reason.
+    // construction (see F7 in docs/knowledge-eval-findings.md) they carry no
+    // BUSINESS knowledge worth recording (a bare confirmation, thank-you, or
+    // OOO autoreply) — some do contain a concrete, source-supported detail
+    // (e.g. ordinal 9's appointment time), just nothing worth extracting as
+    // a fact. So this treats every extraction from a shouldSkip source as a
+    // skip-decision failure and counts it as invented, which is a stricter
+    // rule than the judge's "not supported by the source text" test applied
+    // below: an extraction can pass that test and still be counted invented
+    // here, because the source shouldn't have been extracted from at all.
     counts = { invented: extractedCount, matched: 0 };
   } else if (extractedCount === 0) {
     // Nothing extracted, so nothing could be matched or invented. No judge
@@ -663,9 +666,10 @@ const run = async () => {
 };
 
 // Guarded so importing runEvalExtraction for tests never triggers a live
-// run — only executing this file directly does. See seed-evals.ts for why
-// `require.main === module` is the right guard in this package (CommonJS
-// output, no `import.meta`).
+// run — only executing this file directly does. See scripts/seed-evals.cli.ts
+// for why a `require.main === module` guard breaks eval discovery when left
+// in a module an eval file imports (this file isn't imported by any eval, so
+// the guard is safe to keep here directly).
 if (require.main === module) {
   run().catch((error) => {
     console.error(error);
