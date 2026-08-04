@@ -408,6 +408,121 @@ separate, later decision.
 
 ---
 
+## F10 — The fact-anchor schema cannot express a fact about two people
+
+**Status:** open · **Severity:** medium (recall gap; fails safe, not silently — the fact is dropped, not misfiled)
+
+Source ordinal 13 (`packages/knowledge/fixtures/sources.ts`, "HfN Martin
+Kowalski — role AFTER + Vogelsang Steering-Meeting") contains: *"…für das
+Projekt Prozessoptimierung Fertigung bei Vogelsang ist, sobald es startet,
+ein wöchentliches Steering-Meeting mit Katrin Suhrbier und Bjarne Petersen
+angedacht."* — a fact genuinely about two people at once (a meeting between
+them), neither one incidental to the other.
+
+The model's captured extraction reply for this source proposed exactly that
+fact, anchored as `"personId": ["a20000000000000000000006",
+"a20000000000000000000007"]` — an array holding both Katrin Suhrbier's and
+Bjarne Petersen's fixture ids (`oid(ID_KIND.person, 6)` and
+`oid(ID_KIND.person, 7)` respectively, confirmed against
+`packages/knowledge/fixtures/corpus.ts` and `fixtures/ids.ts`'s deterministic
+id scheme). That is the semantically correct representation of the fact.
+
+It does not validate. `llmFactDraftSchema.anchors` in
+`packages/knowledge/extraction.ts:47-64` types `personId` (and
+`organizationId`, `engagementId`) as `hexObjectId.optional()` — a single id,
+never an array. `factAnchorsSchema` in `packages/knowledge/schemas/facts.ts:15-27`,
+the schema for the persisted `Fact` document itself, has the identical
+single-id shape. The model did the honest thing and the schema rejected it
+(see F11 for what "rejected" costs in this specific case — it did not just
+lose this one fact).
+
+**Consequence:** real facts routinely involve more than one person — a
+meeting, a disagreement, a handover, a decision made jointly. The schema can
+currently only express "primarily about one person," so a model faced with a
+genuinely two-person fact must either drop it, arbitrarily anchor it to one
+person and silently lose the other's connection to it, or — as observed
+here — propose the correct shape and be rejected. No prompt wording fixes
+this; a single-id field cannot hold two ids no matter how it's asked for.
+
+**Suggested fix (not implemented):** widen `anchors.personId` to accept an
+array of ids (uniformly, or as a union with the single-id form for
+backward compatibility) in both `llmFactDraftSchema` and
+`factAnchorsSchema`. This is a real, multi-file schema change, not a local
+edit:
+- Every reader that currently treats `fact.anchors.personId` as a single
+  `ObjectId | undefined` needs auditing — `anchors.ts`, `dossier.ts`,
+  `review.ts`, `extraction-run.ts` all destructure it that way today.
+- `erasePerson`'s cascade filter in `packages/knowledge/erasure.ts:355`,
+  `{ "anchors.personId": personId, tenantId }`, happens to keep working
+  unchanged if the field becomes an array — MongoDB's equality match against
+  an array field matches when the array *contains* the value — but that is
+  worth confirming with a test, not assuming, once the field actually
+  changes shape. It also raises a real access question this finding doesn't
+  answer: a multi-person fact must be erasable by *either* person under Art.
+  17, and today's single-anchor cascade was never designed to reason about
+  that.
+- Consolidation's anchor-union logic would need to union member ids across
+  merged facts rather than compare two scalars.
+
+Flagging here so it isn't rediscovered as a mysterious extraction gap; not
+fixed on this branch.
+
+---
+
+## F11 — Parsing is all-or-nothing, so one invalid fact discards every fact in that reply
+
+**Status:** open · **Severity:** high (understates measured recall; folds comprehension successes into failures)
+
+`packages/knowledge/extraction.ts`'s `parseExtractionResponse` calls
+`extractLastValidObject(text, llmExtractionSchema)`
+(`packages/knowledge/llm-reply.ts:51-83`), which runs
+`schema.safeParse(json)` against the **entire** top-level candidate object —
+`{"entities": [...], "facts": [...]}` validated as one Zod object, not
+per-item. `z.array(llmFactDraftSchema)` fails the whole array, and therefore
+the whole object, the moment any single element fails its own schema; there
+is no partial-success path. `extractLastValidObject` returns the object only
+when `parsed.success` is true for the object as a whole; otherwise it moves
+on and tries the next balanced `{...}` in the text, and if none validates,
+`parseExtractionResponse` returns `{ kind: "failure", ... }` for the source.
+
+Source 13's captured reply contained three fact drafts. Two were fully valid
+on their own. The third was the two-person meeting fact from F10, which
+failed anchors validation. Because all three lived inside one JSON object,
+the invalid third fact took the two valid ones down with it —
+`parseExtractionResponse` reported total failure for the source, not a
+proposal carrying the two good facts plus one flagged rejection.
+
+**Consequence:** the eval run scored source 13 as extracting 0 facts against
+its ground truth, when the model had actually produced correct output for at
+least two of the four facts the run counted as missed for that source. That
+means roughly half the recall gap attributed to source 13 is a parsing-contract
+artifact, not a model-comprehension signal — the model understood the source
+correctly in those two cases and got no credit for it. The reported 93.1%
+recall number understates what the model actually extracted.
+
+This also corrects an earlier, incorrect diagnosis of the same failure: the
+first read of this result attributed it to truncation or a `max_tokens`
+cutoff. That was wrong. The captured raw response for source 13 was 1,093
+characters and ended cleanly on a closing brace — a complete reply. What
+looked like truncation was `parseExtractionResponse`'s own failure-reason
+string, which clips to 200 characters for display
+(`text.slice(0, 200)` at `extraction.ts:147` and `:153`); that clipping is a
+display artifact of the error-reporting path, not evidence the model's
+output itself was cut off. (A repo-wide check found no other place currently
+asserting this misdiagnosis — nothing else needed correcting.)
+
+**Suggested fix (not implemented):** make parsing partial-tolerant — validate
+each element of `entities` and `facts` independently (e.g. `safeParse` per
+item), keep whatever validates, and surface the rest as per-item failures
+rather than discarding the whole reply. This changes a contract every caller
+of `parseExtractionResponse` relies on: `ParsedExtraction`'s
+`"failure" | "proposal" | "skip"` union would need to grow a fourth,
+partial-success shape (or `"proposal"` would need to carry rejected items
+alongside accepted ones), and `eval-extraction.ts`'s per-source scoring would
+need updating to match. Real, multi-file work — flagging here, not fixing.
+
+---
+
 ## Deferred minors
 
 Minor findings recorded during implementation review (see
