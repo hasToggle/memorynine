@@ -122,6 +122,8 @@ export {
 } from "./schemas/proposals";
 export type { Source } from "./schemas/sources";
 export { sourceSchema, sourceStatusValues } from "./schemas/sources";
+export type { Usage, UsageOperation } from "./schemas/usage";
+export { usageOperationValues, usageSchema } from "./schemas/usage";
 export type { EntityNameSearchOptions, FactsSearchOptions } from "./search";
 export {
   buildEntityNameSearchPipeline,

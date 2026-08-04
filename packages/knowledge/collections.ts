@@ -6,6 +6,7 @@ import type { Engagement, Organization, Person } from "./schemas/entities";
 import type { Fact } from "./schemas/facts";
 import type { Proposal } from "./schemas/proposals";
 import type { Source } from "./schemas/sources";
+import type { Usage } from "./schemas/usage";
 
 export interface KnowledgeCollections {
   dossiers: Collection<Dossier>;
@@ -15,6 +16,7 @@ export interface KnowledgeCollections {
   people: Collection<Person>;
   proposals: Collection<Proposal>;
   sources: Collection<Source>;
+  usage: Collection<Usage>;
 }
 
 export const getCollections = (db: Db): KnowledgeCollections => ({
@@ -25,6 +27,7 @@ export const getCollections = (db: Db): KnowledgeCollections => ({
   people: db.collection<Person>("people"),
   proposals: db.collection<Proposal>("proposals"),
   sources: db.collection<Source>("sources"),
+  usage: db.collection<Usage>("usage"),
 });
 
 export const ensureIndexes = async (db: Db): Promise<void> => {
@@ -36,6 +39,7 @@ export const ensureIndexes = async (db: Db): Promise<void> => {
     proposals,
     facts,
     dossiers,
+    usage,
   } = getCollections(db);
 
   await Promise.all([
@@ -89,6 +93,21 @@ export const ensureIndexes = async (db: Db): Promise<void> => {
         name: "tenant_engagement_anchor",
       },
       { key: { tenantId: 1, sourceId: 1 }, name: "tenant_source" },
+    ]),
+    usage.createIndexes([
+      { key: { tenantId: 1, createdAt: -1 }, name: "tenant_recency" },
+      {
+        key: { tenantId: 1, operation: 1, createdAt: -1 },
+        name: "tenant_operation_recency",
+      },
+      // Raw rows are one per model call and grow without bound. Ninety days
+      // keeps "what did that ingest cost" answerable for a quarter; the
+      // monthly roll-up in usage-report.ts is what survives beyond it.
+      {
+        expireAfterSeconds: 90 * 24 * 60 * 60,
+        key: { createdAt: 1 },
+        name: "ttl_90d",
+      },
     ]),
   ]);
 };
