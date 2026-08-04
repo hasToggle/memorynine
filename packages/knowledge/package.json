@@ -6,6 +6,8 @@
   "types": "./index.ts",
   "scripts": {
     "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "eval-extraction": "bun scripts/eval-extraction.ts",
+    "seed-evals": "bun scripts/seed-evals.ts",
     "setup-indexes": "bun scripts/setup-indexes.ts",
     "test": "bun test",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
