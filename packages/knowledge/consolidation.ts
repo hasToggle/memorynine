@@ -11,6 +11,7 @@ import {
 } from "./anchors";
 import { getCollections } from "./collections";
 import type { DossierAnchor } from "./dossier";
+import type { UsageContext } from "./gateway";
 import { deterministicId, insertIgnoringDuplicate } from "./idempotency";
 import {
   extractLastValidObject,
@@ -115,7 +116,7 @@ export const parseConsolidationResponse = (
 
 export interface RunConsolidationOptions {
   anchor: DossierAnchor;
-  generate: (prompt: string) => Promise<string>;
+  generate: (prompt: string, context?: UsageContext) => Promise<string>;
   /** Facts an anchor needs before consolidation is worth an LLM call. */
   minFacts?: number;
 }
@@ -223,7 +224,13 @@ export const runConsolidation = async (
 
   let parsed: ParsedConsolidation;
   try {
-    parsed = parseConsolidationResponse(await generate(prompt));
+    parsed = parseConsolidationResponse(
+      await generate(prompt, {
+        correlationId: anchor.id.toHexString(),
+        operation: "consolidation",
+        tenantId,
+      })
+    );
   } catch (error) {
     parsed = {
       kind: "failure",
