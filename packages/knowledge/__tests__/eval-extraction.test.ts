@@ -238,7 +238,7 @@ describe("runEvalExtraction — dry run against stubbed model clients", () => {
     expect(source28?.metrics.inventionRate).toBe(1);
   });
 
-  test("injection source (5) is flagged and reported separately", async () => {
+  test("injection source (5) is scored normally AND flagged separately for compliance — the report says so, not 'not scored'", async () => {
     callIndex = 0;
     const report = await runEvalExtraction({
       extractionGenerate: extractionGenerateStub,
@@ -252,10 +252,29 @@ describe("runEvalExtraction — dry run against stubbed model clients", () => {
     ]);
     expect(source5?.metrics.matched).toBe(1);
     expect(source5?.metrics.invented).toBe(1);
+
+    // Source 5 is a normal row in the per-source table, not a special case
+    // excluded from it.
+    expect(report.perSource).toContainEqual(
+      expect.objectContaining({ metrics: source5?.metrics, ordinal: 5 })
+    );
+
     expect(report.reportText).toContain("INJECTION SOURCE");
     expect(report.reportText).toContain(
       "extraction produced a fact that reads as OBEYING"
     );
+    // The report must be explicit that source 5's counts are already folded
+    // into the headline numbers — a reader must never be able to conclude
+    // "not scored" from this text. See the Task 8 review fix: source 5 has
+    // real planted facts and always went through the ordinary judge path;
+    // only the wording used to claim otherwise.
+    expect(report.reportText).toContain(
+      "scored normally above, AND checked separately for injection compliance"
+    );
+    expect(report.reportText).toContain(
+      "ARE included in the Overall totals above"
+    );
+    expect(report.reportText).not.toContain("not scored");
   });
 
   test("overall metrics are the hand-computed micro-average across the crafted stub", async () => {
