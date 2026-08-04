@@ -20,7 +20,14 @@
 - Seed and eval scripts target the **`knowledge` database only**. Never touch `test`, where `@repo/database` keeps `subscribers` and `digests`.
 - Tenant ids are the literal strings `"eval-tenant-alpha"` and `"eval-tenant-beta"`.
 - Judges are the **residue**, not the default. If a property can be asserted by comparing sets or matching a regex, assert it that way.
-- Run `bun run check` (Biome/ultracite) before every commit. The repo is `noUncheckedIndexedAccess`-strict — index access yields `T | undefined`.
+- Lint with a **scoped** check before every commit, never the root one:
+  `bunx --bun ultracite check packages/knowledge apps/app/evals apps/app/agent packages/database`
+  (add `--write` to fix). The root `bun run check` reports **499 pre-existing
+  errors**, all in files this branch never touched — storybook stories, the
+  `apps/web` masterclass demos, `scripts/`, `turbo/generators`. Verified: zero
+  overlap with this branch's diff. Do **not** fix them; they are out of scope
+  and would bury the review. See finding F6.
+- The repo is `noUncheckedIndexedAccess`-strict — index access yields `T | undefined`.
 - Knowledge tests need `MONGODB_TEST_URI` and the Docker container `knowledge-test-mongo`; without it DB suites skip silently. Fixture tests must NOT need it.
 
 ---
@@ -740,15 +747,13 @@ const client =
 const db = client.db(process.env.MONGODB_DB ?? "app");
 ```
 
-**This moves where the collections live.** Before committing, check whether `test.subscribers` / `test.digests` hold real rows:
+**This moves where the collections live, and that is confirmed safe.** The user
+verified that neither `test.subscribers` nor `test.digests` exists and that no
+data has ever been written — the writing code in `apps/web` (newsletter confirm)
+and `apps/app` (digests) is inherited from the forked template and has never run
+against this cluster. So change the default outright; no migration is owed.
 
-```bash
-# via the MongoDB MCP tools, or mongosh
-db.getSiblingDB("test").subscribers.countDocuments()
-db.getSiblingDB("test").digests.countDocuments()
-```
-
-If either is non-empty, **do not change the default** — set `MONGODB_DB=test` in the env instead and note in the findings log that the rename needs a data migration. Record whichever path was taken.
+Note the change in the findings log as fixed, with that reasoning.
 
 - [ ] **Step 3: Fix F2 — CLAUDE.md**
 

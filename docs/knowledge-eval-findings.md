@@ -136,6 +136,37 @@ plaintext in an earlier chat and should be rotated at the same time.
 
 ---
 
+## F6 — Nothing gates lint or tests, and the root check has 499 errors
+
+**Status:** open · **Severity:** medium
+
+`bun run check` (ultracite/biome) reports **499 errors** across the repo. All of
+them are in files this branch never touched: `apps/storybook/stories/*`, the
+`apps/web` masterclass demos, `packages/cms/lib/mdx.ts`, `apps/email/scripts/`,
+`scripts/`, `turbo/generators`. Verified by intersecting the erroring file list
+with `git diff --name-only origin/main...HEAD` — the intersection is empty.
+
+The cause is that **`.github/workflows/` contains only `claude.yml` and
+`renovate.yml`.** No workflow runs `bun run check`, `bun test` or `tsc`, so
+nothing has ever stopped lint errors from accumulating. `turbo.json` wires tests
+into the build graph, but no CI invokes it.
+
+Two separate consequences:
+
+1. Any contributor running the documented `bun run check` sees 499 errors and
+   cannot tell which are theirs. Eval implementers must use a scoped check
+   instead — see the plan's Global Constraints.
+2. The branch's own quality claims rest on manual runs.
+
+**Fix:** out of scope for this branch beyond the scoped-lint workaround. Worth a
+follow-up PR adding a CI workflow, and a decision on whether to bulk-fix or
+baseline the 499.
+
+Note: `packages/database/index.ts` and `keys.ts` have two trivial
+`useSortedKeys` errors that ARE in scope, since Task 5 modifies both files.
+
+---
+
 ## Open questions
 
 - **Is `anthropic/claude-sonnet-5` ZDR-covered through the AI Gateway?** One
