@@ -8,6 +8,7 @@
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "eval-extraction": "bun scripts/eval-extraction.ts",
     "probe-zdr": "bun scripts/probe-zdr.ts",
+    "re-extract": "bun scripts/re-extract.cli.ts",
     "seed-evals": "bun scripts/seed-evals.cli.ts",
     "setup-indexes": "bun scripts/setup-indexes.ts",
     "test": "bun test",
