@@ -27,12 +27,21 @@ export interface ReviewFactDraft {
   text: string;
 }
 
+export interface ReviewRejectedDraft {
+  /** Verbatim, unvalidated model output — shown as-is for a reviewer to judge. */
+  raw: unknown;
+  reason: string;
+}
+
 export interface ReviewProposal {
   createdAt: Date;
   entityDrafts: ReviewEntityDraft[];
   factDrafts: ReviewFactDraft[];
   id: string;
   kind: string;
+  /** Drafts the model produced that failed validation — recorded, not silently dropped. */
+  rejectedDrafts: ReviewRejectedDraft[];
+  skipReason: string | null;
   source: { capturedBy: string; content: string; type: string } | null;
   status: string;
 }
@@ -128,6 +137,11 @@ export const getProposal = async (
     })),
     id: proposal._id.toHexString(),
     kind: proposal.kind,
+    rejectedDrafts: (proposal.rejectedDrafts ?? []).map((draft) => ({
+      raw: draft.raw,
+      reason: draft.reason,
+    })),
+    skipReason: proposal.skipReason ?? null,
     source: source
       ? {
           capturedBy: source.capturedBy,

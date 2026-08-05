@@ -109,14 +109,14 @@ describe("parseExtractionResponse", () => {
     );
   });
 
-  test("classifies schema-violating JSON as failure", () => {
+  test("classifies schema-violating JSON as failure when it is the only draft", () => {
     const parsed = parseExtractionResponse(
       '{"facts": [{"text": "x", "category": "nonsense", "confidence": 2}]}'
     );
     expect(parsed.kind).toBe("failure");
   });
 
-  test("rejects a fact draft with a malformed supersedes id", () => {
+  test("rejects a fact draft with a malformed supersedes id (the only draft, so failure)", () => {
     const parsed = parseExtractionResponse(
       JSON.stringify({
         entities: [],
@@ -222,5 +222,110 @@ describe("parseExtractionResponse with unclosed braces in narration", () => {
       `We need shape { entities... hmm. Here: ${real}`
     );
     expect(parsed.kind).toBe("proposal");
+  });
+});
+
+// The verbatim reply that failed in the live eval run (source ordinal 13):
+// three facts, the third with an array-valued personId — a meeting between
+// two people, which the anchor schema cannot express. Do not "correct" it.
+const SOURCE_13_REPLY = JSON.stringify({
+  entities: [],
+  facts: [
+    {
+      anchors: {
+        organizationId: "a10000000000000000000001",
+        personId: "a20000000000000000000004",
+      },
+      category: "relationship",
+      confidence: 0.8,
+      supersedes: [],
+      text: "Martin Kowalski verantwortet bei Hafenlogistik Nord GmbH seit letzter Woche zusätzlich die Verhandlung der Rahmenverträge mit Lieferanten.",
+    },
+    {
+      anchors: { organizationId: "a10000000000000000000001" },
+      category: "logistics",
+      confidence: 0.7,
+      supersedes: [],
+      text: "Die Rahmenverträge mit Lieferanten werden bei Hafenlogistik Nord künftig quartalsweise überprüft.",
+    },
+    {
+      // Two people in one fact. factAnchorsSchema allows exactly one.
+      anchors: {
+        engagementId: "a30000000000000000000003",
+        organizationId: "a10000000000000000000003",
+        personId: ["a20000000000000000000006", "a20000000000000000000007"],
+      },
+      category: "logistics",
+      confidence: 0.8,
+      supersedes: [],
+      text: "Für Prozessoptimierung Fertigung bei Vogelsang Maschinenbau ist ein wöchentliches Steering-Meeting mit Katrin Suhrbier und Bjarne Petersen angedacht.",
+    },
+  ],
+});
+
+describe("parseExtractionResponse — partial tolerance", () => {
+  test("keeps the valid facts and reports the rejected one", () => {
+    const parsed = parseExtractionResponse(SOURCE_13_REPLY);
+    expect(parsed.kind).toBe("proposal");
+    if (parsed.kind !== "proposal") {
+      throw new Error("expected a proposal");
+    }
+    expect(parsed.facts).toHaveLength(2);
+    expect(parsed.rejected).toHaveLength(1);
+    // The reason must name the offending field, or a reviewer cannot act on it.
+    expect(parsed.rejected[0]?.reason).toContain("personId");
+    // The raw draft is preserved verbatim so nothing is lost.
+    expect(parsed.rejected[0]?.raw).toMatchObject({ category: "logistics" });
+  });
+
+  test("all drafts rejected is a FAILURE, not a skip", () => {
+    // A failure consumes the retry budget and runs again; a skip is terminal.
+    // Malformed output deserves a retry, judged-empty does not.
+    const allBad = JSON.stringify({ facts: [{ text: "x" }, { text: "y" }] });
+    const parsed = parseExtractionResponse(allBad);
+    expect(parsed.kind).toBe("failure");
+  });
+
+  test("an explicit skip is unchanged", () => {
+    const parsed = parseExtractionResponse(
+      '{"skip": true, "reason": "Terminchatter"}'
+    );
+    expect(parsed).toEqual({ kind: "skip", reason: "Terminchatter" });
+  });
+
+  test("an empty proposal is still a skip", () => {
+    const parsed = parseExtractionResponse('{"entities": [], "facts": []}');
+    expect(parsed.kind).toBe("skip");
+  });
+
+  test("a narration fragment with no recognized key is still rejected", () => {
+    // The anti-narration guard: with loose objects plus defaults, ANY {} would
+    // validate as an empty proposal. A live DeepSeek run once turned a
+    // narration fragment into a false skip exactly that way.
+    expect(parseExtractionResponse("Ich denke nach... {} ...fertig").kind).toBe(
+      "failure"
+    );
+  });
+
+  test("the real reply still wins over an echoed prompt example", () => {
+    // extractLastValidObject keeps the LAST schema-valid object. Loosening the
+    // element types must not let an earlier echo beat the real answer.
+    const echo = '{"entities": [], "facts": []}';
+    const real = JSON.stringify({
+      facts: [
+        {
+          anchors: { organizationId: "a10000000000000000000001" },
+          category: "logistics",
+          confidence: 0.5,
+          text: "Echt.",
+        },
+      ],
+    });
+    const parsed = parseExtractionResponse(`${echo}\nblah\n${real}`);
+    expect(parsed.kind).toBe("proposal");
+    if (parsed.kind !== "proposal") {
+      throw new Error("expected a proposal");
+    }
+    expect(parsed.facts).toHaveLength(1);
   });
 });

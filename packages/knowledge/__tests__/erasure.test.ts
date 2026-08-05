@@ -497,6 +497,101 @@ describe.skipIf(!uri)("erasePerson", () => {
     );
   });
 
+  test("redacts skipReason, hint, and rejectedDrafts on a skip proposal", async () => {
+    const { people, proposals } = getCollections(db);
+    const petraId = new ObjectId();
+    const skipProposalId = new ObjectId();
+    await people.insertOne({
+      _id: petraId,
+      emails: ["petra@acme.de"],
+      name: "Petra Meier",
+      tenantId: TENANT,
+      ...now(),
+    });
+    // A skip proposal has empty factDrafts/entityDrafts by construction — the
+    // only PII on it lives in these three free-text fields.
+    await proposals.insertOne({
+      _id: skipProposalId,
+      entityDrafts: [],
+      factDrafts: [],
+      hint: "Das betrifft Petra Meier und den Acme-Deal",
+      kind: "ingestion",
+      rejectedDrafts: [
+        {
+          raw: { anchors: { personId: "Petra Meier" }, text: "Notiz" },
+          reason: "anchors.personId: Petra Meier is not a valid id",
+        },
+      ],
+      skipReason:
+        "Nur Terminchatter von Petra Meier (petra@acme.de), kein Geschaeftswissen",
+      status: "open",
+      tenantId: TENANT,
+      ...now(),
+    });
+
+    await erasePerson(db, TENANT, petraId);
+
+    const after = await proposals.findOne({ _id: skipProposalId });
+    expect(after?.skipReason).not.toMatch(petraNamePattern);
+    expect(after?.skipReason).toContain("[REDACTED]");
+    expect(after?.hint).not.toMatch(petraNamePattern);
+    expect(after?.hint).toContain("[REDACTED]");
+    expect(JSON.stringify(after?.rejectedDrafts)).not.toMatch(petraNamePattern);
+  });
+
+  test("redacts rejectedDrafts[].raw when it is the only field naming the person", async () => {
+    // F10's own canonical case: a two-person fact is rejected for an array
+    // personId, and the proposal's surviving accepted draft happens to name
+    // someone else entirely. No skipReason, no hint, no person entityDrafts
+    // — rejectedDrafts[].raw is the only place Petra's name appears, so the
+    // proposal must become a redaction candidate on that field alone.
+    const { people, proposals } = getCollections(db);
+    const petraId = new ObjectId();
+    const proposalId = new ObjectId();
+    await people.insertOne({
+      _id: petraId,
+      emails: ["petra.meier@acme.de"],
+      name: "Petra Meier",
+      tenantId: TENANT,
+      ...now(),
+    });
+    await proposals.insertOne({
+      _id: proposalId,
+      entityDrafts: [],
+      factDrafts: [
+        {
+          anchors: { organizationId: new ObjectId() },
+          category: "preference",
+          confidence: 0.9,
+          resolution: { status: "pending" },
+          text: "Jonas Weber trinkt Kaffee schwarz.",
+        },
+      ],
+      kind: "ingestion",
+      rejectedDrafts: [
+        {
+          raw: { text: "Petra Meier bevorzugt Nachmittagstermine." },
+          reason:
+            "anchors.personId: Invalid input: expected string, received array",
+        },
+      ],
+      status: "open",
+      tenantId: TENANT,
+      ...now(),
+    });
+
+    const report = await erasePerson(db, TENANT, petraId);
+    expect(report.proposalsRedacted).toBe(1);
+
+    const after = await proposals.findOne({ _id: proposalId });
+    // The accepted draft naming someone else is untouched.
+    expect(after?.factDrafts[0]?.text).toBe(
+      "Jonas Weber trinkt Kaffee schwarz."
+    );
+    expect(JSON.stringify(after?.rejectedDrafts)).not.toMatch(petraNamePattern);
+    expect(JSON.stringify(after?.rejectedDrafts)).toContain("[REDACTED]");
+  });
+
   test("skips redaction when the person has no usable identifiers", async () => {
     const { people, sources } = getCollections(db);
     const shortPersonId = new ObjectId();

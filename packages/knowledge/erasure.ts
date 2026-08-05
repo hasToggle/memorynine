@@ -189,8 +189,30 @@ const deleteDerivedFacts = async (
   return deleted;
 };
 
-// Redact string values (and string-array items) in an entity draft's loose
-// data record. Returns the original reference when nothing changed.
+// Redact string values anywhere inside a loose value: entity draft data,
+// or a rejected draft's unvalidated raw model output, both `z.unknown()`
+// shapes that can nest (a malformed draft's "anchors" is itself an object).
+// Recurses into objects and arrays; leaves every other type untouched.
+// Returns the original reference when nothing changed, at every level.
+const redactUnknown = (
+  value: unknown,
+  redact: (value: string) => string
+): unknown => {
+  if (typeof value === "string") {
+    return redact(value);
+  }
+  if (Array.isArray(value)) {
+    const redactedItems = value.map((item) => redactUnknown(item, redact));
+    return redactedItems.some((item, index) => item !== value[index])
+      ? redactedItems
+      : value;
+  }
+  if (value !== null && typeof value === "object") {
+    return redactRecord(value as Record<string, unknown>, redact);
+  }
+  return value;
+};
+
 const redactRecord = (
   data: Record<string, unknown>,
   redact: (value: string) => string
@@ -198,26 +220,91 @@ const redactRecord = (
   let changed = false;
   const next: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(data)) {
-    if (typeof value === "string") {
-      const redactedValue = redact(value);
-      changed ||= redactedValue !== value;
-      next[key] = redactedValue;
-    } else if (Array.isArray(value)) {
-      const redactedItems = value.map((item) =>
-        typeof item === "string" ? redact(item) : item
-      );
-      changed ||= redactedItems.some((item, index) => item !== value[index]);
-      next[key] = redactedItems;
-    } else {
-      next[key] = value;
-    }
+    const redactedValue = redactUnknown(value, redact);
+    changed ||= redactedValue !== value;
+    next[key] = redactedValue;
   }
   return changed ? next : data;
 };
 
+const redactFactDrafts = (
+  factDrafts: Proposal["factDrafts"],
+  redact: (value: string) => string
+): { changed: boolean; factDrafts: Proposal["factDrafts"] } => {
+  let changed = false;
+  const next = factDrafts.map((draft) => {
+    const text = redact(draft.text);
+    const finalText =
+      draft.resolution.finalText === undefined
+        ? undefined
+        : redact(draft.resolution.finalText);
+    if (text === draft.text && finalText === draft.resolution.finalText) {
+      return draft;
+    }
+    changed = true;
+    return {
+      ...draft,
+      resolution: {
+        ...draft.resolution,
+        ...(finalText === undefined ? {} : { finalText }),
+      },
+      text,
+    };
+  });
+  return { changed, factDrafts: next };
+};
+
+const redactEntityDrafts = (
+  entityDrafts: Proposal["entityDrafts"],
+  redact: (value: string) => string
+): { changed: boolean; entityDrafts: Proposal["entityDrafts"] } => {
+  let changed = false;
+  const next = entityDrafts.map((draft) => {
+    if (draft.entityType !== "person") {
+      return draft;
+    }
+    const data = redactRecord(draft.data, redact);
+    if (data === draft.data) {
+      return draft;
+    }
+    changed = true;
+    return { ...draft, data };
+  });
+  return { changed, entityDrafts: next };
+};
+
+// Undefined means "nothing to change" — either there were no rejected drafts
+// or none of them matched, so the caller can skip the $set entry entirely.
+const redactRejectedDrafts = (
+  rejectedDrafts: Proposal["rejectedDrafts"],
+  redact: (value: string) => string
+): Proposal["rejectedDrafts"] | undefined => {
+  if (!rejectedDrafts || rejectedDrafts.length === 0) {
+    return;
+  }
+  let changed = false;
+  const next = rejectedDrafts.map((draft) => {
+    const reason = redact(draft.reason);
+    const raw = redactUnknown(draft.raw, redact);
+    if (reason === draft.reason && raw === draft.raw) {
+      return draft;
+    }
+    changed = true;
+    return { ...draft, raw, reason };
+  });
+  return changed ? next : undefined;
+};
+
 // Proposals are the retained audit trail (open AND resolved), so Art. 17 has
-// to reach into draft texts and person-type entity drafts. The structure —
-// statuses, anchors, timestamps — stays: audit without identifiers.
+// to reach into draft texts and person-type entity drafts — and, just as
+// much, into the three free-text fields a skip/rejection can carry: skipReason
+// (model-authored prose that routinely quotes the source), hint (reviewer-
+// authored, and the one place someone is explicitly invited to type a
+// colleague's name), and rejectedDrafts (the model's raw, unvalidated output
+// plus why it was rejected). A skip proposal has empty factDrafts and
+// entityDrafts by construction, so without these three it is never even a
+// redaction candidate. The structure — statuses, anchors, timestamps — stays:
+// audit without identifiers.
 const redactProposals = async (
   proposals: Collection<Proposal>,
   tenantId: string,
@@ -229,6 +316,18 @@ const redactProposals = async (
         { "factDrafts.text": { $regex: probe } },
         { "factDrafts.resolution.finalText": { $regex: probe } },
         { entityDrafts: { $elemMatch: { entityType: "person" } } },
+        { hint: { $regex: probe } },
+        // rejectedDrafts.reason is machine-generated (describeZodError) and
+        // normally carries no name. The PII lives in .raw — the model's
+        // verbatim, unvalidated output — which can hold an entirely
+        // different person than any accepted draft on the same proposal, so
+        // it cannot be probed by content; any proposal that has rejected
+        // drafts at all must be a candidate, exactly like the person-
+        // entityDrafts catch-all above. (This subsumes probing .reason by
+        // content — every proposal that clause would match, this one does
+        // too.)
+        { "rejectedDrafts.0": { $exists: true } },
+        { skipReason: { $regex: probe } },
       ],
       tenantId,
     })
@@ -236,45 +335,42 @@ const redactProposals = async (
 
   let redacted = 0;
   for (const proposal of candidates) {
-    let changed = false;
-    const factDrafts = proposal.factDrafts.map((draft) => {
-      const text = redact(draft.text);
-      const finalText =
-        draft.resolution.finalText === undefined
-          ? undefined
-          : redact(draft.resolution.finalText);
-      if (text === draft.text && finalText === draft.resolution.finalText) {
-        return draft;
+    const factResult = redactFactDrafts(proposal.factDrafts, redact);
+    const entityResult = redactEntityDrafts(proposal.entityDrafts, redact);
+    const rejectedDrafts = redactRejectedDrafts(
+      proposal.rejectedDrafts,
+      redact
+    );
+
+    const update: Record<string, unknown> = {};
+    if (factResult.changed || entityResult.changed) {
+      update.entityDrafts = entityResult.entityDrafts;
+      update.factDrafts = factResult.factDrafts;
+    }
+    if (proposal.skipReason !== undefined) {
+      const skipReason = redact(proposal.skipReason);
+      if (skipReason !== proposal.skipReason) {
+        update.skipReason = skipReason;
       }
-      changed = true;
-      return {
-        ...draft,
-        resolution: {
-          ...draft.resolution,
-          ...(finalText === undefined ? {} : { finalText }),
-        },
-        text,
-      };
-    });
-    const entityDrafts = proposal.entityDrafts.map((draft) => {
-      if (draft.entityType !== "person") {
-        return draft;
+    }
+    if (proposal.hint !== undefined) {
+      const hint = redact(proposal.hint);
+      if (hint !== proposal.hint) {
+        update.hint = hint;
       }
-      const data = redactRecord(draft.data, redact);
-      if (data === draft.data) {
-        return draft;
-      }
-      changed = true;
-      return { ...draft, data };
-    });
-    if (!changed) {
+    }
+    if (rejectedDrafts !== undefined) {
+      update.rejectedDrafts = rejectedDrafts;
+    }
+
+    if (Object.keys(update).length === 0) {
       continue;
     }
     redacted += 1;
     // biome-ignore lint/performance/noAwaitInLoops: sequential redaction is deliberate — erasure is a rare admin operation over a small set of documents
     await proposals.updateOne(
       { _id: proposal._id, tenantId },
-      { $set: { entityDrafts, factDrafts, updatedAt: new Date() } }
+      { $set: { ...update, updatedAt: new Date() } }
     );
   }
   return redacted;

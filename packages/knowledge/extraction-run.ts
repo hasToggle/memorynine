@@ -23,6 +23,12 @@ import type { Source } from "./schemas/sources";
 export interface RunExtractionOptions {
   /** The LLM call. Injectable so tests and providers stay decoupled. */
   generate: (prompt: string, context?: UsageContext) => Promise<string>;
+  /**
+   * Reviewer-supplied steer for a re-extraction pass. Threaded straight into
+   * the prompt — see buildExtractionPrompt's `hint` field comment for why it
+   * is trusted rather than treated as ingested source content.
+   */
+  hint?: string;
   /** Failed attempts before the source flips to "failed". Default 3. */
   maxAttempts?: number;
   sourceId: ObjectId;
@@ -181,6 +187,22 @@ const produceParsed = async (
   }
 };
 
+/**
+ * Proposal identity is per (source, generation). Generation 1 deliberately
+ * keeps the original seed so every proposal written before re-extraction
+ * existed keeps its id; only later generations get a suffix.
+ */
+export const proposalIdFor = (
+  tenantId: string,
+  sourceId: ObjectId,
+  generation: number
+): ObjectId =>
+  deterministicId(
+    generation <= 1
+      ? `${tenantId}:${sourceId.toHexString()}:extraction`
+      : `${tenantId}:${sourceId.toHexString()}:extraction:${generation}`
+  );
+
 const guardExtractable = (source: Source): void => {
   if (!EXTRACTABLE_STATUSES.has(source.status)) {
     throw new Error(
@@ -192,10 +214,87 @@ const guardExtractable = (source: Source): void => {
   }
 };
 
+interface ProposalDocInput {
+  generation: number;
+  hint: string | undefined;
+  proposalId: ObjectId;
+  sourceId: ObjectId;
+  tenantId: string;
+  writtenAt: Date;
+}
+
+const buildProposalDoc = (
+  parsed: Extract<ParsedExtraction, { kind: "proposal" }>,
+  {
+    generation,
+    hint,
+    proposalId,
+    sourceId,
+    tenantId,
+    writtenAt,
+  }: ProposalDocInput
+) =>
+  proposalSchema.parse({
+    _id: proposalId,
+    createdAt: writtenAt,
+    entityDrafts: parsed.entities,
+    extractionGeneration: generation,
+    factDrafts: parsed.facts.map(toFactDraft),
+    kind: "ingestion",
+    sourceId,
+    status: "open",
+    tenantId,
+    updatedAt: writtenAt,
+    ...(parsed.rejected.length > 0 ? { rejectedDrafts: parsed.rejected } : {}),
+    ...(hint === undefined ? {} : { hint }),
+  });
+
+const buildSkipProposalDoc = (
+  reason: string,
+  {
+    generation,
+    hint,
+    proposalId,
+    sourceId,
+    tenantId,
+    writtenAt,
+  }: ProposalDocInput
+) =>
+  proposalSchema.parse({
+    _id: proposalId,
+    createdAt: writtenAt,
+    entityDrafts: [],
+    extractionGeneration: generation,
+    factDrafts: [],
+    kind: "ingestion",
+    skipReason: reason,
+    sourceId,
+    status: "open",
+    tenantId,
+    updatedAt: writtenAt,
+    ...(hint === undefined ? {} : { hint }),
+  });
+
+// Both the proposal and the skip branches close out identically: the
+// pipeline moves the source on to "proposed" and clears the failure budget.
+const markSourceProposed = (
+  sources: ReturnType<typeof getCollections>["sources"],
+  sourceId: ObjectId,
+  tenantId: string,
+  writtenAt: Date
+) =>
+  sources.updateOne(
+    { _id: sourceId, tenantId },
+    {
+      $set: { extractionAttempts: 0, status: "proposed", updatedAt: writtenAt },
+      $unset: { error: "" },
+    }
+  );
+
 export const runExtraction = async (
   db: Db,
   tenantId: string,
-  { generate, maxAttempts = 3, sourceId }: RunExtractionOptions
+  { generate, hint, maxAttempts = 3, sourceId }: RunExtractionOptions
 ): Promise<ExtractionRunResult> => {
   const { proposals, sources } = getCollections(db);
   const source = await sources.findOne({ _id: sourceId, tenantId });
@@ -203,12 +302,14 @@ export const runExtraction = async (
     throw new Error(`Source ${sourceId.toHexString()} not found`);
   }
 
-  const proposalId = deterministicId(
-    `${tenantId}:${sourceId.toHexString()}:extraction`
-  );
+  const generation = source.extractionGeneration ?? 1;
+  const proposalId = proposalIdFor(tenantId, sourceId, generation);
 
   // Resume after a crash between proposal insert and status update: the
-  // proposal is the durable record, the status just needs healing.
+  // proposal is the durable record, the status just needs healing. The
+  // proposal may itself be a skip (skipReason set) — a crash between that
+  // insert and markSourceProposed must still resume as "skipped", or the
+  // sweep report misattributes it as a proposal.
   const existing = await proposals.findOne({ _id: proposalId, tenantId });
   if (existing) {
     if (source.status !== "proposed" && source.status !== "reviewed") {
@@ -217,7 +318,9 @@ export const runExtraction = async (
         { $set: { status: "proposed", updatedAt: new Date() } }
       );
     }
-    return { proposalId, status: "proposed" };
+    return existing.skipReason
+      ? { proposalId, reason: existing.skipReason, status: "skipped" }
+      : { proposalId, status: "proposed" };
   }
 
   guardExtractable(source);
@@ -233,6 +336,7 @@ export const runExtraction = async (
     capturedAt: source.createdAt,
     capturedBy: source.capturedBy,
     content: source.content ?? "",
+    hint,
     knownEntities,
     knownFacts,
     sourceType: source.type,
@@ -258,47 +362,35 @@ export const runExtraction = async (
 
   const writtenAt = new Date();
 
+  const docInput: ProposalDocInput = {
+    generation,
+    hint,
+    proposalId,
+    sourceId,
+    tenantId,
+    writtenAt,
+  };
+
   if (parsed.kind === "proposal") {
-    const doc = proposalSchema.parse({
-      _id: proposalId,
-      createdAt: writtenAt,
-      entityDrafts: parsed.entities,
-      factDrafts: parsed.facts.map(toFactDraft),
-      kind: "ingestion",
-      sourceId,
-      status: "open",
-      tenantId,
-      updatedAt: writtenAt,
-    });
-    await insertIgnoringDuplicate(proposals, doc);
-    await sources.updateOne(
-      { _id: sourceId, tenantId },
-      {
-        $set: {
-          extractionAttempts: 0,
-          status: "proposed",
-          updatedAt: writtenAt,
-        },
-        $unset: { error: "" },
-      }
+    await insertIgnoringDuplicate(
+      proposals,
+      buildProposalDoc(parsed, docInput)
     );
+    await markSourceProposed(sources, sourceId, tenantId, writtenAt);
     return { proposalId, status: "proposed" };
   }
 
   if (parsed.kind === "skip") {
-    // Nothing worth reviewing — close the pipeline without review work.
-    await sources.updateOne(
-      { _id: sourceId, tenantId },
-      {
-        $set: {
-          extractionAttempts: 0,
-          status: "reviewed",
-          updatedAt: writtenAt,
-        },
-        $unset: { error: "" },
-      }
+    // Nothing worth reviewing — but the source and the reason survive, and
+    // the proposal is what makes both visible and re-extractable. Closing
+    // the source here (the previous behaviour) discarded the reason and put
+    // the source permanently out of reach of the sweep.
+    await insertIgnoringDuplicate(
+      proposals,
+      buildSkipProposalDoc(parsed.reason, docInput)
     );
-    return { reason: parsed.reason, status: "skipped" };
+    await markSourceProposed(sources, sourceId, tenantId, writtenAt);
+    return { proposalId, reason: parsed.reason, status: "skipped" };
   }
 
   const attempts = (source.extractionAttempts ?? 0) + 1;

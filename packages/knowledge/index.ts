@@ -58,11 +58,13 @@ export type {
   LlmEntityDraft,
   LlmFactDraft,
   ParsedExtraction,
+  RejectedDraft,
 } from "./extraction";
 export {
   buildExtractionPrompt,
   llmExtractionSchema,
   parseExtractionResponse,
+  rejectedDraftSchema,
 } from "./extraction";
 export type {
   ExtractionRunResult,
@@ -76,6 +78,8 @@ export { createEmailSource, parseInboundSenderMap } from "./inbound";
 export { keys } from "./keys";
 export type { SweepOptions, SweepReport } from "./pipeline";
 export { sweepPipeline } from "./pipeline";
+export type { ReExtractSourceOptions } from "./re-extraction";
+export { reExtractSource } from "./re-extraction";
 export type {
   HybridFactsSearchOptions,
   RerankableDocument,

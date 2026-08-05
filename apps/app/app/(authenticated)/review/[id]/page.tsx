@@ -10,6 +10,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProposal } from "@/app/actions/knowledge/get-proposal";
 import { Header } from "../../components/header";
+import { ReExtractControl } from "./components/re-extract-control";
 import { ReviewForm } from "./components/review-form";
 
 export const metadata: Metadata = {
@@ -54,7 +55,40 @@ const ProposalPage = async ({
             </CardContent>
           </Card>
         ) : null}
-        <ReviewForm proposal={proposal} />
+        {proposal.skipReason ? (
+          <ReExtractControl
+            proposalId={proposal.id}
+            skipReason={proposal.skipReason}
+          />
+        ) : (
+          <ReviewForm proposal={proposal} />
+        )}
+        {proposal.rejectedDrafts.length > 0 ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                Rejected drafts
+                <Badge variant="destructive">
+                  {proposal.rejectedDrafts.length}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-3">
+              {proposal.rejectedDrafts.map((draft, index) => (
+                <div
+                  className="flex flex-col gap-1"
+                  // biome-ignore lint/suspicious/noArrayIndexKey: rejected drafts carry no id — the list is a fixed, never-reordered snapshot from the proposal document
+                  key={index}
+                >
+                  <p className="text-sm">{draft.reason}</p>
+                  <pre className="overflow-x-auto rounded-md bg-muted/50 p-2 text-muted-foreground text-xs">
+                    {JSON.stringify(draft.raw, null, 2)}
+                  </pre>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ) : null}
       </div>
     </>
   );

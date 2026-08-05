@@ -79,6 +79,27 @@ describe("sourceSchema", () => {
     });
     expect(result.success).toBe(false);
   });
+
+  test("accepts extractionGeneration as a positive integer, rejects zero", () => {
+    expect(
+      sourceSchema.safeParse({
+        ...base,
+        capturedBy: "user_ceo1",
+        extractionGeneration: 2,
+        status: "received",
+        type: "voice",
+      }).success
+    ).toBe(true);
+    expect(
+      sourceSchema.safeParse({
+        ...base,
+        capturedBy: "user_ceo1",
+        extractionGeneration: 0,
+        status: "received",
+        type: "voice",
+      }).success
+    ).toBe(false);
+  });
 });
 
 describe("factSchema", () => {
