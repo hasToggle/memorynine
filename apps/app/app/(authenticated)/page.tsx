@@ -1,6 +1,6 @@
 import { auth } from "@repo/auth/server";
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { listPeople } from "@/app/actions/knowledge/list-people";
 import {
   listOpenProposals,
@@ -23,7 +23,9 @@ export const metadata: Metadata = {
 const BrainPage = async () => {
   const { orgId } = await auth();
   if (!orgId) {
-    notFound();
+    // Signed in but not in any organization yet — the join surface offers
+    // invitations, domain-matching orgs, and a create fallback.
+    redirect("/join");
   }
 
   const [sources, openProposals, skippedProposals, people] = await Promise.all([

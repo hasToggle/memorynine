@@ -21,17 +21,23 @@ const createSlug = (name: string) => {
   return `${base || "org"}-${suffix}`;
 };
 
+type SignUpMode = "create" | "join";
+
 export const SignUp = () => {
   const nameId = useId();
   const organizationId = useId();
   const emailId = useId();
   const passwordId = useId();
+  const [mode, setMode] = useState<SignUpMode>("create");
   const [name, setName] = useState("");
   const [organizationName, setOrganizationName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
+
+  const chooseCreate = useCallback(() => setMode("create"), []);
+  const chooseJoin = useCallback(() => setMode("join"), []);
 
   const handleNameChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
@@ -79,6 +85,13 @@ export const SignUp = () => {
         return;
       }
 
+      if (mode === "join") {
+        // No organization is created: /join offers pending invitations and
+        // domain-matching organizations once the email is verified.
+        window.location.href = "/join";
+        return;
+      }
+
       const { data: organization, error: organizationError } =
         await authClient.organization.create({
           name: organizationName,
@@ -110,7 +123,7 @@ export const SignUp = () => {
       // Full navigation so the server layout picks up the new session cookie.
       window.location.href = "/";
     },
-    [email, name, organizationName, password]
+    [email, mode, name, organizationName, password]
   );
 
   return (
@@ -119,8 +132,36 @@ export const SignUp = () => {
         Create your account
       </h1>
       <p className="mt-1 text-muted-foreground text-sm">
-        Set up your account and organization to get started.
+        {mode === "create"
+          ? "Set up your account and organization to get started."
+          : "Create your account, then join your team's existing organization."}
       </p>
+      <div className="mt-4 flex h-9 items-center rounded-lg bg-muted p-[3px]">
+        <button
+          aria-pressed={mode === "create"}
+          className={`inline-flex h-full flex-1 items-center justify-center rounded-md px-2 font-medium text-sm transition-colors ${
+            mode === "create"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+          onClick={chooseCreate}
+          type="button"
+        >
+          New organization
+        </button>
+        <button
+          aria-pressed={mode === "join"}
+          className={`inline-flex h-full flex-1 items-center justify-center rounded-md px-2 font-medium text-sm transition-colors ${
+            mode === "join"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+          onClick={chooseJoin}
+          type="button"
+        >
+          Join my team
+        </button>
+      </div>
       <form className="mt-6 flex flex-col gap-4" onSubmit={handleSubmit}>
         <div className="flex flex-col gap-1.5">
           <label
@@ -141,25 +182,32 @@ export const SignUp = () => {
             value={name}
           />
         </div>
-        <div className="flex flex-col gap-1.5">
-          <label
-            className="font-medium text-foreground text-sm"
-            htmlFor={organizationId}
-          >
-            Organization name
-          </label>
-          <input
-            autoComplete="organization"
-            className="h-9 rounded-md border border-input bg-background px-3 text-foreground text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-            id={organizationId}
-            name="organization"
-            onChange={handleOrganizationNameChange}
-            placeholder="Acme Inc."
-            required
-            type="text"
-            value={organizationName}
-          />
-        </div>
+        {mode === "create" ? (
+          <div className="flex flex-col gap-1.5">
+            <label
+              className="font-medium text-foreground text-sm"
+              htmlFor={organizationId}
+            >
+              Organization name
+            </label>
+            <input
+              autoComplete="organization"
+              className="h-9 rounded-md border border-input bg-background px-3 text-foreground text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+              id={organizationId}
+              name="organization"
+              onChange={handleOrganizationNameChange}
+              placeholder="Acme Inc."
+              required
+              type="text"
+              value={organizationName}
+            />
+          </div>
+        ) : (
+          <p className="rounded-md border border-dashed p-3 text-muted-foreground text-sm">
+            Use your work email — after verifying it you'll see your team's
+            organization and any invitations waiting for you.
+          </p>
+        )}
         <div className="flex flex-col gap-1.5">
           <label
             className="font-medium text-foreground text-sm"

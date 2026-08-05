@@ -23,6 +23,7 @@ import {
   BrainIcon,
   type LucideIcon,
   NewspaperIcon,
+  UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -43,6 +44,11 @@ const navMain: NavItem[] = [
     icon: BrainIcon,
     title: "Brain",
     url: "/",
+  },
+  {
+    icon: UsersIcon,
+    title: "Team",
+    url: "/team",
   },
   {
     icon: NewspaperIcon,
