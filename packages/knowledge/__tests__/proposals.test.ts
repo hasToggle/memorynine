@@ -80,3 +80,61 @@ describe("proposalSchema", () => {
     expect(result.success).toBe(true);
   });
 });
+
+describe("proposalSchema — lossless extraction fields", () => {
+  const lxBase = {
+    _id: new ObjectId(),
+    createdAt: new Date(),
+    entityDrafts: [],
+    factDrafts: [],
+    kind: "ingestion" as const,
+    status: "open" as const,
+    tenantId: "t1",
+    updatedAt: new Date(),
+  };
+
+  test("accepts a skip proposal: a reason, no drafts", () => {
+    const parsed = proposalSchema.parse({
+      ...lxBase,
+      skipReason: "Terminchatter",
+    });
+    expect(parsed.skipReason).toBe("Terminchatter");
+  });
+
+  test("skipReason is absent — not false, not null — on an ordinary proposal", () => {
+    // listOpenProposals filters on { $exists: false }, so an explicitly
+    // present undefined would silently hide every ordinary proposal.
+    expect(proposalSchema.parse(lxBase)).not.toHaveProperty("skipReason");
+  });
+
+  test("accepts superseded, which resolved must not be overloaded to mean", () => {
+    expect(() =>
+      proposalSchema.parse({ ...lxBase, status: "superseded" })
+    ).not.toThrow();
+  });
+
+  test("rejects an unknown status", () => {
+    expect(() =>
+      proposalSchema.parse({ ...lxBase, status: "archived" })
+    ).toThrow();
+  });
+
+  test("carries rejected drafts with a readable reason", () => {
+    const parsed = proposalSchema.parse({
+      ...lxBase,
+      rejectedDrafts: [
+        { raw: { text: "x" }, reason: "anchors.personId: expected string" },
+      ],
+    });
+    expect(parsed.rejectedDrafts?.[0]?.reason).toContain("personId");
+  });
+
+  test("extractionGeneration is a positive integer when present", () => {
+    expect(() =>
+      proposalSchema.parse({ ...lxBase, extractionGeneration: 2 })
+    ).not.toThrow();
+    expect(() =>
+      proposalSchema.parse({ ...lxBase, extractionGeneration: 0 })
+    ).toThrow();
+  });
+});
