@@ -3,10 +3,10 @@ import { z } from "zod";
 
 export const keys = () =>
   createEnv({
-    server: {
-      MONGODB_URI: z.string().min(1),
-    },
     runtimeEnv: {
       MONGODB_URI: process.env.MONGODB_URI,
+    },
+    server: {
+      MONGODB_URI: z.string().min(1),
     },
   });

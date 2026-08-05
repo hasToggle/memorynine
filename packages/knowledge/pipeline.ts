@@ -1,6 +1,7 @@
 import type { Db } from "mongodb";
 import { getCollections } from "./collections";
 import { runExtraction } from "./extraction-run";
+import type { UsageContext } from "./gateway";
 import { runTranscription, type TranscriptResult } from "./transcription";
 
 // The cron-driven sweep: pick up every source waiting on a pipeline stage,
@@ -9,7 +10,7 @@ import { runTranscription, type TranscriptResult } from "./transcription";
 // the report and the per-source failure budget decides its fate.
 
 export interface SweepOptions {
-  generate: (prompt: string) => Promise<string>;
+  generate: (prompt: string, context?: UsageContext) => Promise<string>;
   /** Max sources per stage per sweep. Default 10. */
   limit?: number;
   /** See RunTranscriptionOptions.resolveAudioUrl (private blob stores). */

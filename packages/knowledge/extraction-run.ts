@@ -9,6 +9,7 @@ import {
   type ParsedExtraction,
   parseExtractionResponse,
 } from "./extraction";
+import type { UsageContext } from "./gateway";
 import { deterministicId, insertIgnoringDuplicate } from "./idempotency";
 import { currentlyValidFilter } from "./schemas/facts";
 import { proposalSchema } from "./schemas/proposals";
@@ -21,7 +22,7 @@ import type { Source } from "./schemas/sources";
 
 export interface RunExtractionOptions {
   /** The LLM call. Injectable so tests and providers stay decoupled. */
-  generate: (prompt: string) => Promise<string>;
+  generate: (prompt: string, context?: UsageContext) => Promise<string>;
   /** Failed attempts before the source flips to "failed". Default 3. */
   maxAttempts?: number;
   sourceId: ObjectId;
@@ -167,10 +168,11 @@ const restingStatusFor = (source: Source): Source["status"] => {
 
 const produceParsed = async (
   generate: RunExtractionOptions["generate"],
-  prompt: string
+  prompt: string,
+  context: UsageContext
 ): Promise<ParsedExtraction> => {
   try {
-    return parseExtractionResponse(await generate(prompt));
+    return parseExtractionResponse(await generate(prompt, context));
   } catch (error) {
     return {
       kind: "failure",
@@ -236,7 +238,11 @@ export const runExtraction = async (
     sourceType: source.type,
   });
 
-  let parsed = await produceParsed(generate, prompt);
+  let parsed = await produceParsed(generate, prompt, {
+    correlationId: sourceId.toHexString(),
+    operation: "extraction",
+    tenantId,
+  });
 
   if (parsed.kind === "proposal") {
     const problem = validateReferences(

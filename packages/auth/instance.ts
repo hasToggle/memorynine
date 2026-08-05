@@ -32,7 +32,20 @@ const client =
 if (process.env.NODE_ENV !== "production") {
   globalForAuth.authMongo = client;
 }
-const db = client.db();
+// Matches its three siblings (packages/database/index.ts,
+// apps/email/scripts/digest.ts, apps/api/app/cron/keep-alive/route.ts): the
+// driver's implicit "test" default, off `MONGODB_URI`'s db-less path, is
+// never intentional. better-auth's collections (user, session, organization,
+// member, …) held live data in "test", so unlike those three this was not a
+// safe silent rename — packages/auth/scripts/migrate-to-app-db.ts copies
+// that data into "app" first. See docs/knowledge-eval-findings.md's F3 for
+// the full history.
+//
+// ORDERING, load-bearing: the migration script must be run with --apply,
+// and its verify pass must come back clean, BEFORE this config change is
+// deployed. Deploying first points the running app at an empty "app"
+// database and signs every existing user out.
+const db = client.db(process.env.MONGODB_DB ?? "app");
 
 export const authInstance = betterAuth({
   baseURL: keys().BETTER_AUTH_URL,

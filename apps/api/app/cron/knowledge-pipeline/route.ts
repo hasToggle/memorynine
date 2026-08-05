@@ -1,6 +1,7 @@
 import {
   createAssemblyAiTranscriber,
   createGatewayGenerate,
+  createUsageRecorder,
   listBlobCleanupCandidates,
   markSourceBlobsDeleted,
   sweepPipeline,
@@ -41,7 +42,7 @@ export const GET = async (request: Request) => {
 
   const db = getKnowledgeDb();
   const report = await sweepPipeline(db, {
-    generate: createGatewayGenerate(),
+    generate: createGatewayGenerate({ onUsage: createUsageRecorder(db) }),
     resolveAudioUrl,
     transcribe: createAssemblyAiTranscriber(),
   });

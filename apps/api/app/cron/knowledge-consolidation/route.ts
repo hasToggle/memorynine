@@ -1,5 +1,6 @@
 import {
   createGatewayGenerate,
+  createUsageRecorder,
   sweepConsolidation,
   sweepContradictions,
 } from "@repo/knowledge";
@@ -17,7 +18,7 @@ export const GET = async (request: Request) => {
   }
 
   const db = getKnowledgeDb();
-  const generate = createGatewayGenerate();
+  const generate = createGatewayGenerate({ onUsage: createUsageRecorder(db) });
 
   // Consolidation first: it collapses redundant restatements, so the
   // contradiction pass compares a smaller, cleaner set and is less likely to

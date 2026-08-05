@@ -1,5 +1,6 @@
 import type { Db, Document } from "mongodb";
 import { getCollections } from "./collections";
+import type { GatewayUsage, UsageContext } from "./gateway";
 import type { Fact } from "./schemas/facts";
 import { currentlyValidFilter, type FactCategory } from "./schemas/facts";
 import { FACTS_SEARCH_INDEX_NAME } from "./search";
@@ -199,15 +200,42 @@ export interface VoyageRerankConfig {
   /** Injectable for tests; only ever called as (url, init). */
   fetchImpl?: (url: string, init: RequestInit) => Promise<Response>;
   model?: string;
+  /**
+   * Telemetry hook, called once per successful response. The endpoint
+   * reports tokens, not dollars, so the usage handed here is *computed* from
+   * `RERANK_COST_PER_MILLION_TOKENS`, and the context this receives always
+   * has `estimated: true` set — never allowed to fail the rerank call it's
+   * reporting on, same contract as the gateway's `onUsage`.
+   */
+  onUsage?: (usage: GatewayUsage, context?: UsageContext) => void;
   /** Documents handed to the cross-encoder. Beyond this the tail is dropped. */
   topK?: number;
 }
 
-const DEFAULT_RERANK_BASE_URL = "https://api.voyageai.com/v1";
+// MongoDB acquired Voyage AI and now serves the same models from its own
+// endpoint, authenticated with an Atlas *model* API key rather than a
+// voyageai.com key. The wire format is unchanged — same request fields, same
+// `{ data: [{ index, relevance_score }] }` response, same model names — so
+// only the host differs. Pointing an Atlas key at api.voyageai.com returns a
+// 403 that names the mismatch, which is how this was found.
+const DEFAULT_RERANK_BASE_URL = "https://ai.mongodb.com/v1";
 // The lite model is the interactive default: the quality gap on short
 // candidates is small and this sits on the latency-sensitive path.
 const DEFAULT_RERANK_MODEL = "rerank-2.5-lite";
 const DEFAULT_TOP_K = 50;
+const TOKENS_PER_MILLION = 1_000_000;
+
+/**
+ * MongoDB's rerank endpoint returns `{"usage":{"total_tokens":N}}` — tokens
+ * only, no cost, unlike the AI Gateway (which returns dollars directly). So
+ * this is the one figure in the system computed from a rate constant rather
+ * than reported by the vendor, and rows derived from it are flagged
+ * `estimated: true` so an estimate can never be mistaken for an exact figure.
+ *
+ * Rate for rerank-2.5-lite, checked 2026-08-04: $0.02 / 1M tokens. Re-check
+ * when MongoDB reprices — nothing here will notice on its own.
+ */
+export const RERANK_COST_PER_MILLION_TOKENS = 0.02;
 
 /**
  * Cross-encoder reranking over the fused candidate set.
@@ -222,7 +250,11 @@ const DEFAULT_TOP_K = 50;
  */
 export const createVoyageRerank = <T extends RerankableDocument>(
   config: VoyageRerankConfig = {}
-): ((query: string, documents: T[]) => Promise<RerankedDocument<T>[]>) => {
+): ((
+  query: string,
+  documents: T[],
+  context?: UsageContext
+) => Promise<RerankedDocument<T>[]>) => {
   const apiKey = config.apiKey ?? process.env.VOYAGE_API_KEY;
   if (!apiKey) {
     throw new Error(
@@ -232,9 +264,10 @@ export const createVoyageRerank = <T extends RerankableDocument>(
   const baseUrl = config.baseUrl ?? DEFAULT_RERANK_BASE_URL;
   const doFetch = config.fetchImpl ?? fetch;
   const model = config.model ?? DEFAULT_RERANK_MODEL;
+  const { onUsage } = config;
   const topK = config.topK ?? DEFAULT_TOP_K;
 
-  return async (query, documents) => {
+  return async (query, documents, context?: UsageContext) => {
     if (documents.length === 0) {
       return [];
     }
@@ -257,6 +290,7 @@ export const createVoyageRerank = <T extends RerankableDocument>(
     }
     const data = (await res.json()) as {
       data?: { index: number; relevance_score: number }[];
+      usage?: { total_tokens?: number };
     };
 
     const ranked: RerankedDocument<T>[] = [];
@@ -269,6 +303,36 @@ export const createVoyageRerank = <T extends RerankableDocument>(
         ranked.push({ document, relevanceScore: entry.relevance_score });
       }
     }
+
+    if (onUsage) {
+      const totalTokens = data.usage?.total_tokens ?? 0;
+      const cost =
+        (totalTokens / TOKENS_PER_MILLION) * RERANK_COST_PER_MILLION_TOKENS;
+      const usage: GatewayUsage = {
+        cachedTokens: 0,
+        completionTokens: 0,
+        // Rerank has no surcharge — the estimated figure IS the inference
+        // cost. gatewayCost === inferenceCost + surchargeCost must hold for
+        // every row this system writes, from any source; setting
+        // surchargeCost to `cost` here would fabricate a surcharge that was
+        // never charged and double the true figure once gatewayCost is
+        // summed against it.
+        gatewayCost: cost,
+        inferenceCost: cost,
+        model,
+        promptTokens: totalTokens,
+        reasoningTokens: 0,
+        surchargeCost: 0,
+      };
+      // Telemetry must never fail the rerank call it's reporting on — same
+      // contract as the gateway's onUsage.
+      try {
+        onUsage(usage, context ? { ...context, estimated: true } : undefined);
+      } catch {
+        // swallowed deliberately
+      }
+    }
+
     return ranked;
   };
 };

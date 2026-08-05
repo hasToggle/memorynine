@@ -9,7 +9,10 @@ if (!MONGODB_URI) {
 }
 
 const client = new MongoClient(MONGODB_URI);
-const db = client.db();
+// MONGODB_URI has no database path, so the driver would otherwise default to
+// "test". @repo/database and apps/web both read/write "app" — this CLI must
+// agree or it silently operates on an empty, disconnected database.
+const db = client.db(process.env.MONGODB_DB ?? "app");
 const digests = db.collection("digests");
 
 const [, , command, ...args] = process.argv;

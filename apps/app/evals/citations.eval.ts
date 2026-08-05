@@ -1,31 +1,11 @@
 import { defineEval } from "eve/evals";
 import { satisfies } from "eve/evals/expect";
+import { citedIds, returnedIds } from "./support/citations";
 
 // The property the whole citation mechanism rests on: the model may only cite
 // facts the knowledge base actually returned. This is checkable deterministically
 // — no judge needed — by comparing the ids in the prose against the ids in the
 // tool output, which is exactly what the UI does when it resolves markers.
-
-const FACT_TAG = /<fact\s+id="([^"]+)"/g;
-
-const citedIds = (reply: string | null): string[] =>
-  [...(reply ?? "").matchAll(FACT_TAG)].map((match) => match[1] as string);
-
-interface SearchOutput {
-  facts?: { id: string }[];
-}
-
-const returnedIds = (
-  toolCalls: readonly { name: string; output?: unknown }[]
-): Set<string> => {
-  const ids = new Set<string>();
-  for (const call of toolCalls) {
-    for (const fact of (call.output as SearchOutput | undefined)?.facts ?? []) {
-      ids.add(fact.id);
-    }
-  }
-  return ids;
-};
 
 export default defineEval({
   description:

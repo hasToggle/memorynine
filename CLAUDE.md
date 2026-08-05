@@ -11,7 +11,6 @@ This is a **has-toggle** monorepo - a production-grade Turborepo template for Ne
 ### Setup & Installation
 ```bash
 bun install                    # Install all dependencies
-bun migrate                   # Format, generate, and push Prisma schema to database
 ```
 
 ### Running Applications
@@ -41,13 +40,6 @@ turbo boundaries               # Check package boundaries
 bun run build                     # Build all apps (depends on tests passing)
 turbo build --filter=app       # Build specific app
 turbo analyze --filter=app     # Analyze bundle size
-```
-
-### Database
-```bash
-bun migrate                   # Format schema, generate Prisma client, push to DB
-cd packages/database && bunx prisma studio    # Open Prisma Studio
-cd packages/database && bunx prisma generate  # Regenerate Prisma client only
 ```
 
 ### Maintenance
@@ -96,10 +88,11 @@ The repository uses **Bun workspaces** with two main directories:
 
 Core infrastructure packages:
 
-- **@repo/auth** - better-auth authentication (client, server, middleware, provider); MongoDB adapter, organization plugin — active org id is the knowledge `tenantId`
-- **@repo/database** - Prisma ORM with Neon PostgreSQL adapter
-  - Schema at `packages/database/prisma/schema.prisma`
-  - Generated client at `packages/database/generated/client/`
+- **@repo/auth** - better-auth authentication (client, server, middleware, provider); MongoDB adapter, organization plugin — active org id is the knowledge `tenantId`. Collections live in the `app` database (`MONGODB_DB ?? "app"`), same as `@repo/database`; migrated there from the driver's implicit `test` default via `packages/auth/scripts/migrate-to-app-db.ts`.
+- **@repo/database** - MongoDB client for the app's own collections
+  (`subscribers`, `digests`), same `app` database as `@repo/auth`. Separate
+  from `@repo/knowledge`, which has its own client and its own database on
+  the same cluster.
 - **@repo/knowledge** - MongoDB data layer for the knowledge hub (source-only, no build)
   - Zod v4 schemas in `schemas/` (organizations, people, engagements, sources, facts, proposals)
   - Typed collections + idempotent indexes (`getCollections`, `ensureIndexes`)
@@ -132,7 +125,7 @@ Core infrastructure packages:
 - **Language**: TypeScript 5.9 (strict mode, NodeNext module resolution)
 - **Package Manager**: Bun 1.1.43
 - **Build Tool**: Turborepo 2.5.8
-- **Database**: PostgreSQL (Neon) via Prisma 6.18
+- **Database**: MongoDB Atlas (`mongodb` driver 7.x); no ORM
 - **Auth**: better-auth (email/password + organizations)
 - **Styling**: Tailwind CSS 4.1
 - **Linting**: Biome 2.3.1 with ultracite presets (core, react, next)
@@ -170,7 +163,6 @@ Core infrastructure packages:
 
 - `turbo.json` - Turborepo task pipeline configuration
 - `biome.jsonc` - Linter/formatter configuration (extends ultracite presets)
-- `packages/database/prisma/schema.prisma` - Database schema
 - Root `package.json` - Monorepo scripts, workspace configuration, and CLI entry point (`dist/index.js`)
 
 ## Development Notes
@@ -178,7 +170,6 @@ Core infrastructure packages:
 - The main branch is not explicitly configured in git - PRs should target the default branch
 - Apps have independent dev ports: app (3000), web (3001), api (3002)
 - API development automatically runs Stripe CLI webhook forwarding to localhost:3002/webhooks/payments
-- Prisma client is generated to a custom output directory: `packages/database/generated/client/`
 - Tests must pass before builds complete (enforced by Turborepo pipeline)
 - The design system excludes shadcn auto-generated UI components from version control linting
 

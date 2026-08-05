@@ -292,3 +292,7 @@ packages/database/generated
 # eve build artifacts
 .eve/
 .output/
+
+# Raw judge responses from the eval suite (packages/knowledge/scripts,
+# apps/app/evals) — model output kept locally for inspection, never tracked.
+.context/

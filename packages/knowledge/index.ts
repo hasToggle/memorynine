@@ -69,8 +69,8 @@ export type {
   RunExtractionOptions,
 } from "./extraction-run";
 export { runExtraction } from "./extraction-run";
-export type { GatewayConfig } from "./gateway";
-export { createGatewayGenerate } from "./gateway";
+export type { GatewayConfig, GatewayUsage, UsageContext } from "./gateway";
+export { createGatewayGenerate, parseGatewayUsage } from "./gateway";
 export type { CreateEmailSourceResult, InboundEmail } from "./inbound";
 export { createEmailSource, parseInboundSenderMap } from "./inbound";
 export { keys } from "./keys";
@@ -122,6 +122,8 @@ export {
 } from "./schemas/proposals";
 export type { Source } from "./schemas/sources";
 export { sourceSchema, sourceStatusValues } from "./schemas/sources";
+export type { Usage, UsageOperation } from "./schemas/usage";
+export { usageOperationValues, usageSchema } from "./schemas/usage";
 export type { EntityNameSearchOptions, FactsSearchOptions } from "./search";
 export {
   buildEntityNameSearchPipeline,
@@ -144,3 +146,4 @@ export {
   DEFAULT_PII_POLICIES,
   runTranscription,
 } from "./transcription";
+export { createUsageRecorder, recordUsage } from "./usage";

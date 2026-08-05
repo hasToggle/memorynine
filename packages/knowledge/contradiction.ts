@@ -10,6 +10,7 @@ import {
 } from "./anchors";
 import { getCollections } from "./collections";
 import type { DossierAnchor } from "./dossier";
+import type { UsageContext } from "./gateway";
 import { deterministicId, insertIgnoringDuplicate } from "./idempotency";
 import {
   extractLastValidObject,
@@ -150,7 +151,7 @@ const validateResolutions = (
 
 export interface RunContradictionCheckOptions {
   anchor: DossierAnchor;
-  generate: (prompt: string) => Promise<string>;
+  generate: (prompt: string, context?: UsageContext) => Promise<string>;
   /** Facts an anchor needs before a check is worth an LLM call. Default 2. */
   minFacts?: number;
 }
@@ -233,7 +234,13 @@ export const runContradictionCheck = async (
 
   let parsed: ParsedContradiction;
   try {
-    parsed = parseContradictionResponse(await generate(prompt));
+    parsed = parseContradictionResponse(
+      await generate(prompt, {
+        correlationId: anchor.id.toHexString(),
+        operation: "contradiction",
+        tenantId,
+      })
+    );
   } catch (error) {
     parsed = {
       kind: "failure",
@@ -302,7 +309,7 @@ export const runContradictionCheck = async (
 };
 
 export interface ContradictionSweepOptions {
-  generate: (prompt: string) => Promise<string>;
+  generate: (prompt: string, context?: UsageContext) => Promise<string>;
   /** Max candidate anchors per sweep. Default 10. */
   limit?: number;
   minFacts?: number;
