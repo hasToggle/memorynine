@@ -94,7 +94,12 @@ export const BrainWorkspace = ({
   ];
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden p-4 pt-0">
+    // Explicit viewport-derived height: every ancestor only has min-height,
+    // so a flex chain cannot bound this pane — content height would
+    // propagate up and move scrolling to the page, which disables the
+    // conversation's stick-to-bottom. 4rem is the header; md+ adds the inset
+    // shell's vertical margins (m-2 → 1rem).
+    <div className="flex h-[calc(100svh-4rem)] flex-col gap-4 overflow-hidden p-4 pt-0 md:h-[calc(100svh-5rem)]">
       <div className="flex h-9 items-center rounded-lg bg-muted p-[3px] lg:hidden">
         <SegmentButton
           active={view === "ask"}

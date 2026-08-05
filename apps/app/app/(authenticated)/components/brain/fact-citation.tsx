@@ -4,10 +4,8 @@ import {
   InlineCitation,
   InlineCitationCard,
   InlineCitationCardBody,
-  InlineCitationCardTrigger,
-  InlineCitationQuote,
-  InlineCitationSource,
 } from "@repo/design-system/components/ai-elements/inline-citation";
+import { Badge } from "@repo/design-system/components/ui/badge";
 import { HoverCardTrigger } from "@repo/design-system/components/ui/hover-card";
 
 // Every fact the agent has returned in this conversation, keyed by the id it
@@ -20,6 +18,20 @@ export interface CitedFact {
   text: string;
   validFrom: string | null;
 }
+
+// The category enum values are storage keys, not UI copy.
+const CATEGORY_LABELS: Record<string, string> = {
+  background: "Hintergrund",
+  "decision-process": "Entscheidungsweg",
+  logistics: "Logistik",
+  objection: "Einwand",
+  other: "Sonstiges",
+  preference: "Präferenz",
+  relationship: "Beziehung",
+};
+
+const categoryLabel = (category: string): string =>
+  CATEGORY_LABELS[category] ?? category;
 
 const germanDate = (iso: string | null) =>
   iso
@@ -63,13 +75,24 @@ export const FactCitation = ({
               ?
             </button>
           </HoverCardTrigger>
-          <InlineCitationCardBody className="p-3">
-            <p className="font-medium text-sm">Unbelegtes Zitat</p>
-            <p className="mt-1 text-muted-foreground text-xs">
-              {factId
-                ? `Die Antwort zitiert Fakt ${factId}, den die Wissensdatenbank in dieser Unterhaltung nicht geliefert hat. Diese Aussage ist damit nicht belegt.`
-                : "Die Antwort enthält ein Zitat ohne Fakt-ID. Diese Aussage ist damit nicht belegt."}
-            </p>
+          <InlineCitationCardBody className="w-80 overflow-hidden">
+            <div className="px-4 py-3.5">
+              <p className="font-medium text-destructive text-sm">
+                Unbelegtes Zitat
+              </p>
+              <p className="mt-1 text-muted-foreground text-xs leading-relaxed">
+                Die Wissensdatenbank hat den zitierten Fakt in dieser
+                Unterhaltung nicht geliefert. Diese Aussage ist damit nicht
+                belegt.
+              </p>
+            </div>
+            {factId ? (
+              <footer className="border-t bg-muted/30 px-4 py-2">
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  Fakt {factId}
+                </span>
+              </footer>
+            ) : null}
           </InlineCitationCardBody>
         </InlineCitationCard>
       </InlineCitation>
@@ -77,21 +100,39 @@ export const FactCitation = ({
   }
 
   const since = germanDate(fact.validFrom);
+  const confidence = Math.round(fact.confidence * 100);
 
   return (
     <InlineCitation>
       <InlineCitationCard>
-        <InlineCitationCardTrigger sources={[fact.category]} />
-        <InlineCitationCardBody>
-          <InlineCitationSource
-            description={since ? `gültig seit ${since}` : undefined}
-            title={fact.category}
+        <HoverCardTrigger asChild>
+          <Badge
+            asChild
+            className="ml-1 cursor-help rounded-full"
+            variant="secondary"
           >
-            <p className="text-muted-foreground text-xs">
-              Konfidenz {Math.round(fact.confidence * 100)}%
-            </p>
-          </InlineCitationSource>
-          <InlineCitationQuote>{fact.text}</InlineCitationQuote>
+            <button type="button">{categoryLabel(fact.category)}</button>
+          </Badge>
+        </HoverCardTrigger>
+        <InlineCitationCardBody className="w-80 overflow-hidden">
+          <blockquote className="px-4 py-3.5 text-sm leading-relaxed">
+            <span aria-hidden className="text-muted-foreground">
+              „
+            </span>
+            {fact.text}
+            <span aria-hidden className="text-muted-foreground">
+              “
+            </span>
+          </blockquote>
+          <footer className="flex items-center justify-between gap-3 border-t bg-muted/30 px-4 py-2 text-muted-foreground text-xs">
+            <span>{since ? `gültig seit ${since}` : " "}</span>
+            <span className="tabular-nums">
+              Konfidenz{" "}
+              <span className="font-medium text-foreground">
+                {confidence}&thinsp;%
+              </span>
+            </span>
+          </footer>
         </InlineCitationCardBody>
       </InlineCitationCard>
     </InlineCitation>
