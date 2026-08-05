@@ -467,11 +467,29 @@ edit:
 Flagging here so it isn't rediscovered as a mysterious extraction gap; not
 fixed on this branch.
 
+**The symptom is no longer silent, even though the schema is unchanged.**
+F11's fix (`94e3a42`) means a rejected draft like this one is no longer
+dropped along with its siblings — it survives as a `RejectedDraft` (verbatim
+text plus the reason naming the field, e.g. `anchors.personId: Invalid
+input: expected string, received array`), and `649a135` persists it on the
+proposal as `rejectedDrafts`. The review UI (`apps/app/app/(authenticated)/
+review/page.tsx`) badges it directly on the proposal list — a destructive
+`"N rejected"` badge next to the proposal's kind and source type, for both
+open and skipped proposals — via `rejectedCount` in
+`apps/app/app/actions/knowledge/list-proposals.ts`. This does not widen
+`anchors.personId`; a two-person fact is still unrepresentable and still
+gets rejected. What changes is that rejection is now visible in the one
+place a reviewer actually looks, instead of only in a discarded parse
+result nobody read. A future reader deciding whether to widen the schema
+should look at how often that badge actually appears in production —
+that frequency is the real-world evidence this finding's fix was missing,
+and is now being collected for free.
+
 ---
 
 ## F11 — Parsing is all-or-nothing, so one invalid fact discards every fact in that reply
 
-**Status:** open · **Severity:** high (understates measured recall; folds comprehension successes into failures)
+**Status:** fixed · **Severity:** high (understates measured recall; folds comprehension successes into failures)
 
 `packages/knowledge/extraction.ts`'s `parseExtractionResponse` calls
 `extractLastValidObject(text, llmExtractionSchema)`
@@ -520,6 +538,95 @@ of `parseExtractionResponse` relies on: `ParsedExtraction`'s
 partial-success shape (or `"proposal"` would need to carry rejected items
 alongside accepted ones), and `eval-extraction.ts`'s per-source scoring would
 need updating to match. Real, multi-file work — flagging here, not fixing.
+
+**Resolved** in `94e3a42` ("fix(knowledge): keep the valid facts when one
+draft is malformed"): `parseExtractionResponse` now validates each entity and
+fact draft independently instead of `safeParse`-ing the whole reply object.
+A single schema-violating draft (the F10 two-person fact, or anything else
+that fails its own schema) is recorded as a `RejectedDraft` — verbatim text
+plus the reason naming the offending field — and every other draft in the
+same reply is kept and proposed as before, instead of the whole source
+being thrown away. All-drafts-rejected is still a `"failure"` (retryable),
+not a `"skip"` (terminal): malformed output deserves a retry, a
+judged-empty reply does not. The suggested fix's contract worry did not
+materialize as a fourth union variant — `ParsedExtraction`'s `"proposal"`
+case instead grew a `rejected: RejectedDraft[]` field, always present
+(empty when nothing was rejected), which every existing caller already
+handles by ignoring a field it doesn't read. `rejectedDrafts` reaching the
+persisted proposal — so a reviewer, not just a log line, can see what was
+rejected — followed in `649a135` (see F12's resolution below); together the
+two commits mean source 13's two valid facts from this finding's own
+example are proposed today instead of discarded.
+
+---
+
+## F12 — A skip is terminal, unlogged and unrecoverable
+
+**Status:** fixed · **Severity:** high (silent, permanent data loss; a cold-start inversion made it worse than random)
+
+On a skip, `runExtraction` set `status: "reviewed"` on the source, `$unset`
+the `error` field, and returned a reason to a caller that only counted it.
+No proposal was written. `sweepPipeline` never re-selected `"reviewed"`
+sources, so a skipped source left the pipeline permanently — there was no
+proposal to inspect, nothing to click, and no way back in short of a manual
+database write.
+
+This was found from a real capture, not a hypothetical: the first message
+processed after the pipeline went live — *"Sam will noch heute Vormittag in
+den Garten"* — was skipped correctly by the letter of the extraction
+prompt (*"greetings, scheduling chatter, no business knowledge"*). But the
+tenant had **zero** entities and **zero** facts at that point, so
+`gatherContext` rendered `(none yet)` for both lists the model was shown —
+it was asked to judge whether a bare sentence contained business knowledge
+with no world to judge it against. That is a **cold-start inversion**: the
+skip gate is harshest exactly when the knowledge base is empty, which is
+exactly when captures would otherwise bootstrap it. And the cost asymmetry
+ran the wrong way — a false skip was silent and permanent, while a false
+proposal is one click to discard.
+
+**Consequence:** any source the model judged (rightly or wrongly) to
+contain no business knowledge was gone from the pipeline for good, with no
+audit trail of what was skipped, when, or why — including every false
+negative from the cold-start problem above, for as long as a tenant's
+knowledge base stayed thin.
+
+**Resolved** across four commits, all of which are Part 2/3 of
+`docs/superpowers/plans/2026-08-05-lossless-extraction.md`:
+
+- `ec4124f` ("feat(knowledge): proposal fields for skips, rejects and
+  generations") widened the proposal schema with `skipReason` (present ⇒
+  nothing worth recording) and `extractionGeneration`, so a skip has
+  somewhere to be written.
+- `649a135` ("feat(knowledge): a skip writes a proposal instead of closing
+  the source") is the actual fix: a skip now inserts a zero-draft proposal
+  carrying `skipReason` and moves the source to `"proposed"` instead of the
+  terminal `"reviewed"`, so it stays visible to the review queue and
+  re-extractable. `c8f875a` ("fix(knowledge): crash-recovery resume reports
+  skipped for a skip proposal") corrected a bug caught in review of that same
+  change: the crash-recovery early-return reported every resumed source as
+  `"proposed"` unconditionally, misreporting a resumed skip.
+- `9cfd754` ("feat(knowledge): re-extract a source into a new generation")
+  added `reExtractSource` — the recourse: supersede the prior proposal(s),
+  bump `extractionGeneration`, reset the source to its extractable resting
+  status, and re-run extraction against a knowledge base that has, by
+  construction, grown since the skip. This is what turns "recoverable" into
+  something an operator can actually invoke, closing the cold-start
+  inversion this finding's real capture exposed — a source skipped when the
+  base was empty can be re-tried once it is not.
+- `7f12c3b` ("feat(app): show skipped proposals and their reasons") and
+  `6760f69` ("feat(app): re-extract a skipped source with optional
+  context") put both ends in front of a reviewer: the review queue now
+  lists skipped proposals with their reason instead of hiding them (the
+  `{ skipReason: { $exists: false } }` filter on the *open* queue keeps
+  them out of the normal review list, but a dedicated "Skipped" section
+  surfaces them), and a reviewer can trigger re-extraction — optionally with
+  a hint — directly from a skipped proposal's detail page.
+
+This branch's own Task 7 (`04b6883`, "feat(knowledge): bulk re-extraction
+for skipped sources") builds on this fix rather than being part of it: it
+lets an operator re-extract every currently-skipped source across a tenant
+(or all tenants) in one bounded, dry-run-by-default pass, rather than
+one-at-a-time from the review UI.
 
 ---
 
