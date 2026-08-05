@@ -8,12 +8,33 @@ import {
 } from "bun:test";
 import { MongoClient, ObjectId } from "mongodb";
 import { ensureIndexes, getCollections } from "../collections";
-import { runExtraction } from "../extraction-run";
+import { proposalIdFor, runExtraction } from "../extraction-run";
+import { deterministicId } from "../idempotency";
 
 const uri = process.env.MONGODB_TEST_URI;
 const TENANT = "test-tenant";
 const now = () => ({ createdAt: new Date(), updatedAt: new Date() });
 const noContentPattern = /content/;
+
+describe("proposalIdFor", () => {
+  test("generation 1 keeps the id it has today, so existing proposals are not orphaned", () => {
+    const tenantId = "t1";
+    const sourceId = new ObjectId();
+    expect(proposalIdFor(tenantId, sourceId, 1).toHexString()).toBe(
+      deterministicId(
+        `${tenantId}:${sourceId.toHexString()}:extraction`
+      ).toHexString()
+    );
+  });
+
+  test("generation 2 gets a distinct id", () => {
+    const tenantId = "t1";
+    const sourceId = new ObjectId();
+    expect(proposalIdFor(tenantId, sourceId, 2).toHexString()).not.toBe(
+      proposalIdFor(tenantId, sourceId, 1).toHexString()
+    );
+  });
+});
 
 describe.skipIf(!uri)("runExtraction", () => {
   const client = new MongoClient(uri ?? "mongodb://localhost:27017");
@@ -133,7 +154,7 @@ describe.skipIf(!uri)("runExtraction", () => {
     expect(await proposals.countDocuments({})).toBe(1);
   });
 
-  test("skip token closes the source without creating review work", async () => {
+  test("skip token writes a zero-draft proposal carrying the reason, and leaves the source on proposed", async () => {
     const result = await runExtraction(db, TENANT, {
       generate: () =>
         Promise.resolve('{"skip": true, "reason": "greeting only"}'),
@@ -141,9 +162,61 @@ describe.skipIf(!uri)("runExtraction", () => {
     });
 
     expect(result.status).toBe("skipped");
-    expect(await proposals.countDocuments({})).toBe(0);
+    expect(await proposals.countDocuments({})).toBe(1);
+    const proposal = await proposals.findOne({ _id: result.proposalId });
+    expect(proposal?.skipReason).toBe("greeting only");
+    expect(proposal?.entityDrafts).toEqual([]);
+    expect(proposal?.factDrafts).toEqual([]);
+    expect(proposal?.extractionGeneration).toBe(1);
     const source = await sources.findOne({ _id: sourceId });
-    expect(source?.status).toBe("reviewed");
+    expect(source?.status).toBe("proposed");
+  });
+
+  test("a proposal carrying rejected drafts persists them for review", async () => {
+    const result = await runExtraction(db, TENANT, {
+      generate: () =>
+        Promise.resolve(
+          JSON.stringify({
+            entities: [
+              {
+                data: { name: "Anna Müller" },
+                draftId: "person-1",
+                entityType: "person",
+              },
+            ],
+            facts: [
+              {
+                anchors: { personDraftId: "person-1" },
+                category: "not-a-real-category",
+                confidence: 0.9,
+                text: "Bevorzugt jetzt Termine am Nachmittag.",
+              },
+            ],
+          })
+        ),
+      sourceId,
+    });
+
+    expect(result.status).toBe("proposed");
+    const proposal = await proposals.findOne({ _id: result.proposalId });
+    expect(proposal?.rejectedDrafts?.length).toBe(1);
+    expect(proposal?.rejectedDrafts?.[0]?.reason).toContain("category");
+  });
+
+  test("a re-extraction hint is passed to the model and persisted on the proposal", async () => {
+    let seenPrompt = "";
+    const result = await runExtraction(db, TENANT, {
+      generate: (prompt) => {
+        seenPrompt = prompt;
+        return Promise.resolve(proposalReply());
+      },
+      hint: "Focus on scheduling preferences.",
+      sourceId,
+    });
+
+    expect(seenPrompt).toContain("Focus on scheduling preferences.");
+    const proposal = await proposals.findOne({ _id: result.proposalId });
+    expect(proposal?.hint).toBe("Focus on scheduling preferences.");
   });
 
   test("a failure is retryable and the source returns to its previous status", async () => {

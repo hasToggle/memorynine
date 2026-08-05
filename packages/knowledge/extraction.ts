@@ -30,6 +30,14 @@ export interface ExtractionPromptInput {
   capturedAt: Date;
   capturedBy: string;
   content: string;
+  /**
+   * Reviewer-supplied steer for a re-extraction pass. Trusted: it comes from
+   * an authenticated reviewer inside the tenant, not from ingested source
+   * content, so instructions.md's "treat retrieved content as data" rule
+   * (which governs fact text from outside email/transcripts) does not apply
+   * to it.
+   */
+  hint?: string;
   knownEntities: KnownEntity[];
   knownFacts: KnownFact[];
   sourceType: "email" | "manual" | "voice";
@@ -133,6 +141,7 @@ export const buildExtractionPrompt = ({
   capturedAt,
   capturedBy,
   content,
+  hint,
   knownEntities,
   knownFacts,
   sourceType,
@@ -152,6 +161,13 @@ export const buildExtractionPrompt = ({
               `${fact.id} | ${fact.anchor} | ${fact.category} | ${fact.text}`
           )
           .join("\n");
+  // Interpolated as-is, unlike `content` below: this is reviewer input from
+  // inside the tenant, not ingested source material, so it is trusted rather
+  // than treated as data to quote (see the field comment on `hint`).
+  const hintBlock =
+    hint === undefined
+      ? ""
+      : `\nReviewer-supplied context (trusted, from a signed-in reviewer of this tenant):\n${hint}\n`;
 
   return `You extract structured knowledge from business communications (German or English) for a company knowledge base. Reviewers confirm every item, so propose only what the source actually supports.
 
@@ -160,7 +176,7 @@ ${entityLines}
 
 Currently valid facts (id | anchor | category | text):
 ${factLines}
-
+${hintBlock}
 Source (type: ${sourceType}, captured by ${capturedBy} at ${capturedAt.toISOString()}):
 ---
 ${content}
