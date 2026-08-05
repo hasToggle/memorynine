@@ -83,27 +83,29 @@ const ReviewPage = async () => {
               Skipped
             </h2>
             {skippedProposals.map((proposal) => (
-              <Card className="border-dashed bg-muted/30" key={proposal.id}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-muted-foreground text-sm">
-                    <Badge variant="outline">{proposal.kind}</Badge>
-                    {proposal.sourceType ? (
-                      <Badge variant="secondary">{proposal.sourceType}</Badge>
-                    ) : null}
-                    {proposal.rejectedCount > 0 ? (
-                      <Badge variant="destructive">
-                        {proposal.rejectedCount} rejected
-                      </Badge>
-                    ) : null}
-                    <span className="font-normal text-xs">
-                      {formatDate(proposal.createdAt)}
-                    </span>
-                  </CardTitle>
-                  <CardDescription>
-                    {proposal.skipReason ?? "No reason recorded."}
-                  </CardDescription>
-                </CardHeader>
-              </Card>
+              <Link href={`/review/${proposal.id}`} key={proposal.id}>
+                <Card className="border-dashed bg-muted/30 transition-colors hover:bg-muted/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-muted-foreground text-sm">
+                      <Badge variant="outline">{proposal.kind}</Badge>
+                      {proposal.sourceType ? (
+                        <Badge variant="secondary">{proposal.sourceType}</Badge>
+                      ) : null}
+                      {proposal.rejectedCount > 0 ? (
+                        <Badge variant="destructive">
+                          {proposal.rejectedCount} rejected
+                        </Badge>
+                      ) : null}
+                      <span className="font-normal text-xs">
+                        {formatDate(proposal.createdAt)}
+                      </span>
+                    </CardTitle>
+                    <CardDescription>
+                      {proposal.skipReason ?? "No reason recorded."}
+                    </CardDescription>
+                  </CardHeader>
+                </Card>
+              </Link>
             ))}
           </div>
         )}

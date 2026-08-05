@@ -10,6 +10,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProposal } from "@/app/actions/knowledge/get-proposal";
 import { Header } from "../../components/header";
+import { ReExtractControl } from "./components/re-extract-control";
 import { ReviewForm } from "./components/review-form";
 
 export const metadata: Metadata = {
@@ -54,7 +55,14 @@ const ProposalPage = async ({
             </CardContent>
           </Card>
         ) : null}
-        <ReviewForm proposal={proposal} />
+        {proposal.skipReason ? (
+          <ReExtractControl
+            proposalId={proposal.id}
+            skipReason={proposal.skipReason}
+          />
+        ) : (
+          <ReviewForm proposal={proposal} />
+        )}
       </div>
     </>
   );

@@ -33,6 +33,7 @@ export interface ReviewProposal {
   factDrafts: ReviewFactDraft[];
   id: string;
   kind: string;
+  skipReason: string | null;
   source: { capturedBy: string; content: string; type: string } | null;
   status: string;
 }
@@ -128,6 +129,7 @@ export const getProposal = async (
     })),
     id: proposal._id.toHexString(),
     kind: proposal.kind,
+    skipReason: proposal.skipReason ?? null,
     source: source
       ? {
           capturedBy: source.capturedBy,
