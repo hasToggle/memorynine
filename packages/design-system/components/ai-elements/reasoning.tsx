@@ -204,7 +204,13 @@ export type ReasoningContentProps = ComponentProps<
   children: string;
 };
 
-const streamdownPlugins = { cjk, code, math, mermaid };
+// The lockfile carries two shiki majors (streamdown's own and
+// @streamdown/code's), whose BundledLanguage unions drift apart, so the
+// plugin object fails to typecheck against streamdown's PluginConfig despite
+// an identical wire format. Cast until the versions converge.
+const streamdownPlugins = { cjk, code, math, mermaid } as ComponentProps<
+  typeof Streamdown
+>["plugins"];
 
 export const ReasoningContent = memo(
   ({ className, children, ...props }: ReasoningContentProps) => (
