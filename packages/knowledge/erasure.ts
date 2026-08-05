@@ -317,7 +317,16 @@ const redactProposals = async (
         { "factDrafts.resolution.finalText": { $regex: probe } },
         { entityDrafts: { $elemMatch: { entityType: "person" } } },
         { hint: { $regex: probe } },
-        { "rejectedDrafts.reason": { $regex: probe } },
+        // rejectedDrafts.reason is machine-generated (describeZodError) and
+        // normally carries no name. The PII lives in .raw — the model's
+        // verbatim, unvalidated output — which can hold an entirely
+        // different person than any accepted draft on the same proposal, so
+        // it cannot be probed by content; any proposal that has rejected
+        // drafts at all must be a candidate, exactly like the person-
+        // entityDrafts catch-all above. (This subsumes probing .reason by
+        // content — every proposal that clause would match, this one does
+        // too.)
+        { "rejectedDrafts.0": { $exists: true } },
         { skipReason: { $regex: probe } },
       ],
       tenantId,
