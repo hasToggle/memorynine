@@ -58,7 +58,7 @@ export const ReExtractControl = ({
         );
         return;
       }
-      router.push("/review");
+      router.push("/");
     });
   }, [hint, proposalId, router]);
 
@@ -80,7 +80,7 @@ export const ReExtractControl = ({
         setError(result.error);
         return;
       }
-      router.push("/review");
+      router.push("/");
     });
   }, [proposalId, router]);
 

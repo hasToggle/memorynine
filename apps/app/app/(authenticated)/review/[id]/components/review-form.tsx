@@ -202,7 +202,7 @@ export const ReviewForm = ({ proposal }: { proposal: ReviewProposal }) => {
         return;
       }
       if (result.proposalResolved) {
-        router.push("/review");
+        router.push("/");
       } else {
         setEntityChoices({});
         setFactSelections({});

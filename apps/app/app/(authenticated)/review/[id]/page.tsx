@@ -35,7 +35,7 @@ const ProposalPage = async ({
 
   return (
     <>
-      <Header page="Proposal" pages={["Knowledge", "Review"]} />
+      <Header page="Proposal" pages={[{ href: "/", label: "Brain" }]} />
       <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
         {proposal.source ? (
           <Card>

@@ -15,6 +15,17 @@ export default withEve(async (): Promise<NextConfig> => {
 
   nextConfig.reactCompiler = true;
 
+  // The brain surfaces were consolidated into the home page; exact matches
+  // only, so /review/[id] keeps working.
+  nextConfig.redirects = () =>
+    Promise.resolve(
+      ["/ask", "/capture", "/review", "/people"].map((source) => ({
+        destination: "/",
+        permanent: false,
+        source,
+      }))
+    );
+
   if (env.VERCEL) {
     nextConfig = withSentry(nextConfig);
   }
