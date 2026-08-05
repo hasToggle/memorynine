@@ -14,6 +14,7 @@ import {
 import {
   PromptInput,
   PromptInputBody,
+  PromptInputFooter,
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@repo/design-system/components/ai-elements/prompt-input";
@@ -103,9 +104,18 @@ export const KnowledgeChat = () => {
   );
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <Conversation className="min-h-0 flex-1">
-        <ConversationContent>
+    <div className="mx-auto flex h-full w-full max-w-3xl min-w-0 flex-col gap-3">
+      <Conversation className="min-h-0 flex-1 rounded-xl border">
+        <ConversationContent
+          // Center the empty state in the frame; harmless with messages
+          // present, but overflowing content must not be justify-centered or
+          // its top becomes unreachable.
+          className={
+            agent.data.messages.length === 0
+              ? "min-h-full justify-center"
+              : undefined
+          }
+        >
           {agent.data.messages.length === 0 ? (
             <ConversationEmptyState
               description="Jede Antwort zitiert die Fakten, auf denen sie beruht."
@@ -135,6 +145,7 @@ export const KnowledgeChat = () => {
                     const tool = part as ToolPart;
                     return (
                       <Tool
+                        className="max-w-md"
                         // biome-ignore lint/suspicious/noArrayIndexKey: see above
                         key={index}
                       >
@@ -166,14 +177,22 @@ export const KnowledgeChat = () => {
         <p className="text-destructive text-sm">{agent.error.message}</p>
       ) : null}
 
-      <PromptInput onSubmit={submit}>
+      {/* Match the conversation frame's radius on the composer's InputGroup,
+          which PromptInput renders internally. */}
+      <PromptInput
+        className="[&>[data-slot=input-group]]:rounded-xl"
+        onSubmit={submit}
+      >
         <PromptInputBody>
           <PromptInputTextarea
+            className="min-h-0"
             disabled={isBusy}
             placeholder="Was möchtest du wissen?"
           />
         </PromptInputBody>
-        <PromptInputSubmit disabled={isBusy} status={agent.status} />
+        <PromptInputFooter className="justify-end">
+          <PromptInputSubmit disabled={isBusy} status={agent.status} />
+        </PromptInputFooter>
       </PromptInput>
     </div>
   );
