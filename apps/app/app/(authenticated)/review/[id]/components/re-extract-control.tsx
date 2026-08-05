@@ -13,6 +13,9 @@ import { Label } from "@repo/design-system/components/ui/label";
 import { useRouter } from "next/navigation";
 import { type ChangeEvent, useCallback, useState, useTransition } from "react";
 import { reExtractProposal } from "@/app/actions/knowledge/re-extract";
+import { resolveProposal } from "@/app/actions/knowledge/resolve";
+
+type PendingAction = "discard" | "re-extract" | undefined;
 
 export const ReExtractControl = ({
   proposalId,
@@ -23,6 +26,7 @@ export const ReExtractControl = ({
 }) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
+  const [pendingAction, setPendingAction] = useState<PendingAction>();
   const [hint, setHint] = useState("");
   const [error, setError] = useState<string | null>(null);
 
@@ -31,8 +35,9 @@ export const ReExtractControl = ({
     []
   );
 
-  const submit = useCallback(() => {
+  const reExtract = useCallback(() => {
     setError(null);
+    setPendingAction("re-extract");
     startTransition(async () => {
       const trimmedHint = hint.trim();
       const result = await reExtractProposal(
@@ -43,9 +48,41 @@ export const ReExtractControl = ({
         setError(result.error);
         return;
       }
+      if (result.status === "retry" || result.status === "failed") {
+        // No gen-2 proposal exists yet: reExtractSource already superseded
+        // this one, so navigating away would make the item vanish from both
+        // the open and skipped lists with nothing left to click on.
+        setError(
+          result.reason ??
+            "Re-extraction failed; it will be retried automatically."
+        );
+        return;
+      }
       router.push("/review");
     });
   }, [hint, proposalId, router]);
+
+  // A skipped proposal is resolvable like any other — discarding it is a
+  // normal review action. It carries no drafts, so this reuses the exact
+  // resolve path ReviewForm uses (resolveProposal → resolveProposalItems)
+  // with empty selections: nothing is pending, so the proposal closes
+  // immediately instead of needing a second, skip-only code path.
+  const discard = useCallback(() => {
+    setError(null);
+    setPendingAction("discard");
+    startTransition(async () => {
+      const result = await resolveProposal(
+        proposalId,
+        { entities: {}, facts: {} },
+        {}
+      );
+      if (result.error) {
+        setError(result.error);
+        return;
+      }
+      router.push("/review");
+    });
+  }, [proposalId, router]);
 
   return (
     <Card>
@@ -67,12 +104,25 @@ export const ReExtractControl = ({
           />
         </div>
         {error ? <p className="text-destructive text-sm">{error}</p> : null}
-        <div className="flex items-center gap-3">
-          <Button disabled={isPending} onClick={submit}>
-            {isPending ? "Re-extracting…" : "Re-extract"}
+        <div className="flex flex-wrap items-center gap-3">
+          <Button disabled={isPending} onClick={reExtract} type="button">
+            {isPending && pendingAction === "re-extract"
+              ? "Re-extracting…"
+              : "Re-extract"}
+          </Button>
+          <Button
+            disabled={isPending}
+            onClick={discard}
+            type="button"
+            variant="destructive"
+          >
+            {isPending && pendingAction === "discard"
+              ? "Discarding…"
+              : "Discard"}
           </Button>
           <span className="text-muted-foreground text-sm">
-            Re-runs extraction against the current knowledge base.
+            Re-run extraction against the current knowledge base, or discard
+            this skip with no further action.
           </span>
         </div>
       </CardContent>

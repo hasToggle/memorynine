@@ -212,6 +212,35 @@ describe.skipIf(!uri)("reExtractSource", () => {
     expect(source?.status).toBe("transcribed");
   });
 
+  test("resets an exhausted failure budget, so one new failure retries instead of failing outright", async () => {
+    // Simulates a source that already burned through its 3-attempt budget on
+    // a prior generation. Without a reset, runExtraction's guard sees
+    // attempts 3 -> 4 on the very first call here and gives up immediately.
+    await sources.updateOne(
+      { _id: sourceId },
+      {
+        $set: {
+          error: "model refused: previous generation",
+          extractionAttempts: 3,
+        },
+      }
+    );
+
+    const result = await reExtractSource(db, TENANT, {
+      generate: () => Promise.resolve("I'm sorry, I can't do that."),
+      sourceId,
+    });
+
+    // Not "failed": the budget was reset, so this is attempt 1 of a fresh 3,
+    // not attempt 4 of the old one.
+    expect(result.status).toBe("retry");
+    const source = await sources.findOne({ _id: sourceId });
+    expect(source?.extractionAttempts).toBe(1);
+    // runExtraction immediately overwrites error with this attempt's own
+    // failure reason — the stale message from the prior generation is gone.
+    expect(source?.error).not.toContain("previous generation");
+  });
+
   test("passes the hint through to the prompt", async () => {
     let seenPrompt = "";
     await reExtractSource(db, TENANT, {

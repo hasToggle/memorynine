@@ -54,6 +54,16 @@ export const reExtractProposal = async (
   if (!proposal.sourceId) {
     return { error: "Proposal has no source to re-extract" };
   }
+  if (proposal.status !== "open") {
+    // getProposal renders this control off skipReason alone, so a stale
+    // page (Back button, an already-superseded generation) still shows it.
+    // Re-extracting from here would supersede a fresher, possibly
+    // fact-bearing proposal without anyone reviewing it first.
+    return {
+      error:
+        "This proposal has been superseded — open the current one from the review queue.",
+    };
+  }
 
   try {
     const result = await reExtractSource(db, orgId, {

@@ -69,11 +69,17 @@ export const reExtractSource = async (
   await sources.updateOne(
     { _id: sourceId, tenantId },
     {
+      // A source that already exhausted its failure budget on the prior
+      // generation must get a fresh one on this generation — otherwise
+      // runExtraction's own attempts guard fails it before the model is
+      // ever called.
       $set: {
+        extractionAttempts: 0,
         extractionGeneration: generation,
         status: restingStatus,
         updatedAt: writtenAt,
       },
+      $unset: { error: "" },
     }
   );
 
