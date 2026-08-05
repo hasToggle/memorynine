@@ -26,6 +26,12 @@ const germanDate = (iso: string | null) =>
     ? new Date(iso).toLocaleDateString("de-DE", { dateStyle: "medium" })
     : null;
 
+// Streamdown's sanitizer rewrites `id` attributes to "user-content-…" as
+// DOM-clobbering protection (the GitHub convention), so the attribute arrives
+// prefixed even though the model emitted the bare fact id. Strip it before
+// resolving against the retrieved facts.
+const CLOBBER_PREFIX = /^user-content-/;
+
 /**
  * Renders one `<fact id="…"/>` marker the model emitted inline.
  *
@@ -40,7 +46,8 @@ export const FactCitation = ({
   facts: Map<string, CitedFact>;
   id?: string;
 }) => {
-  const fact = id ? facts.get(id) : undefined;
+  const factId = id?.replace(CLOBBER_PREFIX, "");
+  const fact = factId ? facts.get(factId) : undefined;
 
   if (!fact) {
     // Same hover-card interaction as a resolved citation, so the broken
@@ -59,8 +66,8 @@ export const FactCitation = ({
           <InlineCitationCardBody className="p-3">
             <p className="font-medium text-sm">Unbelegtes Zitat</p>
             <p className="mt-1 text-muted-foreground text-xs">
-              {id
-                ? `Die Antwort zitiert Fakt ${id}, den die Wissensdatenbank in dieser Unterhaltung nicht geliefert hat. Diese Aussage ist damit nicht belegt.`
+              {factId
+                ? `Die Antwort zitiert Fakt ${factId}, den die Wissensdatenbank in dieser Unterhaltung nicht geliefert hat. Diese Aussage ist damit nicht belegt.`
                 : "Die Antwort enthält ein Zitat ohne Fakt-ID. Diese Aussage ist damit nicht belegt."}
             </p>
           </InlineCitationCardBody>
