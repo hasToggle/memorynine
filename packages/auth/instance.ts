@@ -3,6 +3,11 @@ import { betterAuth } from "better-auth";
 import { nextCookies } from "better-auth/next-js";
 import { organization } from "better-auth/plugins";
 import { MongoClient, ObjectId } from "mongodb";
+import {
+  appOrigin,
+  sendInvitationEmailMessage,
+  sendVerificationEmailMessage,
+} from "./emails";
 import { keys } from "./keys";
 
 // The better-auth server instance. One authority for the whole monorepo:
@@ -78,8 +83,33 @@ export const authInstance = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  emailVerification: {
+    autoSignInAfterVerification: true,
+    // Verified email is the trust anchor for joining an existing brain:
+    // invitations require it (below) and domain join checks it server-side.
+    sendOnSignUp: true,
+    async sendVerificationEmail({ user, url }) {
+      await sendVerificationEmailMessage({ to: user.email, url });
+    },
+  },
   plugins: [
-    organization(),
+    organization({
+      // Without this, anyone who registers the invited address unverified
+      // could accept an intercepted invitation link.
+      requireEmailVerificationOnInvitation: true,
+      async sendInvitationEmail(data) {
+        // The /join page lists the user's pending invitations, so the link
+        // carries no token — possession of the mail proves nothing more
+        // than where to go.
+        await sendInvitationEmailMessage({
+          inviterEmail: data.inviter.user.email,
+          inviterName: data.inviter.user.name || data.inviter.user.email,
+          organizationName: data.organization.name,
+          to: data.email,
+          url: `${appOrigin()}/join`,
+        });
+      },
+    }),
     // Must stay last: makes Set-Cookie work from server actions.
     nextCookies(),
   ],
