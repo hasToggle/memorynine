@@ -36,6 +36,7 @@ import { type CitedFact, FactCitation } from "./fact-citation";
 const ALLOWED_TAGS = { fact: ["id"] };
 
 interface ToolPart {
+  errorText?: string;
   input?: unknown;
   output?: unknown;
   state?: string;
@@ -104,7 +105,7 @@ export const KnowledgeChat = () => {
   );
 
   return (
-    <div className="mx-auto flex h-full w-full max-w-3xl min-w-0 flex-col gap-3">
+    <div className="mx-auto flex h-full w-full min-w-0 max-w-3xl flex-col gap-3">
       <Conversation className="min-h-0 flex-1 rounded-xl border">
         <ConversationContent
           // Center the empty state in the frame; harmless with messages
@@ -145,7 +146,10 @@ export const KnowledgeChat = () => {
                     const tool = part as ToolPart;
                     return (
                       <Tool
-                        className="max-w-md"
+                        // Fixed width: inside the fit-content message column
+                        // a percentage width would grow with every streamed
+                        // line of prose beneath it.
+                        className="w-96 max-w-full"
                         // biome-ignore lint/suspicious/noArrayIndexKey: see above
                         key={index}
                       >
@@ -156,7 +160,7 @@ export const KnowledgeChat = () => {
                         <ToolContent>
                           <ToolInput input={tool.input} />
                           <ToolOutput
-                            errorText={undefined}
+                            errorText={tool.errorText}
                             output={tool.output as never}
                           />
                         </ToolContent>

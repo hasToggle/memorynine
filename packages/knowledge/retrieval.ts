@@ -178,11 +178,24 @@ export const retrieveFacts = async (
   if (!rerank || fused.length === 0) {
     return fused.map((fact) => ({ fact }));
   }
-  const ranked = await rerank(search.query, fused);
-  return ranked.map(({ document, relevanceScore }) => ({
-    fact: document,
-    relevanceScore,
-  }));
+  try {
+    const ranked = await rerank(search.query, fused);
+    return ranked.map(({ document, relevanceScore }) => ({
+      fact: document,
+      relevanceScore,
+    }));
+  } catch (error) {
+    // A broken reranker (revoked key, endpoint down) must not blank out the
+    // read path — fusion order is the documented result whenever no reranker
+    // is configured, so it is also the fallback when one fails. The warning
+    // keeps the misconfiguration discoverable.
+    console.warn(
+      `retrieveFacts: rerank failed, returning fusion order: ${
+        error instanceof Error ? error.message : String(error)
+      }`
+    );
+    return fused.map((fact) => ({ fact }));
+  }
 };
 
 export interface RerankableDocument {

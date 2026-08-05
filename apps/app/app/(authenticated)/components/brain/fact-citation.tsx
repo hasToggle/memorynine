@@ -8,6 +8,7 @@ import {
   InlineCitationQuote,
   InlineCitationSource,
 } from "@repo/design-system/components/ai-elements/inline-citation";
+import { HoverCardTrigger } from "@repo/design-system/components/ui/hover-card";
 
 // Every fact the agent has returned in this conversation, keyed by the id it
 // must cite. Built from tool output rather than from the prose, so a claim can
@@ -42,17 +43,29 @@ export const FactCitation = ({
   const fact = id ? facts.get(id) : undefined;
 
   if (!fact) {
+    // Same hover-card interaction as a resolved citation, so the broken
+    // marker explains itself instead of relying on the native title tooltip.
     return (
-      <sup
-        className="ml-0.5 cursor-help rounded bg-destructive/10 px-1 font-medium text-destructive text-xs"
-        title={
-          id
-            ? `Zitiert Fakt ${id}, der in dieser Unterhaltung nicht gefunden wurde.`
-            : "Zitat ohne Fakt-ID."
-        }
-      >
-        ?
-      </sup>
+      <InlineCitation>
+        <InlineCitationCard>
+          <HoverCardTrigger asChild>
+            <button
+              className="ml-0.5 cursor-help rounded bg-destructive/10 px-1 align-super font-medium text-destructive text-xs"
+              type="button"
+            >
+              ?
+            </button>
+          </HoverCardTrigger>
+          <InlineCitationCardBody className="p-3">
+            <p className="font-medium text-sm">Unbelegtes Zitat</p>
+            <p className="mt-1 text-muted-foreground text-xs">
+              {id
+                ? `Die Antwort zitiert Fakt ${id}, den die Wissensdatenbank in dieser Unterhaltung nicht geliefert hat. Diese Aussage ist damit nicht belegt.`
+                : "Die Antwort enthält ein Zitat ohne Fakt-ID. Diese Aussage ist damit nicht belegt."}
+            </p>
+          </InlineCitationCardBody>
+        </InlineCitationCard>
+      </InlineCitation>
     );
   }
 
