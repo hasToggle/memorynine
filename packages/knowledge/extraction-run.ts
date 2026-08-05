@@ -306,7 +306,10 @@ export const runExtraction = async (
   const proposalId = proposalIdFor(tenantId, sourceId, generation);
 
   // Resume after a crash between proposal insert and status update: the
-  // proposal is the durable record, the status just needs healing.
+  // proposal is the durable record, the status just needs healing. The
+  // proposal may itself be a skip (skipReason set) — a crash between that
+  // insert and markSourceProposed must still resume as "skipped", or the
+  // sweep report misattributes it as a proposal.
   const existing = await proposals.findOne({ _id: proposalId, tenantId });
   if (existing) {
     if (source.status !== "proposed" && source.status !== "reviewed") {
@@ -315,7 +318,9 @@ export const runExtraction = async (
         { $set: { status: "proposed", updatedAt: new Date() } }
       );
     }
-    return { proposalId, status: "proposed" };
+    return existing.skipReason
+      ? { proposalId, reason: existing.skipReason, status: "skipped" }
+      : { proposalId, status: "proposed" };
   }
 
   guardExtractable(source);

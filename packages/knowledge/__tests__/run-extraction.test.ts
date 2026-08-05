@@ -139,6 +139,8 @@ describe.skipIf(!uri)("runExtraction", () => {
     expect(proposal?.factDrafts[0]?.supersedes?.[0]?.equals(knownFactId)).toBe(
       true
     );
+    // Absence, not an empty array, is how a reader knows nothing was dropped.
+    expect(proposal?.rejectedDrafts).toBeUndefined();
 
     const source = await sources.findOne({ _id: sourceId });
     expect(source?.status).toBe("proposed");
@@ -214,9 +216,54 @@ describe.skipIf(!uri)("runExtraction", () => {
       sourceId,
     });
 
-    expect(seenPrompt).toContain("Focus on scheduling preferences.");
+    const hintText = "Focus on scheduling preferences.";
+    expect(seenPrompt).toContain(hintText);
+    // Position, not just presence: the hint must land after the known-facts
+    // block and before the source, per the prompt's trust boundary.
+    const knownFactsIndex = seenPrompt.indexOf("Currently valid facts");
+    const hintIndex = seenPrompt.indexOf(hintText);
+    const sourceIndex = seenPrompt.indexOf("Source (type:");
+    expect(knownFactsIndex).toBeGreaterThan(-1);
+    expect(hintIndex).toBeGreaterThan(knownFactsIndex);
+    expect(sourceIndex).toBeGreaterThan(hintIndex);
+
     const proposal = await proposals.findOne({ _id: result.proposalId });
-    expect(proposal?.hint).toBe("Focus on scheduling preferences.");
+    expect(proposal?.hint).toBe(hintText);
+  });
+
+  test("a crash between a skip proposal's insert and the status update resumes as skipped", async () => {
+    const generation = 1;
+    const proposalId = proposalIdFor(TENANT, sourceId, generation);
+    await proposals.insertOne({
+      _id: proposalId,
+      createdAt: new Date(),
+      entityDrafts: [],
+      extractionGeneration: generation,
+      factDrafts: [],
+      kind: "ingestion",
+      skipReason: "greeting only",
+      sourceId,
+      status: "open",
+      tenantId: TENANT,
+      updatedAt: new Date(),
+    });
+    // Simulate the crash: the proposal landed, but the source is still
+    // "extracting" because markSourceProposed never ran.
+    await sources.updateOne(
+      { _id: sourceId },
+      { $set: { status: "extracting" } }
+    );
+
+    const result = await runExtraction(db, TENANT, {
+      generate: () => Promise.resolve('{"skip": true, "reason": "unused"}'),
+      sourceId,
+    });
+
+    expect(result.status).toBe("skipped");
+    expect(result.reason).toBe("greeting only");
+    expect(await proposals.countDocuments({})).toBe(1);
+    const source = await sources.findOne({ _id: sourceId });
+    expect(source?.status).toBe("proposed");
   });
 
   test("a failure is retryable and the source returns to its previous status", async () => {
