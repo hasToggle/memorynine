@@ -14,9 +14,16 @@ import {
 import {
   PromptInput,
   PromptInputBody,
+  PromptInputFooter,
   PromptInputSubmit,
   PromptInputTextarea,
 } from "@repo/design-system/components/ai-elements/prompt-input";
+import {
+  Reasoning,
+  ReasoningContent,
+  ReasoningTrigger,
+} from "@repo/design-system/components/ai-elements/reasoning";
+import { Shimmer } from "@repo/design-system/components/ai-elements/shimmer";
 import {
   Tool,
   ToolContent,
@@ -35,6 +42,7 @@ import { type CitedFact, FactCitation } from "./fact-citation";
 const ALLOWED_TAGS = { fact: ["id"] };
 
 interface ToolPart {
+  errorText?: string;
   input?: unknown;
   output?: unknown;
   state?: string;
@@ -45,6 +53,29 @@ const isSearchTool = (part: { type: string }) =>
   part.type === "tool-search-knowledge" ||
   part.type === "dynamic-tool" ||
   part.type.startsWith("tool-");
+
+/**
+ * eve delivers tool results in the AI SDK result envelope
+ * `{ type: "json" | "error-text" | …, value }`, so the payload lives one
+ * level down. Unwrap defensively — a bare payload passes through untouched.
+ */
+const unwrapToolOutput = (
+  output: unknown
+): { errorText?: string; value?: unknown } => {
+  if (output === null || typeof output !== "object") {
+    return { value: output };
+  }
+  const { type, value } = output as { type?: unknown; value?: unknown };
+  if (type === "error-text" || type === "error-json") {
+    return {
+      errorText: typeof value === "string" ? value : JSON.stringify(value),
+    };
+  }
+  if (type === "json" || type === "text" || type === "content") {
+    return { value };
+  }
+  return { value: output };
+};
 
 /**
  * Collect every fact the agent has retrieved so far. Citations resolve against
@@ -60,7 +91,9 @@ const collectFacts = (
       if (!isSearchTool(part)) {
         continue;
       }
-      const output = part.output as { facts?: CitedFact[] } | undefined;
+      const output = unwrapToolOutput(part.output).value as
+        | { facts?: CitedFact[] }
+        | undefined;
       for (const fact of output?.facts ?? []) {
         if (fact?.id) {
           byId.set(fact.id, fact);
@@ -71,9 +104,28 @@ const collectFacts = (
   return byId;
 };
 
+const thinkingMessage = (isStreaming: boolean, duration?: number) => {
+  if (isStreaming || duration === 0) {
+    return <Shimmer duration={1}>Denkt nach …</Shimmer>;
+  }
+  if (duration === undefined) {
+    return <p>Kurz nachgedacht</p>;
+  }
+  return <p>{duration}s nachgedacht</p>;
+};
+
 export const KnowledgeChat = () => {
   const agent = useEveAgent();
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
+
+  // Covers the gap between sending and the first streamed part — once the
+  // assistant's reasoning starts arriving, its own "Denkt nach …" takes over.
+  const lastMessage = agent.data.messages.at(-1) as
+    | { parts: unknown[]; role?: string }
+    | undefined;
+  const awaitingResponse =
+    isBusy &&
+    (lastMessage?.role !== "assistant" || lastMessage.parts.length === 0);
 
   const facts = useMemo(
     () => collectFacts(agent.data.messages as never),
@@ -103,9 +155,18 @@ export const KnowledgeChat = () => {
   );
 
   return (
-    <div className="flex h-full flex-col gap-4">
-      <Conversation className="min-h-0 flex-1">
-        <ConversationContent>
+    <div className="mx-auto flex h-full w-full min-w-0 max-w-3xl flex-col gap-3">
+      <Conversation className="min-h-0 flex-1 rounded-xl border">
+        <ConversationContent
+          // Center the empty state in the frame; harmless with messages
+          // present, but overflowing content must not be justify-centered or
+          // its top becomes unreachable.
+          className={
+            agent.data.messages.length === 0
+              ? "min-h-full justify-center"
+              : undefined
+          }
+        >
           {agent.data.messages.length === 0 ? (
             <ConversationEmptyState
               description="Jede Antwort zitiert die Fakten, auf denen sie beruht."
@@ -118,6 +179,25 @@ export const KnowledgeChat = () => {
             <Message from={message.role} key={message.id}>
               <MessageContent>
                 {message.parts.map((part, index) => {
+                  if (part.type === "reasoning") {
+                    const reasoning = part as { state?: string; text?: string };
+                    return (
+                      <Reasoning
+                        className="w-full"
+                        isStreaming={reasoning.state === "streaming"}
+                        // biome-ignore lint/suspicious/noArrayIndexKey: stream parts have no stable id and are append-only
+                        key={index}
+                      >
+                        <ReasoningTrigger
+                          getThinkingMessage={thinkingMessage}
+                        />
+                        <ReasoningContent>
+                          {reasoning.text ?? ""}
+                        </ReasoningContent>
+                      </Reasoning>
+                    );
+                  }
+
                   if (part.type === "text") {
                     return (
                       <MessageResponse
@@ -133,8 +213,13 @@ export const KnowledgeChat = () => {
 
                   if (isSearchTool(part)) {
                     const tool = part as ToolPart;
+                    const { errorText, value } = unwrapToolOutput(tool.output);
                     return (
                       <Tool
+                        // Fixed width: inside the fit-content message column
+                        // a percentage width would grow with every streamed
+                        // line of prose beneath it.
+                        className="w-96 max-w-full"
                         // biome-ignore lint/suspicious/noArrayIndexKey: see above
                         key={index}
                       >
@@ -145,8 +230,8 @@ export const KnowledgeChat = () => {
                         <ToolContent>
                           <ToolInput input={tool.input} />
                           <ToolOutput
-                            errorText={undefined}
-                            output={tool.output as never}
+                            errorText={tool.errorText ?? errorText}
+                            output={value as never}
                           />
                         </ToolContent>
                       </Tool>
@@ -158,6 +243,12 @@ export const KnowledgeChat = () => {
               </MessageContent>
             </Message>
           ))}
+
+          {awaitingResponse ? (
+            <Shimmer className="text-sm" duration={1.5}>
+              Einen Moment …
+            </Shimmer>
+          ) : null}
         </ConversationContent>
         <ConversationScrollButton />
       </Conversation>
@@ -166,14 +257,22 @@ export const KnowledgeChat = () => {
         <p className="text-destructive text-sm">{agent.error.message}</p>
       ) : null}
 
-      <PromptInput onSubmit={submit}>
+      {/* Match the conversation frame's radius on the composer's InputGroup,
+          which PromptInput renders internally. */}
+      <PromptInput
+        className="[&>[data-slot=input-group]]:rounded-xl"
+        onSubmit={submit}
+      >
         <PromptInputBody>
           <PromptInputTextarea
+            className="min-h-0"
             disabled={isBusy}
             placeholder="Was möchtest du wissen?"
           />
         </PromptInputBody>
-        <PromptInputSubmit disabled={isBusy} status={agent.status} />
+        <PromptInputFooter className="justify-end">
+          <PromptInputSubmit disabled={isBusy} status={agent.status} />
+        </PromptInputFooter>
       </PromptInput>
     </div>
   );

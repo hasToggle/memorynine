@@ -20,6 +20,13 @@ const STATUS_VARIANT: Record<
 
 const REFRESH_INTERVAL_MS = 15_000;
 
+const ACTIVE_STATUSES = new Set([
+  "extracting",
+  "received",
+  "transcribed",
+  "transcribing",
+]);
+
 const formatDate = (date: Date) =>
   new Intl.DateTimeFormat("en-GB", {
     dateStyle: "short",
@@ -28,12 +35,19 @@ const formatDate = (date: Date) =>
 
 export const SourceList = ({ sources }: { sources: SourceListItem[] }) => {
   const router = useRouter();
+  const hasActiveSources = sources.some((source) =>
+    ACTIVE_STATUSES.has(source.status)
+  );
 
-  // The pipeline advances sources in the background — keep the view live.
+  // The pipeline advances sources in the background — keep the view live
+  // while anything is in flight, and go quiet once every source has settled.
   useEffect(() => {
+    if (!hasActiveSources) {
+      return;
+    }
     const timer = setInterval(() => router.refresh(), REFRESH_INTERVAL_MS);
     return () => clearInterval(timer);
-  }, [router]);
+  }, [hasActiveSources, router]);
 
   if (sources.length === 0) {
     return (

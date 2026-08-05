@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { Document } from "mongodb";
+import type { Db, Document } from "mongodb";
 import { ObjectId } from "mongodb";
 import type { GatewayUsage, UsageContext } from "../gateway";
 import {
@@ -9,7 +9,9 @@ import {
   factsVectorIndexDefinition,
   RERANK_COST_PER_MILLION_TOKENS,
   rankFusionWeights,
+  retrieveFacts,
 } from "../retrieval";
+import type { Fact } from "../schemas/facts";
 
 const TENANT = "org_1";
 const rerankErrorPattern = /rerank 500/;
@@ -297,6 +299,79 @@ describe("createVoyageRerank", () => {
     await expect(rerank("q", [{ text: "a" }])).rejects.toThrow(
       rerankErrorPattern
     );
+    expect(calls).toBe(0);
+  });
+});
+
+describe("retrieveFacts", () => {
+  // `$rankFusion` only runs on Atlas, so the fused arm is stubbed; what's
+  // under test is the composition around it — rerank wiring and the fallback
+  // when the reranker fails.
+  const fact = (text: string): Fact =>
+    ({
+      _id: new ObjectId(),
+      category: "background",
+      confidence: 0.9,
+      tenantId: TENANT,
+      text,
+    }) as unknown as Fact;
+
+  const stubDb = (fused: Fact[]): Db =>
+    ({
+      collection: () => ({
+        aggregate: () => ({
+          toArray: () => Promise.resolve(fused),
+        }),
+      }),
+    }) as unknown as Db;
+
+  test("returns reranked order with relevance scores", async () => {
+    const [a, b] = [fact("a"), fact("b")];
+
+    const results = await retrieveFacts(stubDb([a, b]), {
+      query: "q",
+      rerank: (_query, documents) =>
+        Promise.resolve(
+          [...documents].reverse().map((document, index) => ({
+            document,
+            relevanceScore: 1 - index * 0.1,
+          }))
+        ),
+      tenantId: TENANT,
+    });
+
+    expect(results.map((result) => result.fact.text)).toEqual(["b", "a"]);
+    expect(results[0]?.relevanceScore).toBe(1);
+  });
+
+  test("a failing reranker degrades to fusion order instead of no results", async () => {
+    const [a, b] = [fact("a"), fact("b")];
+
+    const results = await retrieveFacts(stubDb([a, b]), {
+      query: "q",
+      rerank: () => Promise.reject(new Error("rerank 403: revoked key")),
+      tenantId: TENANT,
+    });
+
+    // A revoked Voyage key must degrade retrieval quality, not availability —
+    // exactly what an unconfigured reranker already yields.
+    expect(results.map((result) => result.fact.text)).toEqual(["a", "b"]);
+    expect(results[0]?.relevanceScore).toBeUndefined();
+  });
+
+  test("never calls the reranker when fusion surfaced nothing", async () => {
+    let calls = 0;
+
+    const results = await retrieveFacts(stubDb([]), {
+      query: "q",
+      rerank: () => {
+        calls += 1;
+        return Promise.resolve([]);
+      },
+      tenantId: TENANT,
+    });
+
+    expect(results).toEqual([]);
     expect(calls).toBe(0);
   });
 });

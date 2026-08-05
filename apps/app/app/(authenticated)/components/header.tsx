@@ -13,25 +13,26 @@ import { Fragment, type ReactNode } from "react";
 interface HeaderProps {
   children?: ReactNode;
   page: string;
-  pages: string[];
+  pages?: { href: string; label: string }[];
 }
 
-export const Header = ({ pages, page, children }: HeaderProps) => (
+export const Header = ({ pages = [], page, children }: HeaderProps) => (
   <header className="flex h-16 shrink-0 items-center justify-between gap-2">
     <div className="flex items-center gap-2 px-4">
       <SidebarTrigger className="-ml-1" />
       <Separator className="mr-2 h-4" orientation="vertical" />
       <Breadcrumb>
         <BreadcrumbList>
-          {pages.map((breadcrumbPage, index) => (
-            <Fragment key={breadcrumbPage}>
-              {index > 0 && <BreadcrumbSeparator className="hidden md:block" />}
+          {pages.map((breadcrumbPage) => (
+            <Fragment key={breadcrumbPage.label}>
               <BreadcrumbItem className="hidden md:block">
-                <BreadcrumbLink href="#">{breadcrumbPage}</BreadcrumbLink>
+                <BreadcrumbLink href={breadcrumbPage.href}>
+                  {breadcrumbPage.label}
+                </BreadcrumbLink>
               </BreadcrumbItem>
+              <BreadcrumbSeparator className="hidden md:block" />
             </Fragment>
           ))}
-          <BreadcrumbSeparator className="hidden md:block" />
           <BreadcrumbItem>
             <BreadcrumbPage>{page}</BreadcrumbPage>
           </BreadcrumbItem>
