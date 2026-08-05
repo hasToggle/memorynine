@@ -369,22 +369,31 @@ export const updateAllowedDomains = async (
     ...new Set(domains.map((domain) => domain.trim().toLowerCase())),
   ].filter((domain) => domain.length > 0);
 
-  const org = await authDb
-    .collection<OrganizationDoc>("organization")
-    .findOne({ _id: idForms(organizationId) as never });
-  const existing = new Set(parseAllowedDomains(org?.metadata));
-  const added = normalized.filter((domain) => !existing.has(domain));
-  for (const domain of added) {
-    if (!session.user.emailVerified) {
-      return { error: "Verify your email before allowing a domain." };
-    }
-    if (!canAllowDomain(session.user.email, domain)) {
-      return {
-        error: `You can only allow your own email domain (${
-          emailDomain(session.user.email) ?? "—"
-        }), and public mail providers are never allowed.`,
-      };
-    }
+  if (normalized.length > 0 && !session.user.emailVerified) {
+    return { error: "Verify your email before allowing a domain." };
+  }
+
+  // Validate the FINAL list, not just the delta: every persisted domain must
+  // be either the caller's own (verified) domain or one a current
+  // owner/admin demonstrably holds. Join-time enforcement (orgHoldsDomain in
+  // the join path) already makes stale or forged entries inert; this keeps
+  // them from surviving a save at all, and forces cleanup when the admin who
+  // held a domain has left.
+  const holds = await Promise.all(
+    normalized.map(async (domain) => ({
+      domain,
+      ok:
+        canAllowDomain(session.user.email, domain) ||
+        (await orgHoldsDomain(organizationId, domain)),
+    }))
+  );
+  const rejected = holds.find((entry) => !entry.ok);
+  if (rejected) {
+    return {
+      error: `"${rejected.domain}" can't be allowed: it must be your own email domain (${
+        emailDomain(session.user.email) ?? "—"
+      }) or one that a current admin with a verified email holds — public mail providers never qualify.`,
+    };
   }
 
   await authInstance.api.updateOrganization({
