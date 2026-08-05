@@ -1,8 +1,9 @@
 "use server";
 
 import { auth } from "@repo/auth/server";
-import { getCollections } from "@repo/knowledge";
+import { getCollections, type Proposal } from "@repo/knowledge";
 import { getKnowledgeDb } from "@repo/knowledge/client";
+import type { Filter } from "mongodb";
 
 export interface ProposalListItem {
   createdAt: Date;
@@ -11,23 +12,27 @@ export interface ProposalListItem {
   id: string;
   kind: string;
   pendingCount: number;
+  rejectedCount: number;
+  skipReason: string | null;
   sourceType: string | null;
 }
 
-export const listOpenProposals = async (): Promise<ProposalListItem[]> => {
+const listProposals = async (
+  extraFilter: Filter<Proposal>
+): Promise<ProposalListItem[]> => {
   const { orgId } = await auth();
   if (!orgId) {
     return [];
   }
   const { proposals, sources } = getCollections(getKnowledgeDb());
 
-  const open = await proposals
-    .find({ status: "open", tenantId: orgId })
+  const matched = await proposals
+    .find({ status: "open", tenantId: orgId, ...extraFilter })
     .sort({ createdAt: -1 })
     .limit(100)
     .toArray();
 
-  const sourceIds = open.flatMap((proposal) =>
+  const sourceIds = matched.flatMap((proposal) =>
     proposal.sourceId ? [proposal.sourceId] : []
   );
   const sourceDocs = await sources
@@ -37,7 +42,7 @@ export const listOpenProposals = async (): Promise<ProposalListItem[]> => {
     sourceDocs.map((source) => [source._id.toHexString(), source.type])
   );
 
-  return open.map((proposal) => ({
+  return matched.map((proposal) => ({
     createdAt: proposal.createdAt,
     entityDraftCount: proposal.entityDrafts.length,
     factDraftCount: proposal.factDrafts.length,
@@ -50,8 +55,23 @@ export const listOpenProposals = async (): Promise<ProposalListItem[]> => {
       proposal.factDrafts.filter(
         (draft) => draft.resolution.status === "pending"
       ).length,
+    rejectedCount: proposal.rejectedDrafts?.length ?? 0,
+    skipReason: proposal.skipReason ?? null,
     sourceType: proposal.sourceId
       ? (sourceTypeById.get(proposal.sourceId.toHexString()) ?? null)
       : null,
   }));
 };
+
+export const listOpenProposals = async (): Promise<ProposalListItem[]> =>
+  // skipReason is set only on proposals extraction judged empty (see
+  // proposals.ts). Zod's .optional() never materialises an absent key as
+  // stored `undefined`/`null`, and the driver connects with
+  // `ignoreUndefined: true`, so this key is genuinely absent on every
+  // ordinary proposal — $exists: false cannot hide one. Do not loosen this
+  // to `{ $ne: null }` or similar; that would rely on a storage guarantee
+  // this codebase does not make.
+  listProposals({ skipReason: { $exists: false } });
+
+export const listSkippedProposals = async (): Promise<ProposalListItem[]> =>
+  listProposals({ skipReason: { $exists: true } });
