@@ -145,7 +145,7 @@ describe.skipIf(!uri)("reExtractSource", () => {
     ).rejects.toThrow(noPriorProposalPattern);
   });
 
-  test("refuses a source with no content", async () => {
+  test("refuses a source with no content, before touching the prior proposal or generation", async () => {
     await sources.updateOne(
       { _id: sourceId },
       { $set: { content: undefined } }
@@ -157,6 +157,59 @@ describe.skipIf(!uri)("reExtractSource", () => {
         sourceId,
       })
     ).rejects.toThrow(noContentPattern);
+
+    // Distinguishes "refused cleanly" from "refused after breaking things":
+    // runExtraction's own guardExtractable throws the same message text, so
+    // asserting on the thrown error alone would also pass if reExtractSource
+    // deferred this check to runExtraction — by which point the prior
+    // proposal would already have been superseded with nothing to replace it.
+    const priorProposal = await proposals.findOne({
+      _id: generation1ProposalId,
+    });
+    expect(priorProposal?.status).toBe("open");
+    const source = await sources.findOne({ _id: sourceId });
+    expect(source?.extractionGeneration).toBe(1);
+  });
+
+  test("resets a voice source to transcribed, not received", async () => {
+    const voiceSourceId = new ObjectId();
+    const voiceProposalId = proposalIdFor(TENANT, voiceSourceId, 1);
+    await sources.insertOne({
+      _id: voiceSourceId,
+      capturedBy: "user_ceo1",
+      content: "Transcript from the call.",
+      extractionGeneration: 1,
+      status: "proposed",
+      tenantId: TENANT,
+      type: "voice",
+      ...now(),
+    });
+    await proposals.insertOne({
+      _id: voiceProposalId,
+      createdAt: new Date(),
+      entityDrafts: [],
+      extractionGeneration: 1,
+      factDrafts: [],
+      kind: "ingestion",
+      sourceId: voiceSourceId,
+      status: "open",
+      tenantId: TENANT,
+      updatedAt: new Date(),
+    });
+
+    // A failing generate makes runExtraction write the source back to its
+    // resting status, which is whatever reExtractSource reset it to before
+    // delegating (runExtraction reads that status, sees it is not
+    // "extracting", and passes it straight through). For a voice source that
+    // must be "transcribed" — "received" is the manual/email branch.
+    const result = await reExtractSource(db, TENANT, {
+      generate: () => Promise.resolve("I'm sorry, I can't do that."),
+      sourceId: voiceSourceId,
+    });
+
+    expect(result.status).toBe("retry");
+    const source = await sources.findOne({ _id: voiceSourceId });
+    expect(source?.status).toBe("transcribed");
   });
 
   test("passes the hint through to the prompt", async () => {
