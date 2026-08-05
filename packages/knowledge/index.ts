@@ -58,11 +58,13 @@ export type {
   LlmEntityDraft,
   LlmFactDraft,
   ParsedExtraction,
+  RejectedDraft,
 } from "./extraction";
 export {
   buildExtractionPrompt,
   llmExtractionSchema,
   parseExtractionResponse,
+  rejectedDraftSchema,
 } from "./extraction";
 export type {
   ExtractionRunResult,

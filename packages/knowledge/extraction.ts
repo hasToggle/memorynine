@@ -83,10 +83,51 @@ export const llmExtractionSchema = z.union([
     }),
 ]);
 
+// Loose ONLY in the element types (each element is validated individually in
+// parseExtractionResponse, so one malformed draft can no longer sink the
+// whole reply). Still a strictObject union that requires a recognized key,
+// because that is what stops a bare `{}` in the narration from validating
+// as an empty proposal — see llmExtractionSchema's comment above.
+const looseExtractionSchema = z.union([
+  z.strictObject({
+    reason: z.string().default(""),
+    skip: z.literal(true),
+  }),
+  z
+    .strictObject({
+      entities: z.array(z.unknown()).optional(),
+      facts: z.array(z.unknown()).optional(),
+    })
+    .refine((data) => data.entities !== undefined || data.facts !== undefined, {
+      message: "A proposal needs an entities or facts key",
+    }),
+]);
+
+export const rejectedDraftSchema = z.object({
+  /** What the model emitted, verbatim, so a reviewer can read it. */
+  raw: z.unknown(),
+  /** Why it failed validation, from the Zod error. Must name the field. */
+  reason: z.string().min(1),
+});
+export type RejectedDraft = z.infer<typeof rejectedDraftSchema>;
+
 export type ParsedExtraction =
   | { kind: "failure"; reason: string }
-  | { kind: "proposal"; entities: LlmEntityDraft[]; facts: LlmFactDraft[] }
+  | {
+      kind: "proposal";
+      entities: LlmEntityDraft[];
+      facts: LlmFactDraft[];
+      rejected: RejectedDraft[];
+    }
   | { kind: "skip"; reason: string };
+
+// The path is what makes a reject reason actionable ("anchors.personId:
+// expected string, received array" vs. a bare "Invalid input") — a reviewer
+// needs to know which field was wrong, not just that something was.
+const describeZodError = (error: z.ZodError): string =>
+  error.issues
+    .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+    .join(", ");
 
 export const buildExtractionPrompt = ({
   capturedAt,
@@ -146,7 +187,7 @@ export const parseExtractionResponse = (raw: string): ParsedExtraction => {
   if (REFUSAL_REGEX.test(text)) {
     return { kind: "failure", reason: `model refused: ${text.slice(0, 200)}` };
   }
-  const data = extractLastValidObject(text, llmExtractionSchema);
+  const data = extractLastValidObject(text, looseExtractionSchema);
   if (data === undefined) {
     return {
       kind: "failure",
@@ -156,10 +197,40 @@ export const parseExtractionResponse = (raw: string): ParsedExtraction => {
   if ("skip" in data) {
     return { kind: "skip", reason: data.reason };
   }
-  const entities = data.entities ?? [];
-  const facts = data.facts ?? [];
-  if (entities.length === 0 && facts.length === 0) {
-    return { kind: "skip", reason: "empty proposal" };
+
+  const entities: LlmEntityDraft[] = [];
+  const facts: LlmFactDraft[] = [];
+  const rejected: RejectedDraft[] = [];
+
+  for (const draft of data.entities ?? []) {
+    const result = llmEntityDraftSchema.safeParse(draft);
+    if (result.success) {
+      entities.push(result.data);
+    } else {
+      rejected.push({ raw: draft, reason: describeZodError(result.error) });
+    }
   }
-  return { entities, facts, kind: "proposal" };
+  for (const draft of data.facts ?? []) {
+    const result = llmFactDraftSchema.safeParse(draft);
+    if (result.success) {
+      facts.push(result.data);
+    } else {
+      rejected.push({ raw: draft, reason: describeZodError(result.error) });
+    }
+  }
+
+  // Nothing usable at all: an empty reply is a skip, but a reply whose every
+  // draft was malformed is a FAILURE — it deserves a retry, unlike a
+  // judgment that there was nothing to record.
+  if (entities.length === 0 && facts.length === 0) {
+    return rejected.length > 0
+      ? {
+          kind: "failure",
+          reason: `every draft failed validation: ${rejected
+            .map((r) => r.reason)
+            .join("; ")}`,
+        }
+      : { kind: "skip", reason: "empty proposal" };
+  }
+  return { entities, facts, kind: "proposal", rejected };
 };
