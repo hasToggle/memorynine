@@ -1,5 +1,5 @@
 {
-  "name": "has-toggle",
+  "name": "spinor",
   "version": "5.2.1",
   "bin": {
     "has-toggle": "dist/index.js"
