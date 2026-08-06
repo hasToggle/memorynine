@@ -1,8 +1,9 @@
 "use client";
 
 import { LogOut } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { authClient } from "../client";
+import { useDismiss, useIsMounted } from "./hooks";
 
 interface UserButtonProps {
   /** Accepted for Clerk compatibility; ignored. */
@@ -13,6 +14,14 @@ interface UserButtonProps {
 export const UserButton = ({ showName = false }: UserButtonProps) => {
   const { data: session, isPending } = authClient.useSession();
   const [isOpen, setIsOpen] = useState(false);
+  const isMounted = useIsMounted();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
+  useDismiss(containerRef, isOpen, handleClose);
 
   const handleToggle = useCallback(() => {
     setIsOpen((previous) => !previous);
@@ -24,7 +33,7 @@ export const UserButton = ({ showName = false }: UserButtonProps) => {
     window.location.href = "/sign-in";
   }, []);
 
-  if (isPending) {
+  if (!isMounted || isPending) {
     return (
       <div
         className={`h-8 animate-pulse rounded-full bg-muted ${
@@ -43,7 +52,7 @@ export const UserButton = ({ showName = false }: UserButtonProps) => {
   const initial = displayName.charAt(0).toUpperCase() || "?";
 
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       <button
         aria-expanded={isOpen}
         aria-haspopup="menu"

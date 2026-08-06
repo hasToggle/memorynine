@@ -18,8 +18,16 @@ export const createFlag = (key: string, description?: string) =>
         return this.defaultValue as boolean;
       }
 
-      const isEnabled = await analytics.isFeatureEnabled(key, userId);
+      // isFeatureEnabled is deprecated in posthog-node 5.x; `flagKeys` scopes
+      // the /flags request to the one flag we're deciding. A failed request
+      // yields an empty snapshot rather than throwing, and getFlag (unlike
+      // isEnabled, which reports a flat false) tells those apart, so the
+      // default still wins when PostHog has nothing to say.
+      const flags = await analytics.evaluateFlags(userId, { flagKeys: [key] });
+      const value = flags.getFlag(key);
 
-      return isEnabled ?? (this.defaultValue as boolean);
+      return value === undefined
+        ? (this.defaultValue as boolean)
+        : value !== false;
     },
   });

@@ -103,9 +103,11 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
         <SidebarHeader>
           <SidebarMenu>
             <SidebarMenuItem>
+              {/* No overflow clipping here: the switcher's popover is
+                  absolutely positioned and would be cut off. */}
               <div
                 className={cn(
-                  "h-[36px] overflow-hidden transition-all [&>div]:w-full",
+                  "h-[36px] transition-all [&>div]:w-full",
                   sidebar.open ? "" : "-mx-1"
                 )}
               >

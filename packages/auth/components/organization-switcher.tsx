@@ -2,8 +2,9 @@
 
 import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import type { ChangeEvent, FormEvent } from "react";
-import { useCallback, useId, useState } from "react";
+import { useCallback, useId, useRef, useState } from "react";
 import { authClient } from "../client";
+import { useDismiss, useIsMounted } from "./hooks";
 
 const NON_ALPHANUMERIC = /[^a-z0-9]+/g;
 const EDGE_DASHES = /(^-+)|(-+$)/g;
@@ -62,11 +63,20 @@ export const OrganizationSwitcher = ({
 }: OrganizationSwitcherProps) => {
   const newOrganizationId = useId();
   const { data: organizations } = authClient.useListOrganizations();
-  const { data: activeOrganization } = authClient.useActiveOrganization();
+  const { data: activeOrganization, isPending: isLoadingActive } =
+    authClient.useActiveOrganization();
   const [isOpen, setIsOpen] = useState(false);
   const [newOrganizationName, setNewOrganizationName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, setIsPending] = useState(false);
+  const isMounted = useIsMounted();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
+  useDismiss(containerRef, isOpen, handleClose);
 
   const handleToggle = useCallback(() => {
     setIsOpen((previous) => !previous);
@@ -144,8 +154,15 @@ export const OrganizationSwitcher = ({
     [afterSelectOrganizationUrl, newOrganizationName]
   );
 
+  // Before hydration the store is still empty, so the label is only trustworthy
+  // once mounted — rendering it earlier would desync from the SSR markup.
+  const label =
+    isMounted && !isLoadingActive
+      ? (activeOrganization?.name ?? "Select organization")
+      : null;
+
   return (
-    <div className="relative w-full">
+    <div className="relative w-full" ref={containerRef}>
       <button
         aria-expanded={isOpen}
         aria-haspopup="menu"
@@ -154,7 +171,9 @@ export const OrganizationSwitcher = ({
         type="button"
       >
         <span className="min-w-0 flex-1 truncate text-left">
-          {activeOrganization?.name ?? "Select organization"}
+          {label ?? (
+            <span className="block h-4 w-24 animate-pulse rounded bg-muted" />
+          )}
         </span>
         <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
       </button>
