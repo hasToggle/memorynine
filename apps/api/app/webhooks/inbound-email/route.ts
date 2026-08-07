@@ -1,14 +1,44 @@
 import { resend } from "@repo/email";
-import { createEmailSource, parseInboundSenderMap } from "@repo/knowledge";
+import {
+  createEmailSource,
+  createGatewayGenerate,
+  createUsageRecorder,
+  type ObjectId,
+  parseInboundSenderMap,
+  processSource,
+} from "@repo/knowledge";
 import { getKnowledgeDb } from "@repo/knowledge/client";
 import { log } from "@repo/observability/log";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 
 // Resend inbound email → knowledge source. Security model (strict
 // allowlist): the svix signature proves the event came from Resend, and
 // only senders explicitly mapped to a tenant in KNOWLEDGE_INBOUND_SENDERS
 // are processed — everyone else is logged and dropped. Rejections still
 // return 200 so Resend does not retry them forever.
+//
+// A freshly created source is extracted immediately via after() — the
+// webhook acks first, the LLM call runs once the response is on the wire.
+// Best-effort: anything it leaves behind, the 5-minute cron sweep picks up.
+
+const extractNow = async (tenantId: string, sourceId: ObjectId) => {
+  try {
+    const db = getKnowledgeDb();
+    const result = await processSource(db, tenantId, {
+      generate: createGatewayGenerate({ onUsage: createUsageRecorder(db) }),
+      sourceId,
+    });
+    if (result.status === "failed" || result.status === "retry") {
+      log.warn(
+        `inbound-email: instant extraction of ${sourceId.toHexString()} ${result.status}: ${result.reason ?? ""}`
+      );
+    }
+  } catch (error) {
+    log.error(
+      `inbound-email: instant extraction of ${sourceId.toHexString()} threw: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+};
 
 export const POST = async (request: Request): Promise<NextResponse> => {
   const secret = process.env.RESEND_INBOUND_WEBHOOK_SECRET;
@@ -73,6 +103,12 @@ export const POST = async (request: Request): Promise<NextResponse> => {
     sentAt: new Date(),
     subject: email.subject ?? "",
   });
+
+  // A duplicate is a webhook retry for a source already in flight — kicking
+  // extraction again would only race whatever already ran.
+  if (result.status === "created") {
+    after(() => extractNow(tenantId, result.sourceId));
+  }
 
   return NextResponse.json({
     sourceId: result.sourceId.toHexString(),

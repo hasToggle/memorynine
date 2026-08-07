@@ -3,12 +3,16 @@ import { currentlyValidFilter } from "../schemas/facts";
 import {
   buildEntityNameSearchPipeline,
   buildFactsSearchPipeline,
+  buildSourcesSearchPipeline,
   FACTS_SEARCH_INDEX_NAME,
   factsSearchIndexDefinition,
   ORGANIZATIONS_SEARCH_INDEX_NAME,
   organizationsSearchIndexDefinition,
   PEOPLE_SEARCH_INDEX_NAME,
   peopleSearchIndexDefinition,
+  SOURCE_EXCERPT_LENGTH,
+  SOURCES_SEARCH_INDEX_NAME,
+  sourcesSearchIndexDefinition,
 } from "../search";
 
 describe("currentlyValidFilter", () => {
@@ -133,5 +137,70 @@ describe("buildFactsSearchPipeline", () => {
       )
     ).toBe(false);
     expect(pipeline.at(-1)).toEqual({ $limit: 5 });
+  });
+});
+
+describe("sourcesSearchIndexDefinition", () => {
+  test("maps content with a German multi and tenant/type as tokens", () => {
+    expect(sourcesSearchIndexDefinition.mappings.dynamic).toBe(false);
+    expect(
+      sourcesSearchIndexDefinition.mappings.fields.content.multi.german.analyzer
+    ).toBe("lucene.german");
+    expect(sourcesSearchIndexDefinition.mappings.fields.tenantId.type).toBe(
+      "token"
+    );
+    expect(sourcesSearchIndexDefinition.mappings.fields.type.type).toBe(
+      "token"
+    );
+  });
+});
+
+describe("buildSourcesSearchPipeline", () => {
+  test("filters by tenant and queries content on both analyzer paths", () => {
+    const pipeline = buildSourcesSearchPipeline({
+      query: "Nordwind Angebot",
+      tenantId: "test-tenant",
+    });
+    const search = pipeline[0]?.$search;
+    expect(search.index).toBe(SOURCES_SEARCH_INDEX_NAME);
+    expect(search.compound.filter).toContainEqual({
+      equals: { path: "tenantId", value: "test-tenant" },
+    });
+    expect(search.compound.must).toEqual([
+      {
+        text: {
+          fuzzy: { maxEdits: 1 },
+          path: ["content", { multi: "german", value: "content" }],
+          query: "Nordwind Angebot",
+        },
+      },
+    ]);
+  });
+
+  test("optionally narrows to one source type", () => {
+    const pipeline = buildSourcesSearchPipeline({
+      query: "Angebot",
+      tenantId: "test-tenant",
+      type: "email",
+    });
+    expect(pipeline[0]?.$search.compound.filter).toContainEqual({
+      equals: { path: "type", value: "email" },
+    });
+  });
+
+  test("caps the result count and truncates content to an excerpt", () => {
+    const pipeline = buildSourcesSearchPipeline({
+      limit: 3,
+      query: "Angebot",
+      tenantId: "test-tenant",
+    });
+    expect(pipeline).toContainEqual({ $limit: 3 });
+    const project = pipeline.at(-1)?.$project;
+    // Transcripts run to tens of kilobytes; the wire cost must be bounded
+    // in the database, not after the documents have already crossed it.
+    expect(project.excerpt).toEqual({
+      $substrCP: ["$content", 0, SOURCE_EXCERPT_LENGTH],
+    });
+    expect(project.content).toBeUndefined();
   });
 });

@@ -1,9 +1,11 @@
 import type { Document } from "mongodb";
 import { currentlyValidFilter, type FactCategory } from "./schemas/facts";
+import type { Source } from "./schemas/sources";
 
 export const FACTS_SEARCH_INDEX_NAME = "facts_search";
 export const ORGANIZATIONS_SEARCH_INDEX_NAME = "organizations_search";
 export const PEOPLE_SEARCH_INDEX_NAME = "people_search";
+export const SOURCES_SEARCH_INDEX_NAME = "sources_search";
 
 // Atlas Search index over facts: full-text on the statement, token filters
 // for tenant and category. dynamic:false — nothing else is searchable.
@@ -41,6 +43,35 @@ const entityNameMappings = {
 
 export const organizationsSearchIndexDefinition = entityNameMappings;
 export const peopleSearchIndexDefinition = entityNameMappings;
+
+// Raw captured material — transcripts, email bodies, pasted notes — becomes
+// searchable the moment it lands, hours to days before a reviewer turns any
+// of it into confirmed facts. Same analyzer strategy as facts: the German
+// multi for compound stemming and umlaut folding, the default for
+// code-switched English. tenantId/type as tokens for filtering; an erased
+// source has no content and simply never matches.
+export const sourcesSearchIndexDefinition = {
+  mappings: {
+    dynamic: false,
+    fields: {
+      content: {
+        multi: {
+          german: { analyzer: "lucene.german", type: "string" },
+        },
+        type: "string",
+      },
+      tenantId: { type: "token" },
+      type: { type: "token" },
+    },
+  },
+} as const;
+
+/**
+ * How much of a matching source crosses the wire. Enough to quote and judge
+ * relevance; a full transcript can be tens of kilobytes and belongs behind a
+ * click into the source view, not in a tool result.
+ */
+export const SOURCE_EXCERPT_LENGTH = 1500;
 
 const ENTITY_SEARCH_INDEX_NAMES = {
   organizations: ORGANIZATIONS_SEARCH_INDEX_NAME,
@@ -103,6 +134,60 @@ export interface EntityNameSearchOptions {
   query: string;
   tenantId: string;
 }
+
+export interface SourcesSearchOptions {
+  limit?: number;
+  query: string;
+  tenantId: string;
+  type?: Source["type"];
+}
+
+export const buildSourcesSearchPipeline = ({
+  limit = 10,
+  query,
+  tenantId,
+  type,
+}: SourcesSearchOptions): Document[] => {
+  const filter: Document[] = [
+    { equals: { path: "tenantId", value: tenantId } },
+  ];
+  if (type) {
+    filter.push({ equals: { path: "type", value: type } });
+  }
+
+  return [
+    {
+      $search: {
+        compound: {
+          filter,
+          must: [
+            {
+              text: {
+                fuzzy: { maxEdits: 1 },
+                path: ["content", { multi: "german", value: "content" }],
+                query,
+              },
+            },
+          ],
+        },
+        index: SOURCES_SEARCH_INDEX_NAME,
+      },
+    },
+    { $limit: limit },
+    {
+      $project: {
+        capturedBy: 1,
+        createdAt: 1,
+        "email.subject": 1,
+        excerpt: { $substrCP: ["$content", 0, SOURCE_EXCERPT_LENGTH] },
+        occurredAt: 1,
+        status: 1,
+        tenantId: 1,
+        type: 1,
+      },
+    },
+  ];
+};
 
 export const buildEntityNameSearchPipeline = ({
   entity,

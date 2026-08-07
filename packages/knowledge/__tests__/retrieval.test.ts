@@ -10,8 +10,10 @@ import {
   RERANK_COST_PER_MILLION_TOKENS,
   rankFusionWeights,
   retrieveFacts,
+  retrieveSources,
 } from "../retrieval";
 import type { Fact } from "../schemas/facts";
+import { buildSourcesSearchPipeline } from "../search";
 
 const TENANT = "org_1";
 const rerankErrorPattern = /rerank 500/;
@@ -373,5 +375,45 @@ describe("retrieveFacts", () => {
 
     expect(results).toEqual([]);
     expect(calls).toBe(0);
+  });
+});
+
+describe("retrieveSources", () => {
+  // `$search` only runs on Atlas, so the aggregate is stubbed; under test is
+  // that the query goes to the sources collection with exactly the pipeline
+  // the tested builder produces.
+  test("aggregates the sources collection with the builder's pipeline", async () => {
+    const hit = {
+      _id: new ObjectId(),
+      capturedBy: "ceo@firma.de",
+      excerpt: "Angebot bis Ende August.",
+      status: "received",
+      tenantId: TENANT,
+      type: "manual",
+    };
+    // getCollections touches every collection handle up front, so record the
+    // collection whose aggregate() actually ran, not the last handle taken.
+    let aggregatedCollection = "";
+    let seenPipeline: Document[] = [];
+    const db = {
+      collection: (name: string) => ({
+        aggregate: (pipeline: Document[]) => {
+          aggregatedCollection = name;
+          seenPipeline = pipeline;
+          return { toArray: () => Promise.resolve([hit]) };
+        },
+      }),
+    } as unknown as Db;
+
+    const results = await retrieveSources(db, {
+      query: "Angebot",
+      tenantId: TENANT,
+    });
+
+    expect(results).toEqual([hit] as never);
+    expect(aggregatedCollection).toBe("sources");
+    expect(seenPipeline).toEqual(
+      buildSourcesSearchPipeline({ query: "Angebot", tenantId: TENANT })
+    );
   });
 });

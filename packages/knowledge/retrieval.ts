@@ -1,9 +1,14 @@
-import type { Db, Document } from "mongodb";
+import type { Db, Document, ObjectId } from "mongodb";
 import { getCollections } from "./collections";
 import type { GatewayUsage, UsageContext } from "./gateway";
 import type { Fact } from "./schemas/facts";
 import { currentlyValidFilter, type FactCategory } from "./schemas/facts";
-import { FACTS_SEARCH_INDEX_NAME } from "./search";
+import type { Source } from "./schemas/sources";
+import {
+  buildSourcesSearchPipeline,
+  FACTS_SEARCH_INDEX_NAME,
+  type SourcesSearchOptions,
+} from "./search";
 
 // The read path. Facts are written by extraction, consolidation, contradiction
 // and review; until now nothing read them back.
@@ -196,6 +201,37 @@ export const retrieveFacts = async (
     );
     return fused.map((fact) => ({ fact }));
   }
+};
+
+/** What buildSourcesSearchPipeline's $project leaves of a matching source. */
+export interface SourceSearchHit {
+  _id: ObjectId;
+  capturedBy: string;
+  createdAt?: Date;
+  email?: { subject: string };
+  /** The first SOURCE_EXCERPT_LENGTH characters of the raw content. */
+  excerpt: string;
+  occurredAt?: Date;
+  status: Source["status"];
+  tenantId: string;
+  type: Source["type"];
+}
+
+/**
+ * The unverified tier of the read path: raw captured material, searchable the
+ * moment it lands rather than after extraction and review. Lexical only — no
+ * fact has been distilled yet, so there is nothing sensible to embed — and
+ * like retrieveFacts it needs mongot, so it is verified against a live
+ * cluster rather than in the local test suite.
+ */
+export const retrieveSources = async (
+  db: Db,
+  options: SourcesSearchOptions
+): Promise<SourceSearchHit[]> => {
+  const { sources } = getCollections(db);
+  return await sources
+    .aggregate<SourceSearchHit>(buildSourcesSearchPipeline(options))
+    .toArray();
 };
 
 export interface RerankableDocument {
