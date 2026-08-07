@@ -15,11 +15,11 @@ export default withEve(async (): Promise<NextConfig> => {
 
   nextConfig.reactCompiler = true;
 
-  // The brain surfaces were consolidated into the home page; exact matches
-  // only, so /review/[id] keeps working.
+  // The brain surfaces were consolidated into the home page — except
+  // /review, which is a real page again (the review desk).
   nextConfig.redirects = () =>
     Promise.resolve(
-      ["/ask", "/capture", "/review", "/people"].map((source) => ({
+      ["/ask", "/capture", "/people"].map((source) => ({
         destination: "/",
         permanent: false,
         source,

@@ -17,6 +17,12 @@ export interface ReviewSupersededFact {
 }
 
 export interface ReviewFactDraft {
+  /**
+   * Sibling entity drafts this fact anchors, by draftId. Non-empty means the
+   * fact cannot exist unless those drafts are confirmed — the dependency the
+   * review form's cascade makes visible.
+   */
+  anchorDraftIds: string[];
   /** Human-readable target: a known entity name or a sibling draft ref. */
   anchorLabel: string;
   category: string;
@@ -124,6 +130,11 @@ export const getProposal = async (
       resolutionStatus: draft.resolution.status,
     })),
     factDrafts: proposal.factDrafts.map((draft, index) => ({
+      anchorDraftIds: [
+        draft.anchors.personDraftId,
+        draft.anchors.organizationDraftId,
+        draft.anchors.engagementDraftId,
+      ].flatMap((draftId) => (draftId ? [draftId] : [])),
       anchorLabel: anchorLabel(draft),
       category: draft.category,
       confidence: draft.confidence,
