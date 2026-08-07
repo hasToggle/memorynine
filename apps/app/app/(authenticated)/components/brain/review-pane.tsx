@@ -30,7 +30,15 @@ export const ReviewPane = ({
   <div className="flex flex-col gap-6">
     <section className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <h2 className="font-medium text-sm">Waiting for review</h2>
+        <div className="flex items-baseline justify-between gap-2">
+          <h2 className="font-medium text-sm">Waiting for review</h2>
+          <Link
+            className="text-muted-foreground text-xs underline-offset-2 hover:text-foreground hover:underline"
+            href="/review"
+          >
+            Open review desk →
+          </Link>
+        </div>
         <p className="text-muted-foreground text-xs">
           Confirm, edit, or discard what extraction proposed. Nothing becomes
           knowledge without your sign-off.

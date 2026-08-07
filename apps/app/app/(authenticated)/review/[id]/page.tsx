@@ -1,15 +1,15 @@
 import { auth } from "@repo/auth/server";
-import { Badge } from "@repo/design-system/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@repo/design-system/components/ui/card";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProposal } from "@/app/actions/knowledge/get-proposal";
+import {
+  listOpenProposals,
+  listSkippedProposals,
+} from "@/app/actions/knowledge/list-proposals";
 import { Header } from "../../components/header";
+import { Desk } from "../components/desk";
+import { RejectedDrafts } from "../components/rejected-drafts";
+import { SourceQuote } from "../components/source-quote";
 import { ReExtractControl } from "./components/re-extract-control";
 import { ReviewForm } from "./components/review-form";
 
@@ -28,32 +28,39 @@ const ProposalPage = async ({
     notFound();
   }
   const { id } = await params;
-  const proposal = await getProposal(id);
+  const [proposal, open, skipped] = await Promise.all([
+    getProposal(id),
+    listOpenProposals(),
+    listSkippedProposals(),
+  ]);
   if (!proposal) {
     notFound();
   }
 
+  // Where the desk advances after this proposal resolves: the entry that
+  // takes its place in the queue, or the top when it came from elsewhere
+  // (a skipped entry, a stale link).
+  const position = open.findIndex((item) => item.id === proposal.id);
+  const remaining = open.filter((item) => item.id !== proposal.id);
+  const nextTarget =
+    remaining[position === -1 ? 0 : Math.min(position, remaining.length - 1)];
+
   return (
     <>
-      <Header page="Proposal" pages={[{ href: "/", label: "Brain" }]} />
-      <div className="flex flex-1 flex-col gap-4 p-4 pt-0">
+      <Header
+        page="Proposal"
+        pages={[
+          { href: "/", label: "Brain" },
+          { href: "/review", label: "Review" },
+        ]}
+      />
+      <Desk activeId={proposal.id} open={open} skipped={skipped}>
         {proposal.source ? (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                Source
-                <Badge variant="secondary">{proposal.source.type}</Badge>
-                <span className="font-normal text-muted-foreground text-sm">
-                  captured by {proposal.source.capturedBy}
-                </span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="whitespace-pre-wrap text-sm leading-relaxed">
-                {proposal.source.content}
-              </p>
-            </CardContent>
-          </Card>
+          <SourceQuote
+            capturedBy={proposal.source.capturedBy}
+            content={proposal.source.content}
+            type={proposal.source.type}
+          />
         ) : null}
         {proposal.skipReason ? (
           <ReExtractControl
@@ -61,35 +68,15 @@ const ProposalPage = async ({
             skipReason={proposal.skipReason}
           />
         ) : (
-          <ReviewForm proposal={proposal} />
+          <ReviewForm
+            nextHref={nextTarget ? `/review/${nextTarget.id}` : undefined}
+            proposal={proposal}
+          />
         )}
         {proposal.rejectedDrafts.length > 0 ? (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                Rejected drafts
-                <Badge variant="destructive">
-                  {proposal.rejectedDrafts.length}
-                </Badge>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              {proposal.rejectedDrafts.map((draft, index) => (
-                <div
-                  className="flex flex-col gap-1"
-                  // biome-ignore lint/suspicious/noArrayIndexKey: rejected drafts carry no id — the list is a fixed, never-reordered snapshot from the proposal document
-                  key={index}
-                >
-                  <p className="text-sm">{draft.reason}</p>
-                  <pre className="overflow-x-auto rounded-md bg-muted/50 p-2 text-muted-foreground text-xs">
-                    {JSON.stringify(draft.raw, null, 2)}
-                  </pre>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
+          <RejectedDrafts drafts={proposal.rejectedDrafts} />
         ) : null}
-      </div>
+      </Desk>
     </>
   );
 };

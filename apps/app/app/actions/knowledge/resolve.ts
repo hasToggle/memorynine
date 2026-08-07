@@ -12,6 +12,7 @@ import { revalidatePath } from "next/cache";
 import {
   buildResolveInput,
   collectDossierAnchors,
+  friendlyResolveError,
   type ReviewSelections,
 } from "@/lib/review-decisions";
 
@@ -90,7 +91,11 @@ export const resolveProposal = async (
   } catch (error) {
     return {
       createdFactCount: 0,
-      error: error instanceof Error ? error.message : "Resolution failed",
+      // The referential invariants read like stack traces; translate them.
+      // With the form's cascade they only surface from a stale tab.
+      error: friendlyResolveError(
+        error instanceof Error ? error.message : "Resolution failed"
+      ),
       proposalResolved: false,
     };
   }

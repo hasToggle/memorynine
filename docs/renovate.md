@@ -29,8 +29,8 @@ is worth checking the read-back rather than trusting the clicks.
 
 | Field                          | Value                                    |
 | ------------------------------ | ---------------------------------------- |
-| GitHub App name                | `spinor-renovate`                        |
-| Homepage URL                   | `https://github.com/hasToggle/spinor`    |
+| GitHub App name                | `spinor-renovate` (predates the repo's rename to memorynine — the app was never renamed, and nothing keys on its name matching the repo) |
+| Homepage URL                   | `https://github.com/hasToggle/memorynine`    |
 | Webhook → Active               | **unchecked** (this runner polls)        |
 | Where can this GitHub App be installed | Only on this account             |
 | Subscribe to events            | none                                     |
@@ -86,13 +86,13 @@ copy the **Client ID** (`Iv23li…`) — not the numeric App ID, which
 
 ### 3. Install the App on this repo
 
-**Install App → hasToggle → Only select repositories → `spinor`**.
+**Install App → hasToggle → Only select repositories → `memorynine`**.
 
 ### 4. Add the secrets
 
 ```sh
-gh secret set RENOVATE_APP_CLIENT_ID   --repo hasToggle/spinor --body '<client id>'
-gh secret set RENOVATE_APP_PRIVATE_KEY --repo hasToggle/spinor < ~/Downloads/<app>.private-key.pem
+gh secret set RENOVATE_APP_CLIENT_ID   --repo hasToggle/memorynine --body '<client id>'
+gh secret set RENOVATE_APP_PRIVATE_KEY --repo hasToggle/memorynine < ~/Downloads/<app>.private-key.pem
 ```
 
 Pipe the `.pem` rather than pasting it: that preserves the newlines, and the
@@ -109,8 +109,8 @@ so the workflow step reads uniformly.
 ### 5. Verify
 
 ```sh
-gh workflow run renovate.yml --repo hasToggle/spinor -f dryRun=true -f logLevel=debug
-gh run watch --repo hasToggle/spinor
+gh workflow run renovate.yml --repo hasToggle/memorynine -f dryRun=true -f logLevel=debug
+gh run watch --repo hasToggle/memorynine
 ```
 
 A dry run resolves every update and writes nothing. Look for
@@ -124,7 +124,7 @@ Two settings are off on this repo and both change how `automerge: true` behaves:
 - **Issues are disabled.** `config:recommended` turns on the Dependency
   Dashboard, which Renovate maintains as an issue. With Issues off it logs an
   error every run and you lose the single best view of what is pending. Fix
-  with `gh api -X PATCH repos/hasToggle/spinor -f has_issues=true`, or set
+  with `gh api -X PATCH repos/hasToggle/memorynine -f has_issues=true`, or set
   `"dependencyDashboard": false` in `renovate.json` to opt out deliberately.
 - **Auto-merge is disabled, `main` is unprotected, and no workflow runs on
   pull requests.** Renovate prefers GitHub's native auto-merge, which needs the
@@ -137,7 +137,7 @@ Two settings are off on this repo and both change how `automerge: true` behaves:
   workflow on `pull_request`, require it on `main`, and:
 
   ```sh
-  gh api -X PATCH repos/hasToggle/spinor -f allow_auto_merge=true
+  gh api -X PATCH repos/hasToggle/memorynine -f allow_auto_merge=true
   ```
 
 ## Notes
@@ -146,4 +146,4 @@ Two settings are off on this repo and both change how `automerge: true` behaves:
   fork of `hasToggle.dev`, and Renovate skips forks by default.
 - Cost is not a concern — the repo is public, so Actions minutes are free.
 - To pause the bot without deleting anything, disable the workflow:
-  `gh workflow disable renovate.yml --repo hasToggle/spinor`.
+  `gh workflow disable renovate.yml --repo hasToggle/memorynine`.

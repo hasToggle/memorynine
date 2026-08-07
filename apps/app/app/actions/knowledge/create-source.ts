@@ -4,12 +4,14 @@ import { auth, currentUser } from "@repo/auth/server";
 import { getCollections, ObjectId } from "@repo/knowledge";
 import { getKnowledgeDb } from "@repo/knowledge/client";
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { normalizeAudioContentType } from "@/lib/capture";
+import { processSourceNow } from "@/lib/instant-pipeline";
 
-// Capture endpoints: create a source and let the cron sweep do the rest.
-// A voice source starts at "received" with only the private blob URL; the
-// pipeline transcribes and extracts it. A manual note already has content,
-// so it goes straight to extraction on the next sweep.
+// Capture endpoints: create a source, respond, then advance it immediately
+// via after() — a manual note is usually review-ready in seconds. The cron
+// sweep stays the backstop for anything the instant leg leaves behind
+// (missing transcription env, retryable failures, crashes).
 
 export interface CreateSourceResult {
   error?: string;
@@ -61,6 +63,7 @@ export const createVoiceSource = async (
     type: "voice",
     updatedAt: new Date(),
   });
+  after(() => processSourceNow(orgId, sourceId));
   revalidatePath("/capture");
   return { sourceId: sourceId.toHexString() };
 };
@@ -89,6 +92,7 @@ export const createManualSource = async (
     type: "manual",
     updatedAt: new Date(),
   });
+  after(() => processSourceNow(orgId, sourceId));
   revalidatePath("/capture");
   return { sourceId: sourceId.toHexString() };
 };

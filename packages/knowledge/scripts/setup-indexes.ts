@@ -1,7 +1,8 @@
 // One-time / idempotent setup against the real Atlas cluster:
 //   KNOWLEDGE_MONGODB_URI=... bun scripts/setup-indexes.ts
-// Creates regular indexes everywhere, then the Atlas Search indexes. Three
-// search indexes total (facts, organizations, people) — exactly the M0 limit.
+// Creates regular indexes everywhere, then the Atlas Search indexes — five
+// total (facts ×2, organizations, people, sources), past the M0 three-index
+// ceiling, so this needs Flex/M10+ (which autoEmbed requires anyway).
 import { MongoClient } from "mongodb";
 import { ensureIndexes } from "../collections";
 import {
@@ -15,6 +16,8 @@ import {
   organizationsSearchIndexDefinition,
   PEOPLE_SEARCH_INDEX_NAME,
   peopleSearchIndexDefinition,
+  SOURCES_SEARCH_INDEX_NAME,
+  sourcesSearchIndexDefinition,
 } from "../search";
 
 // Note the fourth entry: three text indexes was the M0 ceiling, and the
@@ -44,6 +47,14 @@ const SEARCH_INDEXES = [
     collection: "people",
     definition: peopleSearchIndexDefinition,
     name: PEOPLE_SEARCH_INDEX_NAME,
+    type: "search",
+  },
+  // The unverified tier: raw source content, searchable pre-review. Fifth
+  // index — needs a tier past the M0 three-index ceiling, like facts_vector.
+  {
+    collection: "sources",
+    definition: sourcesSearchIndexDefinition,
+    name: SOURCES_SEARCH_INDEX_NAME,
     type: "search",
   },
 ] as const;

@@ -35,11 +35,13 @@ import { useEveAgent } from "eve/react";
 import { BrainIcon } from "lucide-react";
 import { useCallback, useMemo } from "react";
 import { type CitedFact, FactCitation } from "./fact-citation";
+import { type CitedSource, SourceCitation } from "./source-citation";
 
-// The model emits <fact id="…"/> inline. Streamdown strips unknown tags by
-// default, so the tag and its one attribute have to be allow-listed explicitly
-// — which also means nothing else the model invents can reach the DOM.
-const ALLOWED_TAGS = { fact: ["id"] };
+// The model emits <fact id="…"/> and <source id="…"/> inline. Streamdown
+// strips unknown tags by default, so each tag and its one attribute have to
+// be allow-listed explicitly — which also means nothing else the model
+// invents can reach the DOM.
+const ALLOWED_TAGS = { fact: ["id"], source: ["id"] };
 
 interface ToolPart {
   errorText?: string;
@@ -78,30 +80,43 @@ const unwrapToolOutput = (
 };
 
 /**
- * Collect every fact the agent has retrieved so far. Citations resolve against
- * tool output, never against the prose: the model can only cite what the
- * knowledge base actually handed it.
+ * Collect everything the agent has retrieved so far — confirmed facts and raw
+ * sources. Citations resolve against tool output, never against the prose:
+ * the model can only cite what the knowledge base actually handed it.
  */
-const collectFacts = (
+const ingestToolOutput = (
+  raw: unknown,
+  facts: Map<string, CitedFact>,
+  sources: Map<string, CitedSource>
+) => {
+  const output = unwrapToolOutput(raw).value as
+    | { facts?: CitedFact[]; sources?: CitedSource[] }
+    | undefined;
+  for (const fact of output?.facts ?? []) {
+    if (fact?.id) {
+      facts.set(fact.id, fact);
+    }
+  }
+  for (const source of output?.sources ?? []) {
+    if (source?.id) {
+      sources.set(source.id, source);
+    }
+  }
+};
+
+const collectCitables = (
   messages: { parts: { output?: unknown; type: string }[] }[]
-): Map<string, CitedFact> => {
-  const byId = new Map<string, CitedFact>();
+): { facts: Map<string, CitedFact>; sources: Map<string, CitedSource> } => {
+  const facts = new Map<string, CitedFact>();
+  const sources = new Map<string, CitedSource>();
   for (const message of messages) {
     for (const part of message.parts) {
-      if (!isSearchTool(part)) {
-        continue;
-      }
-      const output = unwrapToolOutput(part.output).value as
-        | { facts?: CitedFact[] }
-        | undefined;
-      for (const fact of output?.facts ?? []) {
-        if (fact?.id) {
-          byId.set(fact.id, fact);
-        }
+      if (isSearchTool(part)) {
+        ingestToolOutput(part.output, facts, sources);
       }
     }
   }
-  return byId;
+  return { facts, sources };
 };
 
 const thinkingMessage = (isStreaming: boolean, duration?: number) => {
@@ -127,16 +142,19 @@ export const KnowledgeChat = () => {
     isBusy &&
     (lastMessage?.role !== "assistant" || lastMessage.parts.length === 0);
 
-  const facts = useMemo(
-    () => collectFacts(agent.data.messages as never),
+  const { facts, sources } = useMemo(
+    () => collectCitables(agent.data.messages as never),
     [agent.data.messages]
   );
 
   const components = useMemo(
     () => ({
       fact: ({ id }: { id?: string }) => <FactCitation facts={facts} id={id} />,
+      source: ({ id }: { id?: string }) => (
+        <SourceCitation id={id} sources={sources} />
+      ),
     }),
-    [facts]
+    [facts, sources]
   );
 
   // PromptInput owns the textarea and hands back the composed message, so the

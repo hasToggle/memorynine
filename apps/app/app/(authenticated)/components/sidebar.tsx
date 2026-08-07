@@ -12,6 +12,7 @@ import {
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   useSidebar,
@@ -21,6 +22,7 @@ import { NotificationsTrigger } from "@repo/notifications/components/trigger";
 import {
   AnchorIcon,
   BrainIcon,
+  ClipboardCheckIcon,
   type LucideIcon,
   NewspaperIcon,
   UsersIcon,
@@ -31,9 +33,12 @@ import type { ReactNode } from "react";
 
 interface GlobalSidebarProperties {
   readonly children: ReactNode;
+  /** Open review proposals, shown as a badge on the Review entry. */
+  readonly reviewCount?: number;
 }
 
 interface NavItem {
+  badge?: number;
   icon: LucideIcon;
   title: string;
   url: string;
@@ -44,6 +49,11 @@ const navMain: NavItem[] = [
     icon: BrainIcon,
     title: "Brain",
     url: "/",
+  },
+  {
+    icon: ClipboardCheckIcon,
+    title: "Review",
+    url: "/review",
   },
   {
     icon: UsersIcon,
@@ -65,11 +75,9 @@ const navSecondary: NavItem[] = [
   },
 ];
 
-// Review pages belong to the brain workspace, so they keep its entry lit.
+// Review has its own entry now, so it no longer keeps Brain lit.
 const isActiveUrl = (url: string, pathname: string): boolean =>
-  url === "/"
-    ? pathname === "/" || pathname.startsWith("/review")
-    : pathname.startsWith(url);
+  url === "/" ? pathname === "/" : pathname.startsWith(url);
 
 const NavMenu = ({ items }: { items: NavItem[] }) => {
   const pathname = usePathname();
@@ -88,14 +96,29 @@ const NavMenu = ({ items }: { items: NavItem[] }) => {
               <span>{item.title}</span>
             </Link>
           </SidebarMenuButton>
+          {item.badge !== undefined && item.badge > 0 ? (
+            // The component's own peer-hover/active rules swap the text to
+            // sidebar-accent-foreground, which vanishes against bg-primary
+            // (black on black in light mode, white on white in dark) — pin
+            // the text color across those states too.
+            <SidebarMenuBadge className="rounded-full bg-primary font-medium text-primary-foreground tabular-nums peer-data-[active=true]/menu-button:text-primary-foreground peer-hover/menu-button:text-primary-foreground">
+              {item.badge}
+            </SidebarMenuBadge>
+          ) : null}
         </SidebarMenuItem>
       ))}
     </SidebarMenu>
   );
 };
 
-export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
+export const GlobalSidebar = ({
+  children,
+  reviewCount = 0,
+}: GlobalSidebarProperties) => {
   const sidebar = useSidebar();
+  const items = navMain.map((item) =>
+    item.url === "/review" ? { ...item, badge: reviewCount } : item
+  );
 
   return (
     <>
@@ -121,7 +144,7 @@ export const GlobalSidebar = ({ children }: GlobalSidebarProperties) => {
         </SidebarHeader>
         <SidebarContent>
           <SidebarGroup>
-            <NavMenu items={navMain} />
+            <NavMenu items={items} />
           </SidebarGroup>
           <SidebarGroup className="mt-auto">
             <SidebarGroupContent>

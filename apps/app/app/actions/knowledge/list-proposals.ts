@@ -75,3 +75,17 @@ export const listOpenProposals = async (): Promise<ProposalListItem[]> =>
 
 export const listSkippedProposals = async (): Promise<ProposalListItem[]> =>
   listProposals({ skipReason: { $exists: true } });
+
+/** The sidebar badge: open, reviewable proposals — no documents fetched. */
+export const countOpenProposals = async (): Promise<number> => {
+  const { orgId } = await auth();
+  if (!orgId) {
+    return 0;
+  }
+  const { proposals } = getCollections(getKnowledgeDb());
+  return await proposals.countDocuments({
+    skipReason: { $exists: false },
+    status: "open",
+    tenantId: orgId,
+  });
+};

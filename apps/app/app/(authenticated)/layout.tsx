@@ -3,6 +3,7 @@ import { SidebarProvider } from "@repo/design-system/components/ui/sidebar";
 import { showBetaFeature } from "@repo/feature-flags";
 import { secure } from "@repo/security";
 import type { ReactNode } from "react";
+import { countOpenProposals } from "@/app/actions/knowledge/list-proposals";
 import { env } from "@/env";
 import { NotificationsProvider } from "./components/notifications-provider";
 import { GlobalSidebar } from "./components/sidebar";
@@ -24,15 +25,17 @@ const AppLayout = async ({ children }: AppLayoutProperties) => {
     return redirectToSignIn();
   }
 
+  const reviewCount = await countOpenProposals();
+
   return (
     <NotificationsProvider userId={user.id}>
       <SidebarProvider>
-        <GlobalSidebar>
-          {betaFeature && (
+        <GlobalSidebar reviewCount={reviewCount}>
+          {betaFeature ? (
             <div className="m-4 rounded-full bg-blue-500 p-1.5 text-center text-sm text-white">
               Beta feature now available
             </div>
-          )}
+          ) : null}
           {children}
         </GlobalSidebar>
       </SidebarProvider>

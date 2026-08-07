@@ -27,6 +27,77 @@ export interface ResolveInput {
   facts: FactDecision[];
 }
 
+/** The slice of a fact draft the cascade needs: which drafts it anchors. */
+export interface CascadeFactDraft {
+  anchorDraftIds: string[];
+  index: number;
+}
+
+/**
+ * Facts whose anchor is an entity draft the reviewer is discarding. A fact
+ * cannot exist without its anchor (review.ts refuses the combination), so
+ * these are the facts the form must pull down with the entity.
+ */
+export const cascadedFactIndices = (
+  entities: Record<string, EntityChoice | undefined>,
+  factDrafts: CascadeFactDraft[]
+): Set<number> => {
+  const discarded = new Set(
+    Object.entries(entities)
+      .filter(([, choice]) => choice === "discard")
+      .map(([draftId]) => draftId)
+  );
+  return new Set(
+    factDrafts
+      .filter((draft) =>
+        draft.anchorDraftIds.some((draftId) => discarded.has(draftId))
+      )
+      .map((draft) => draft.index)
+  );
+};
+
+/**
+ * The submitted form state: the reviewer's raw choices with dependent facts
+ * forced to discard — including undecided ones, so a branch always resolves
+ * atomically and never leaves a fact whose anchor can no longer exist. Pure
+ * over the raw selections: reviving the entity restores whatever the
+ * reviewer had chosen before.
+ */
+export const applyCascade = (
+  selections: ReviewSelections,
+  factDrafts: CascadeFactDraft[]
+): ReviewSelections => {
+  const cascaded = cascadedFactIndices(selections.entities, factDrafts);
+  if (cascaded.size === 0) {
+    return selections;
+  }
+  const facts: Record<number, FactSelection | undefined> = {
+    ...selections.facts,
+  };
+  for (const index of cascaded) {
+    facts[index] = { choice: "discard", text: facts[index]?.text ?? "" };
+  }
+  return { entities: selections.entities, facts };
+};
+
+// The backend's referential invariants, translated for the reviewer. With
+// the cascade in the form these only surface from a stale tab, where the
+// right move is always the same: reload and decide the group together.
+const DISCARDED_ANCHOR_REGEX =
+  /anchors \w+ draft ".+", which is being discarded/;
+const UNCONFIRMED_ANCHOR_REGEX =
+  /anchors \w+ draft ".+", which is not confirmed/;
+
+export const friendlyResolveError = (message: string): string => {
+  if (DISCARDED_ANCHOR_REGEX.test(message)) {
+    return "A fact can't be kept while the entity it belongs to is discarded. Reload this proposal and decide the whole group together.";
+  }
+  if (UNCONFIRMED_ANCHOR_REGEX.test(message)) {
+    return "This fact belongs to an entity that was never created. Reload this proposal and decide the whole group together.";
+  }
+  return message;
+};
+
 export const buildResolveInput = (
   selections: ReviewSelections,
   originalFactTexts: Record<number, string>

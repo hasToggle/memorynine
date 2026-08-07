@@ -78,6 +78,11 @@ export { createEmailSource, parseInboundSenderMap } from "./inbound";
 export { keys } from "./keys";
 export type { SweepOptions, SweepReport } from "./pipeline";
 export { sweepPipeline } from "./pipeline";
+export type {
+  ProcessSourceOptions,
+  ProcessSourceResult,
+} from "./process-source";
+export { processSource } from "./process-source";
 export type { ReExtractSourceOptions } from "./re-extraction";
 export { reExtractSource } from "./re-extraction";
 export type {
@@ -86,6 +91,7 @@ export type {
   RerankedDocument,
   RetrievedFact,
   RetrieveFactsOptions,
+  SourceSearchHit,
   VoyageRerankConfig,
 } from "./retrieval";
 export {
@@ -95,6 +101,7 @@ export {
   factsVectorIndexDefinition,
   rankFusionWeights,
   retrieveFacts,
+  retrieveSources,
 } from "./retrieval";
 export type {
   EntityDecision,
@@ -128,16 +135,24 @@ export type { Source } from "./schemas/sources";
 export { sourceSchema, sourceStatusValues } from "./schemas/sources";
 export type { Usage, UsageOperation } from "./schemas/usage";
 export { usageOperationValues, usageSchema } from "./schemas/usage";
-export type { EntityNameSearchOptions, FactsSearchOptions } from "./search";
+export type {
+  EntityNameSearchOptions,
+  FactsSearchOptions,
+  SourcesSearchOptions,
+} from "./search";
 export {
   buildEntityNameSearchPipeline,
   buildFactsSearchPipeline,
+  buildSourcesSearchPipeline,
   FACTS_SEARCH_INDEX_NAME,
   factsSearchIndexDefinition,
   ORGANIZATIONS_SEARCH_INDEX_NAME,
   organizationsSearchIndexDefinition,
   PEOPLE_SEARCH_INDEX_NAME,
   peopleSearchIndexDefinition,
+  SOURCE_EXCERPT_LENGTH,
+  SOURCES_SEARCH_INDEX_NAME,
+  sourcesSearchIndexDefinition,
 } from "./search";
 export type {
   AssemblyAiConfig,
