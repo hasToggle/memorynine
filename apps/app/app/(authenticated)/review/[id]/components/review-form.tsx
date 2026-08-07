@@ -158,12 +158,24 @@ const FactRow = ({
   const discarded = cascadedBy !== undefined || selection?.choice === "discard";
 
   return (
-    <div className={cn("flex flex-col gap-2", cascadedBy && "opacity-60")}>
+    <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
-        <Badge variant="outline">{draft.category}</Badge>
-        <span>confidence {Math.round(draft.confidence * 100)}%</span>
+        <span
+          className={cn(
+            "flex items-center gap-2",
+            cascadedBy && "opacity-60"
+          )}
+        >
+          <Badge variant="outline">{draft.category}</Badge>
+          <span>confidence {Math.round(draft.confidence * 100)}%</span>
+        </span>
         {cascadedBy ? (
-          <span className="text-destructive">
+          // Full opacity on purpose — this is the explanation of the dimmed
+          // state, not part of it. dark:text-destructive-foreground: the
+          // dark palette's --destructive is a button-background red that is
+          // unreadable as text on a dark surface; the -foreground variant
+          // is the bright text red.
+          <span className="font-medium text-destructive dark:text-destructive-foreground">
             discarded with “{cascadedBy}”
           </span>
         ) : null}
@@ -414,7 +426,10 @@ export const ReviewForm = ({
                 <div
                   className={cn(
                     "ml-1.5 flex flex-col gap-5 border-l-2 pl-4",
-                    groupDiscarded ? "border-destructive/40" : "border-border"
+                    // Same dark-mode story as the cascade hint above.
+                    groupDiscarded
+                      ? "border-destructive/40 dark:border-destructive-foreground/50"
+                      : "border-border"
                   )}
                 >
                   {group.facts.map((fact) => (

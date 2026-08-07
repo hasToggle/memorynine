@@ -16,9 +16,9 @@ export const metadata: Metadata = {
   title: "Review",
 };
 
-// The desk's landing view: the queue, plus an invitation into the first
-// proposal rather than an auto-redirect — on a phone this page IS the queue,
-// and a redirect would make it unreachable from a proposal's back link.
+// Straight to work: with the queue rendered as a strip on every proposal
+// page, this route only needs a body of its own when there is nothing to
+// review. Otherwise the desk IS the first open proposal.
 
 const ReviewPage = async () => {
   const { orgId } = await auth();
@@ -30,37 +30,25 @@ const ReviewPage = async () => {
     listSkippedProposals(),
   ]);
   const [first] = open;
+  if (first) {
+    redirect(`/review/${first.id}`);
+  }
 
   return (
     <>
       <Header page="Review" pages={[{ href: "/", label: "Brain" }]} />
-      <Desk mobileView="queue" open={open} skipped={skipped}>
-        {first ? (
-          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-12 text-center">
-            <p className="font-medium text-sm">
-              {open.length} proposal{open.length === 1 ? "" : "s"} waiting
-            </p>
-            <p className="max-w-sm text-muted-foreground text-sm">
-              Work the queue top to bottom — the desk moves to the next proposal
-              after each one you resolve.
-            </p>
-            <Button asChild>
-              <Link href={`/review/${first.id}`}>Start reviewing</Link>
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-12 text-center">
-            <CheckCircle2Icon className="size-8 text-muted-foreground" />
-            <p className="font-medium text-sm">All caught up</p>
-            <p className="max-w-sm text-muted-foreground text-sm">
-              Everything extraction proposed has been reviewed. New captures
-              land here within seconds.
-            </p>
-            <Button asChild variant="outline">
-              <Link href="/">Ask the brain</Link>
-            </Button>
-          </div>
-        )}
+      <Desk open={open} skipped={skipped}>
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed px-6 py-12 text-center">
+          <CheckCircle2Icon className="size-8 text-muted-foreground" />
+          <p className="font-medium text-sm">All caught up</p>
+          <p className="max-w-sm text-muted-foreground text-sm">
+            Everything extraction proposed has been reviewed. New captures land
+            here within seconds.
+          </p>
+          <Button asChild variant="outline">
+            <Link href="/">Ask the brain</Link>
+          </Button>
+        </div>
       </Desk>
     </>
   );

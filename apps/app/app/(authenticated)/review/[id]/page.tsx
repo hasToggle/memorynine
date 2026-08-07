@@ -1,7 +1,5 @@
 import { auth } from "@repo/auth/server";
-import { ArrowLeftIcon } from "lucide-react";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProposal } from "@/app/actions/knowledge/get-proposal";
 import {
@@ -56,19 +54,7 @@ const ProposalPage = async ({
           { href: "/review", label: "Review" },
         ]}
       />
-      <Desk
-        activeId={proposal.id}
-        mobileView="detail"
-        open={open}
-        skipped={skipped}
-      >
-        <Link
-          className="flex items-center gap-1.5 text-muted-foreground text-sm hover:text-foreground md:hidden"
-          href="/review"
-        >
-          <ArrowLeftIcon className="size-4" />
-          Review queue
-        </Link>
+      <Desk activeId={proposal.id} open={open} skipped={skipped}>
         {proposal.source ? (
           <SourceQuote
             capturedBy={proposal.source.capturedBy}
