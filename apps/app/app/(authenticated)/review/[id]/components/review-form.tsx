@@ -161,10 +161,7 @@ const FactRow = ({
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2 text-muted-foreground text-xs">
         <span
-          className={cn(
-            "flex items-center gap-2",
-            cascadedBy && "opacity-60"
-          )}
+          className={cn("flex items-center gap-2", cascadedBy && "opacity-60")}
         >
           <Badge variant="outline">{draft.category}</Badge>
           <span>confidence {Math.round(draft.confidence * 100)}%</span>

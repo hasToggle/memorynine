@@ -1,5 +1,5 @@
 {
-  "name": "spinor",
+  "name": "memorynine",
   "version": "5.2.1",
   "bin": {
     "has-toggle": "dist/index.js"
