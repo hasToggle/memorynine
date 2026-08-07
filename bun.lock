@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "has-toggle",
@@ -385,6 +384,7 @@
         "@types/node": "^26.1.2",
         "@types/react": "^19.2.18",
         "postcss": "^8.5.25",
+        "sharp": "^0.35.3",
         "tailwindcss": "^4.3.3",
         "typescript": "^7.0.2",
       },
