@@ -1,6 +1,11 @@
+import Link from "next/link";
 import { Container, Eyebrow, SectionHeading } from "./container";
 
-const FAQS: readonly { answer: string; question: string }[] = [
+const FAQS: readonly {
+  answer: string;
+  link?: { href: string; label: string };
+  question: string;
+}[] = [
   {
     answer:
       "Keep it. A CRM holds the fields somebody decided to have — stage, value, next step. It has no idea that Anna will not take a meeting before ten, or that their finance lead quietly hated the phased option. That is the stuff that wins the second meeting, and it is exactly the stuff nobody types into a form.",
@@ -13,7 +18,7 @@ const FAQS: readonly { answer: string; question: string }[] = [
   },
   {
     answer:
-      "Yes, and it does not quietly translate. Ask in German and you get German back, with your client's words left exactly as they said them. A paraphrase is somebody's interpretation; a quote is what you can repeat.",
+      "Yes, and it does not quietly translate. Ask in German and you get German back, with your client's words left exactly as they said them — and the same holds for whatever language your team works in. A paraphrase is somebody's interpretation; a quote is what you can repeat.",
     question: "Does it work in German?",
   },
   {
@@ -23,7 +28,11 @@ const FAQS: readonly { answer: string; question: string }[] = [
   },
   {
     answer:
-      "Recordings go into private storage, and the transcription service only ever receives a link that expires — never a permanent one. Money and health details are stripped out before anything else reads them, and every read is scoped to your workspace. Ask us about hosting regions and a DPA on the call; you will get specifics rather than reassurance.",
+      "The EU. Recordings, transcripts and the knowledge base all sit in EU regions, and the transcription service only ever receives a link that expires. Money and health details are stripped out before anything else reads them, and every read is scoped to your workspace. The language models we call retain nothing and train on nothing — though a request can fail over to a provider outside the EU when one goes down, under those same terms.",
+    link: {
+      href: "/legal/privacy",
+      label: "The full picture, subprocessors included",
+    },
     question: "Where does our client data actually go?",
   },
   {
@@ -56,6 +65,18 @@ export function Faqs() {
                 </dt>
                 <dd className="mt-3 max-w-2xl text-[0.9375rem] text-mn-ink-soft leading-[1.7]">
                   {faq.answer}
+                  {faq.link ? (
+                    <>
+                      {" "}
+                      <Link
+                        className="rounded-sm text-mn-stamp underline decoration-mn-stamp/35 underline-offset-[3px] transition-colors hover:decoration-mn-stamp focus-visible:outline-2 focus-visible:outline-mn-ink focus-visible:outline-offset-2"
+                        href={faq.link.href}
+                      >
+                        {faq.link.label}
+                      </Link>
+                      .
+                    </>
+                  ) : null}
                 </dd>
               </div>
             ))}

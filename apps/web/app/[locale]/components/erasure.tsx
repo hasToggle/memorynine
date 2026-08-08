@@ -43,13 +43,13 @@ export function Erasure() {
       <Container>
         <div className="grid gap-14 lg:grid-cols-2 lg:gap-20">
           <div>
-            <Eyebrow>The awkward request</Eyebrow>
+            <Eyebrow>The awkward request · GDPR Art. 17</Eyebrow>
             <SectionHeading className="mt-5">
               &ldquo;Please delete everything you have on me.&rdquo;
             </SectionHeading>
             <p className="mt-6 text-[1rem] text-mn-ink-soft leading-[1.7]">
-              In Germany that is a legal right, and for most teams it is a
-              fortnight of somebody chasing files. Here you open their row and
+              Anywhere in the EU that is a legal right, and for most teams it is
+              a fortnight of somebody chasing files. Here you open their row and
               press erase.
             </p>
             <ul className="mt-8 space-y-4">

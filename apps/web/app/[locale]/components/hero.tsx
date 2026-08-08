@@ -37,8 +37,8 @@ export function Hero() {
           </div>
 
           <p className="mt-8 max-w-md text-[0.8125rem] text-mn-graphite leading-[1.6]">
-            German and English. No CRM fields to fill in. Your first memo can be
-            about a call you had this morning.
+            German, English, or whatever your client speaks. No CRM fields to
+            fill in. Your first memo can be about a call you had this morning.
           </p>
         </div>
 
