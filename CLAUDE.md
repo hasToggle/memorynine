@@ -116,7 +116,6 @@ Core infrastructure packages:
 - **@repo/payments** - Stripe integration
 - **@repo/email** - Resend email service
 - **@repo/webhooks** - Webhook handling (inbound/outbound)
-- **@repo/collaboration** - Real-time features (Liveblocks)
 - **@repo/feature-flags** - Feature flag management
 - **@repo/notifications** - In-app notifications
 - **@repo/internationalization** - i18n support
@@ -159,7 +158,6 @@ Core infrastructure packages:
 
 6. **Biome Exclusions**: Auto-generated code excluded from linting:
    - `packages/design-system/components/ui` (shadcn components)
-   - `packages/collaboration/config.ts` (Liveblocks config)
    - `packages/cms/basehub-types.d.ts` (CMS types)
 
 7. **Build Dependencies**: `turbo.json` configures build to depend on tests passing
