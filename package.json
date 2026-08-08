@@ -48,7 +48,7 @@
     "tsup": "^8.5.0",
     "turbo": "2.10.9",
     "typescript": "^7.0.0",
-    "ultracite": "7.10.1"
+    "ultracite": "7.10.2"
   },
   "packageManager": "bun@1.1.43",
   "engines": {
