@@ -1,57 +1,57 @@
 {
   "name": "memorynine",
   "version": "5.2.1",
+  "type": "module",
   "bin": {
     "has-toggle": "dist/index.js"
   },
   "files": [
     "dist/index.js"
   ],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
-    "build": "turbo build",
-    "dev": "turbo dev",
-    "check": "bunx --bun ultracite check",
-    "fix": "bunx --bun ultracite fix",
-    "test": "turbo test",
     "analyze": "turbo analyze",
-    "translate": "turbo translate",
     "boundaries": "turbo boundaries",
+    "build": "turbo build",
     "bump-deps": "bunx --bun npm-check-updates --deep -u && bun install",
     "bump-ui": "bunx --bun shadcn@latest add --all --overwrite -c packages/design-system",
+    "check": "bunx --bun ultracite check",
     "clean": "git clean -xdf node_modules",
+    "dev": "turbo dev",
+    "fix": "bunx --bun ultracite fix",
+    "test": "turbo test",
+    "translate": "turbo translate",
     "update-docs": "npx @next/codemod@canary agents-md --output CLAUDE.md"
+  },
+  "overrides": {
+    "@radix-ui/react-slot": "1.3.3",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "esbuild": "0.28.1",
+    "parse5": "^8.0.0"
+  },
+  "dependencies": {
+    "@clack/prompts": "^1.0.0",
+    "commander": "^15.0.0"
   },
   "devDependencies": {
     "@auto-it/first-time-contributor": "^11.3.0",
     "@biomejs/biome": "2.5.7",
     "@repo/typescript-config": "workspace:*",
-    "bun-types": "latest",
     "@turbo/gen": "^2.8.9",
     "@types/node": "^26.0.0",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
+    "bun-types": "latest",
     "tsup": "^8.5.0",
     "turbo": "2.10.9",
     "typescript": "^7.0.0",
-    "ultracite": "7.9.4"
-  },
-  "engines": {
-    "node": ">=20.19.0"
+    "ultracite": "7.10.1"
   },
   "packageManager": "bun@1.1.43",
-  "dependencies": {
-    "@clack/prompts": "^1.0.0",
-    "commander": "^15.0.0"
-  },
-  "type": "module",
-  "overrides": {
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.4",
-    "parse5": "^8.0.0",
-    "esbuild": "0.28.1",
-    "@radix-ui/react-slot": "1.3.3"
-  },
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ]
+  "engines": {
+    "node": ">=20.19.0"
+  }
 }

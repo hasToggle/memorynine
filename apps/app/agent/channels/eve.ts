@@ -1,5 +1,5 @@
 import { authInstance } from "@repo/auth/instance";
-import { isLoopbackRequest, localDev } from "eve/channels/auth";
+import { localDev } from "eve/channels/auth";
 import { eveChannel } from "eve/channels/eve";
 
 // The agent's front door. eve rejects unauthenticated traffic by default; this
@@ -34,22 +34,38 @@ const betterAuthSession = async (request: Request) => {
 };
 
 /**
+ * Whether this process is a local development server, mirroring the rule
+ * eve's own localDev() applies: `eve dev` (EVE_DEV=1) or `vercel dev`
+ * (VERCEL=1 with VERCEL_ENV=development). eve 0.30.0 rebased localDev() onto
+ * this deployment property and removed the isLoopbackRequest() helper this
+ * file used to gate on, because a request's Host header is attacker-supplied
+ * and could hand out local-dev access on a self-hosted server.
+ *
+ * Duplicated rather than imported: eve keeps its equivalent internal.
+ */
+const isLocalDevelopmentServer = () =>
+  (Boolean(process.env.VERCEL) && process.env.VERCEL_ENV === "development") ||
+  process.env.EVE_DEV === "1";
+
+/**
  * Stamps a tenant onto eval sessions. `eve eval` drives the agent over HTTP
  * with no better-auth cookie, so the auth walk falls through to localDev(),
  * whose attributes are empty — and search-knowledge then throws because it
  * reads tenantId off the verified session and from nowhere else.
  *
- * This grants no access that is not already granted: localDev() already
- * admits any loopback request unauthenticated. It only adds an attribute to
- * a principal that already gets in, and EVAL_TENANT_ID is unset in
- * production, so it returns null before the loopback check matters.
+ * This grants no access that is not already granted: `eve eval` starts its own
+ * development server, so EVE_DEV=1 and localDev() already admits every request
+ * to it unauthenticated. This only adds an attribute to a principal that
+ * already gets in, and it gates on the identical condition, so it can never
+ * accept a request localDev() would have refused. EVAL_TENANT_ID is also unset
+ * in production, so it returns null before the deployment check matters.
  *
  * Exported for test. Deliberately NOT a fallback default inside the tool —
  * guessing a tenant is the whole ballgame.
  */
-export const evalTenant = (request: Request) => {
+export const evalTenant = (_request: Request) => {
   const tenantId = process.env.EVAL_TENANT_ID;
-  if (!(tenantId && isLoopbackRequest(request))) {
+  if (!(tenantId && isLocalDevelopmentServer())) {
     return null;
   }
   return {
@@ -61,10 +77,11 @@ export const evalTenant = (request: Request) => {
 };
 
 // Exported (not just inlined below) so a test can pin the order: evalTenant
-// must run before localDev(), or a loopback eval request never reaches it —
-// localDev() unconditionally accepts any loopback request, so if it came
-// first it would win every time and evalTenant would become dead code with
-// every test still green (this is what F1's fix actually depends on).
+// must run before localDev(), or an eval request never reaches it — localDev()
+// accepts every request to a local development server, which is exactly where
+// evals run, so if it came first it would win every time and evalTenant would
+// become dead code with every test still green (this is what F1's fix actually
+// depends on).
 export const channelAuth = [betterAuthSession, evalTenant, localDev()];
 
 // NOTE: route auth authenticates the caller, it does not prove that this caller

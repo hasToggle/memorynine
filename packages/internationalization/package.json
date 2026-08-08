@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "translate": "bunx --bun -y languine@latest translate",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "test": "bun test",
+    "translate": "bunx --bun -y languine@latest translate",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
@@ -17,9 +17,9 @@
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "@types/negotiator": "^0.6.4",
-    "@types/node": "26.1.2",
+    "@types/node": "26.2.0",
     "@types/react": "^19.2.18",
     "@types/react-dom": "19.2.4",
-    "next": "^16.2.12"
+    "next": "^16.3.0"
   }
 }
