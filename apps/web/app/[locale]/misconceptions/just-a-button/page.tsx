@@ -5,7 +5,7 @@ import { CheckCircle2, Database, Server, ShieldCheck, Zap } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { parseAsString, useQueryState } from "nuqs";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 // --- Constants & Types ---
 const INITIAL_LATENCY = 0;
@@ -39,59 +39,59 @@ interface CapabilityConfig {
 
 const CAPABILITIES: CapabilityConfig[] = [
   {
-    id: "validation",
-    label: "Client Validation",
     description: "Zod pulse check before network",
     icon: ShieldCheck,
+    id: "validation",
     impact: {
+      dx: "Typed contracts",
       latency: -50,
       ux: "Instant error feedback",
-      dx: "Typed contracts",
     },
+    label: "Client Validation",
   },
   {
-    id: "optimistic",
-    label: "Optimistic UI",
     description: "Update state before server responds",
     icon: Zap,
+    id: "optimistic",
     impact: {
+      dx: "Complex rollback",
       latency: -800,
       ux: "Perceived zero latency",
-      dx: "Complex rollback",
     },
+    label: "Optimistic UI",
   },
   {
-    id: "server_action",
-    label: "Server Actions",
     description: "Type-safe RPC over HTTP",
     icon: Server,
+    id: "server_action",
     impact: {
+      dx: "Zero-API boilerplate",
       latency: 150,
       ux: "No loading flash",
-      dx: "Zero-API boilerplate",
     },
+    label: "Server Actions",
   },
   {
-    id: "persistence",
-    label: "ACID Persistence",
     description: "Guaranteed data integrity",
     icon: Database,
+    id: "persistence",
     impact: {
+      dx: "Transaction safety",
       latency: 300,
       ux: "Reliable data",
-      dx: "Transaction safety",
     },
+    label: "ACID Persistence",
   },
   {
-    id: "revalidation",
-    label: "Smart Revalidation",
     description: "Incremental static regeneration",
     icon: CheckCircle2,
+    id: "revalidation",
     impact: {
+      dx: "Cache automated",
       latency: 100,
       ux: "Always fresh data",
-      dx: "Cache automated",
     },
+    label: "Smart Revalidation",
   },
 ];
 
@@ -116,11 +116,12 @@ function CapabilityButton({
     ? "border-white/20 bg-white/5"
     : "border-white/5 bg-transparent hover:border-white/10";
   const labelColor = isEnabled ? "text-white" : "text-white/40";
+  const toggle = useCallback(() => onToggle(cap.id), [cap.id, onToggle]);
 
   return (
     <button
       className={`group w-full rounded-xl border p-4 text-left transition-all duration-300 ${borderStyle}`}
-      onClick={() => onToggle(cap.id)}
+      onClick={toggle}
       type="button"
     >
       <div className="flex items-start gap-3">
@@ -274,6 +275,7 @@ export default function ToggleLab() {
 
   useEffect(() => {
     const presets: Record<LabPreset, SystemCapability[]> = {
+      fragile: ["persistence"],
       minimal: [],
       modern: [
         "validation",
@@ -282,7 +284,6 @@ export default function ToggleLab() {
         "persistence",
         "revalidation",
       ],
-      fragile: ["persistence"],
       monolith: ["validation", "persistence"],
     };
     setEnabledCaps(new Set(presets[mode as LabPreset] || presets.modern));
@@ -297,15 +298,15 @@ export default function ToggleLab() {
             return acc;
           }
           return {
+            dx: [...acc.dx, { id: cap.id, label: cap.impact.dx }],
             latency: acc.latency + cap.impact.latency,
             ux: [...acc.ux, { id: cap.id, label: cap.impact.ux }],
-            dx: [...acc.dx, { id: cap.id, label: cap.impact.dx }],
           };
         },
         {
+          dx: [],
           latency: 0,
           ux: [],
-          dx: [],
         } as AggregateImpact
       ),
     [enabledCaps]
@@ -362,6 +363,9 @@ export default function ToggleLab() {
         const stepLatency = baseLatency + Math.random() * LATENCY_VARIANCE;
 
         addLog(`[exec] ${stepId} in progress...`);
+        // Sequential on purpose: the point of the trace is that each stage
+        // waits on the one before it, so its latency is additive.
+        // biome-ignore lint/performance/noAwaitInLoops: the demo models a serial pipeline
         await new Promise((r) => setTimeout(r, stepLatency));
 
         currentLatency += stepLatency;

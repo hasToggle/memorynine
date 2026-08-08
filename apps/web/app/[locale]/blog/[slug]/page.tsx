@@ -36,9 +36,9 @@ export const generateMetadata = async ({
   }
 
   return createMetadata({
-    title: post.title,
     description: post.description,
     image: post.image,
+    title: post.title,
   });
 };
 
@@ -59,19 +59,19 @@ const BlogPostPage = async ({ params }: BlogPostProperties) => {
     <>
       <JsonLd
         code={{
-          "@type": "BlogPosting",
           "@context": "https://schema.org",
+          "@type": "BlogPosting",
+          author: post.authors.at(0)?.name,
+          dateModified: post.date,
           datePublished: post.date,
           description: post.description,
-          mainEntityOfPage: {
-            "@type": "WebPage",
-            "@id": new URL(`/blog/${post.slug}`, url).toString(),
-          },
           headline: post.title,
           image: post.image,
-          dateModified: post.date,
-          author: post.authors.at(0)?.name,
           isAccessibleForFree: true,
+          mainEntityOfPage: {
+            "@id": new URL(`/blog/${post.slug}`, url).toString(),
+            "@type": "WebPage",
+          },
         }}
       />
       <div className="container mx-auto py-16">
@@ -100,7 +100,7 @@ const BlogPostPage = async ({ params }: BlogPostProperties) => {
                   src={post.image}
                   width={800}
                 />
-              ) : undefined}
+              ) : null}
               <div className="mx-auto max-w-prose">
                 <Content components={mdxComponents} />
               </div>

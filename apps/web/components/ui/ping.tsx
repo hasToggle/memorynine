@@ -1,11 +1,11 @@
 const pingColors = {
-  orange: {
-    ping: "bg-orange-400",
-    dot: "bg-orange-500",
-  },
   blue: {
-    ping: "bg-blue-400",
     dot: "bg-blue-500",
+    ping: "bg-blue-400",
+  },
+  orange: {
+    dot: "bg-orange-500",
+    ping: "bg-orange-400",
   },
 } as const;
 

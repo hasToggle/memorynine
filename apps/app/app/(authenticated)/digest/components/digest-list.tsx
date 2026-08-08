@@ -78,21 +78,21 @@ function DigestCard({
     >
       <div className="flex items-start justify-between gap-4">
         <div>
-          {showPart && digest.series && (
+          {showPart && digest.series ? (
             <span className="text-muted-foreground text-xs">
               Part {digest.series.part}
             </span>
-          )}
+          ) : null}
           <h3 className="font-medium">{digest.title}</h3>
           <p className="mt-1 text-muted-foreground text-sm">
             {digest.misconception}
           </p>
         </div>
-        {digest.sentAt && (
+        {digest.sentAt ? (
           <time className="shrink-0 text-muted-foreground text-xs">
             {new Date(digest.sentAt).toLocaleDateString()}
           </time>
-        )}
+        ) : null}
       </div>
     </Link>
   );

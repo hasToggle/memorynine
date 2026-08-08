@@ -2,6 +2,20 @@ import { cn } from "@repo/design-system/lib/utils";
 import NextLink from "next/link";
 
 const variants = {
+  brand: cn(
+    "inline-flex items-center justify-center overflow-hidden",
+    "rounded-md border border-transparent bg-white px-4 py-2 font-semibold text-base",
+    "text-ht-blue-700 tracking-tight shadow-[0_0_0.2em_0em_rgba(56,189,248,0.2)] ring-1 ring-black/10",
+    "hover:text-ht-blue-800 hover:shadow-[0_0_0.5em_0em_rgba(56,189,248,0.4)]",
+    "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
+    "active:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-70"
+  ),
+  outline: cn(
+    "inline-flex items-center justify-center px-2 py-[calc(0.375rem-1px)]",
+    "rounded-lg border border-transparent shadow ring-1 ring-border",
+    "whitespace-nowrap font-medium text-foreground text-sm",
+    "hover:bg-muted disabled:bg-transparent disabled:opacity-40"
+  ),
   primary: cn(
     "inline-flex items-center justify-center px-4 py-[calc(0.5rem-1px)]",
     "rounded-full border border-transparent bg-primary shadow-md",
@@ -14,20 +28,6 @@ const variants = {
     "after:absolute after:inset-0 after:rounded-full after:shadow-[inset_0_0_2px_1px_#ffffff4d]",
     "whitespace-nowrap font-medium text-base text-slate-950",
     "hover:bg-white disabled:bg-white/70 disabled:opacity-50"
-  ),
-  outline: cn(
-    "inline-flex items-center justify-center px-2 py-[calc(0.375rem-1px)]",
-    "rounded-lg border border-transparent shadow ring-1 ring-border",
-    "whitespace-nowrap font-medium text-foreground text-sm",
-    "hover:bg-muted disabled:bg-transparent disabled:opacity-40"
-  ),
-  brand: cn(
-    "inline-flex items-center justify-center overflow-hidden",
-    "rounded-md border border-transparent bg-white px-4 py-2 font-semibold text-base",
-    "text-ht-blue-700 tracking-tight shadow-[0_0_0.2em_0em_rgba(56,189,248,0.2)] ring-1 ring-black/10",
-    "hover:text-ht-blue-800 hover:shadow-[0_0_0.5em_0em_rgba(56,189,248,0.4)]",
-    "focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500",
-    "active:bg-blue-50 disabled:cursor-not-allowed disabled:opacity-70"
   ),
 };
 

@@ -72,45 +72,21 @@ import {
   SquareTerminal,
   Trash2,
 } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 const meta: Meta<typeof Sidebar> = {
-  title: "ui/Sidebar",
+  argTypes: {},
   component: Sidebar,
   tags: ["autodocs"],
-  argTypes: {},
+  title: "ui/Sidebar",
 };
 export default meta;
 
 type Story = StoryObj<typeof Sidebar>;
 
 const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  teams: [
-    {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
   navMain: [
     {
-      title: "Playground",
-      url: "#",
       icon: SquareTerminal,
       isActive: true,
       items: [
@@ -127,10 +103,10 @@ const data = {
           url: "#",
         },
       ],
+      title: "Playground",
+      url: "#",
     },
     {
-      title: "Models",
-      url: "#",
       icon: Bot,
       items: [
         {
@@ -146,10 +122,10 @@ const data = {
           url: "#",
         },
       ],
+      title: "Models",
+      url: "#",
     },
     {
-      title: "Documentation",
-      url: "#",
       icon: BookOpen,
       items: [
         {
@@ -169,10 +145,10 @@ const data = {
           url: "#",
         },
       ],
+      title: "Documentation",
+      url: "#",
     },
     {
-      title: "Settings",
-      url: "#",
       icon: Settings2,
       items: [
         {
@@ -192,28 +168,77 @@ const data = {
           url: "#",
         },
       ],
+      title: "Settings",
+      url: "#",
     },
   ],
   projects: [
     {
+      icon: Frame,
       name: "Design Engineering",
       url: "#",
-      icon: Frame,
     },
     {
+      icon: PieChart,
       name: "Sales & Marketing",
       url: "#",
-      icon: PieChart,
     },
     {
+      icon: Map,
       name: "Travel",
       url: "#",
-      icon: Map,
     },
   ],
+  teams: [
+    {
+      logo: GalleryVerticalEnd,
+      name: "Acme Inc",
+      plan: "Enterprise",
+    },
+    {
+      logo: AudioWaveform,
+      name: "Acme Corp.",
+      plan: "Startup",
+    },
+    {
+      logo: Command,
+      name: "Evil Corp.",
+      plan: "Free",
+    },
+  ],
+  user: {
+    avatar: "/avatars/shadcn.jpg",
+    email: "m@example.com",
+    name: "shadcn",
+  },
 };
 
+type Team = (typeof data.teams)[number];
+
+function TeamItem({
+  onSelect,
+  shortcut,
+  team,
+}: {
+  onSelect: (team: Team) => void;
+  shortcut: number;
+  team: Team;
+}) {
+  const select = useCallback(() => onSelect(team), [onSelect, team]);
+
+  return (
+    <DropdownMenuItem className="gap-2 p-2" onClick={select}>
+      <div className="flex size-6 items-center justify-center rounded-sm border">
+        <team.logo className="size-4 shrink-0" />
+      </div>
+      {team.name}
+      <DropdownMenuShortcut>⌘{shortcut}</DropdownMenuShortcut>
+    </DropdownMenuItem>
+  );
+}
+
 export const Base: Story = {
+  args: {},
   render: () => {
     const [activeTeam, setActiveTeam] = useState(data.teams[0]);
 
@@ -253,19 +278,12 @@ export const Base: Story = {
                       Teams
                     </DropdownMenuLabel>
                     {data.teams.map((team, index) => (
-                      <DropdownMenuItem
-                        className="gap-2 p-2"
+                      <TeamItem
                         key={team.name}
-                        onClick={() => setActiveTeam(team)}
-                      >
-                        <div className="flex size-6 items-center justify-center rounded-sm border">
-                          <team.logo className="size-4 shrink-0" />
-                        </div>
-                        {team.name}
-                        <DropdownMenuShortcut>
-                          ⌘{index + 1}
-                        </DropdownMenuShortcut>
-                      </DropdownMenuItem>
+                        onSelect={setActiveTeam}
+                        shortcut={index + 1}
+                        team={team}
+                      />
                     ))}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem className="gap-2 p-2">
@@ -295,7 +313,7 @@ export const Base: Story = {
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton tooltip={item.title}>
-                          {item.icon && <item.icon />}
+                          {item.icon ? <item.icon /> : null}
                           <span>{item.title}</span>
                           <ChevronRight className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
                         </SidebarMenuButton>
@@ -489,5 +507,4 @@ export const Base: Story = {
       </SidebarProvider>
     );
   },
-  args: {},
 };

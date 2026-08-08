@@ -8,5 +8,5 @@ export const generateTokenHash = (token: string) =>
 export const generateToken = () => {
   const token = crypto.randomBytes(TOKEN_BYTE_LENGTH).toString("hex");
   const hash = generateTokenHash(token);
-  return { token, hash };
+  return { hash, token };
 };

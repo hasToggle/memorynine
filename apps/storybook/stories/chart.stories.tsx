@@ -5,7 +5,6 @@ import {
   ChartTooltipContent,
 } from "@repo/design-system/components/ui/chart";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useMemo } from "react";
 import {
   Area,
   AreaChart,
@@ -13,6 +12,7 @@ import {
   BarChart,
   CartesianGrid,
   Label,
+  type LabelProps,
   Line,
   LineChart,
   Pie,
@@ -25,47 +25,86 @@ import {
  */
 const MONTH_ABBREVIATION_LENGTH = 3;
 
+const abbreviateMonth = (value: string) =>
+  value.slice(0, MONTH_ABBREVIATION_LENGTH);
+
 const multiSeriesData = [
-  { month: "January", desktop: 186, mobile: 80 },
-  { month: "February", desktop: 305, mobile: 200 },
-  { month: "March", desktop: 237, mobile: 120 },
-  { month: "April", desktop: 73, mobile: 190 },
-  { month: "May", desktop: 209, mobile: 130 },
-  { month: "June", desktop: 214, mobile: 140 },
+  { desktop: 186, mobile: 80, month: "January" },
+  { desktop: 305, mobile: 200, month: "February" },
+  { desktop: 237, mobile: 120, month: "March" },
+  { desktop: 73, mobile: 190, month: "April" },
+  { desktop: 209, mobile: 130, month: "May" },
+  { desktop: 214, mobile: 140, month: "June" },
 ];
 
 const multiSeriesConfig = {
   desktop: {
-    label: "Desktop",
     color: "hsl(var(--chart-1))",
+    label: "Desktop",
   },
   mobile: {
-    label: "Mobile",
     color: "hsl(var(--chart-2))",
+    label: "Mobile",
   },
 } satisfies ChartConfig;
 
 const singleSeriesData = [
-  { browser: "chrome", visitors: 275, fill: "var(--color-chrome)" },
-  { browser: "safari", visitors: 200, fill: "var(--color-safari)" },
-  { browser: "other", visitors: 190, fill: "var(--color-other)" },
+  { browser: "chrome", fill: "var(--color-chrome)", visitors: 275 },
+  { browser: "safari", fill: "var(--color-safari)", visitors: 200 },
+  { browser: "other", fill: "var(--color-other)", visitors: 190 },
 ];
 
+const TOTAL_VISITORS = singleSeriesData.reduce(
+  (acc, curr) => acc + curr.visitors,
+  0
+);
+
+/** Recharts re-invokes `content` on every chart render, so it lives out here. */
+const renderVisitorTotal = ({ viewBox }: LabelProps) => {
+  if (!(viewBox && "cx" in viewBox && "cy" in viewBox)) {
+    return null;
+  }
+
+  return (
+    <text
+      dominantBaseline="middle"
+      textAnchor="middle"
+      x={viewBox.cx}
+      y={viewBox.cy}
+    >
+      <tspan
+        className="fill-foreground font-bold text-3xl"
+        x={viewBox.cx}
+        y={viewBox.cy}
+      >
+        {TOTAL_VISITORS.toLocaleString()}
+      </tspan>
+      <tspan
+        className="fill-muted-foreground"
+        x={viewBox.cx}
+        y={(viewBox.cy || 0) + 24}
+      >
+        Visitors
+      </tspan>
+    </text>
+  );
+};
+
 const singleSeriesConfig = {
-  visitors: {
-    label: "Visitors",
-  },
   chrome: {
-    label: "Chrome",
     color: "hsl(var(--chart-1))",
-  },
-  safari: {
-    label: "Safari",
-    color: "hsl(var(--chart-2))",
+    label: "Chrome",
   },
   other: {
-    label: "Other",
     color: "hsl(var(--chart-5))",
+    label: "Other",
+  },
+  safari: {
+    color: "hsl(var(--chart-2))",
+    label: "Safari",
+  },
+  visitors: {
+    label: "Visitors",
   },
 } satisfies ChartConfig;
 
@@ -73,13 +112,13 @@ const singleSeriesConfig = {
  * Beautiful charts. Built using Recharts. Copy and paste into your apps.
  */
 const meta = {
-  title: "ui/Chart",
-  component: ChartContainer,
-  tags: ["autodocs"],
-  argTypes: {},
   args: {
     children: <div />,
   },
+  argTypes: {},
+  component: ChartContainer,
+  tags: ["autodocs"],
+  title: "ui/Chart",
 } satisfies Meta<typeof ChartContainer>;
 
 export default meta;
@@ -107,7 +146,7 @@ export const StackedAreaChart: Story = {
         <XAxis
           axisLine={false}
           dataKey="month"
-          tickFormatter={(value) => value.slice(0, MONTH_ABBREVIATION_LENGTH)}
+          tickFormatter={abbreviateMonth}
           tickLine={false}
           tickMargin={8}
         />
@@ -150,7 +189,7 @@ export const StackedBarChart: Story = {
         <XAxis
           axisLine={false}
           dataKey="month"
-          tickFormatter={(value) => value.slice(0, MONTH_ABBREVIATION_LENGTH)}
+          tickFormatter={abbreviateMonth}
           tickLine={false}
           tickMargin={10}
         />
@@ -186,7 +225,7 @@ export const MultiLineChart: Story = {
         <XAxis
           axisLine={false}
           dataKey="month"
-          tickFormatter={(value) => value.slice(0, MONTH_ABBREVIATION_LENGTH)}
+          tickFormatter={abbreviateMonth}
           tickLine={false}
           tickMargin={8}
         />
@@ -220,57 +259,23 @@ export const DoughnutChart: Story = {
   args: {
     config: singleSeriesConfig,
   },
-  render: (args) => {
-    const totalVisitors = useMemo(
-      () => singleSeriesData.reduce((acc, curr) => acc + curr.visitors, 0),
-      []
-    );
-    return (
-      <ChartContainer {...args}>
-        <PieChart>
-          <ChartTooltip
-            content={<ChartTooltipContent hideLabel />}
-            cursor={false}
-          />
-          <Pie
-            data={singleSeriesData}
-            dataKey="visitors"
-            innerRadius={48}
-            nameKey="browser"
-            strokeWidth={5}
-          >
-            <Label
-              content={({ viewBox }) => {
-                if (viewBox && "cx" in viewBox && "cy" in viewBox) {
-                  return (
-                    <text
-                      dominantBaseline="middle"
-                      textAnchor="middle"
-                      x={viewBox.cx}
-                      y={viewBox.cy}
-                    >
-                      <tspan
-                        className="fill-foreground font-bold text-3xl"
-                        x={viewBox.cx}
-                        y={viewBox.cy}
-                      >
-                        {totalVisitors.toLocaleString()}
-                      </tspan>
-                      <tspan
-                        className="fill-muted-foreground"
-                        x={viewBox.cx}
-                        y={(viewBox.cy || 0) + 24}
-                      >
-                        Visitors
-                      </tspan>
-                    </text>
-                  );
-                }
-              }}
-            />
-          </Pie>
-        </PieChart>
-      </ChartContainer>
-    );
-  },
+  render: (args) => (
+    <ChartContainer {...args}>
+      <PieChart>
+        <ChartTooltip
+          content={<ChartTooltipContent hideLabel />}
+          cursor={false}
+        />
+        <Pie
+          data={singleSeriesData}
+          dataKey="visitors"
+          innerRadius={48}
+          nameKey="browser"
+          strokeWidth={5}
+        >
+          <Label content={renderVisitorTotal} />
+        </Pie>
+      </PieChart>
+    </ChartContainer>
+  ),
 };

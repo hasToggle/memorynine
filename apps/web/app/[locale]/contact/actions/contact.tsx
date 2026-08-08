@@ -1,7 +1,7 @@
 "use server";
 
 import { resend } from "@repo/email";
-import { ContactTemplate } from "@repo/email/templates/contact";
+import ContactTemplate from "@repo/email/templates/contact";
 import { parseError } from "@repo/observability/error";
 import { createRateLimiter, slidingWindow } from "@repo/rate-limit";
 import { headers } from "next/headers";
@@ -43,10 +43,10 @@ export const contact = async (
 
     const { error } = await resend.emails.send({
       from: env.RESEND_FROM,
-      to: env.RESEND_FROM,
-      subject: "Contact form submission",
-      replyTo: email,
       react: <ContactTemplate email={email} message={message} name={name} />,
+      replyTo: email,
+      subject: "Contact form submission",
+      to: env.RESEND_FROM,
     });
 
     if (error) {

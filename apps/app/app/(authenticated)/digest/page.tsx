@@ -3,8 +3,8 @@ import { getPublishedDigests } from "@/app/actions/digests/get";
 import { DigestList } from "./components/digest-list";
 
 export const metadata: Metadata = {
-  title: "Digest Archive",
   description: "Browse past weekly misconception-busting digests",
+  title: "Digest Archive",
 };
 
 export default async function DigestPage() {

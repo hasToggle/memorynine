@@ -18,20 +18,20 @@ const url = new URL(env.NEXT_PUBLIC_WEB_URL);
 
 const sitemap = async (): Promise<MetadataRoute.Sitemap> => [
   {
-    url: new URL("/", url).href,
     lastModified: new Date(),
+    url: new URL("/", url).href,
   },
   ...pages.map((page) => ({
-    url: new URL(page, url).href,
     lastModified: new Date(),
+    url: new URL(page, url).href,
   })),
   ...blogs.map((blogSlug) => ({
-    url: new URL(`blog/${blogSlug}`, url).href,
     lastModified: new Date(),
+    url: new URL(`blog/${blogSlug}`, url).href,
   })),
   ...legals.map((legalSlug) => ({
-    url: new URL(`legal/${legalSlug}`, url).href,
     lastModified: new Date(),
+    url: new URL(`legal/${legalSlug}`, url).href,
   })),
 ];
 

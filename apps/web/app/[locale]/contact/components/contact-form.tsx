@@ -72,14 +72,14 @@ export const ContactForm = ({ dictionary }: ContactFormProps) => {
                 <Textarea id="message" name="message" required rows={4} />
               </div>
 
-              {state.success && (
+              {state.success ? (
                 <p className="font-medium text-green-600 text-sm">
                   {dictionary.web.contact.hero.form.success}
                 </p>
-              )}
-              {state.error && (
+              ) : null}
+              {state.error ? (
                 <p className="text-red-600 text-sm">{state.error}</p>
-              )}
+              ) : null}
 
               <Button className="w-full gap-4" disabled={isPending}>
                 {dictionary.web.contact.hero.form.cta}{" "}

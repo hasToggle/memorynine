@@ -23,17 +23,21 @@ export interface TocEntry {
   title: string;
 }
 
+/**
+ * Read straight off untrusted YAML, so the fields the reader defaults are
+ * declared optional — the `??` fallbacks below are the actual contract.
+ */
 interface BlogFrontmatter {
-  authors: {
+  authors?: {
     name: string;
     avatar: string;
     xUrl: string;
   }[];
-  categories: string[];
+  categories?: string[];
   date: string;
   description: string;
   image: string;
-  imageAlt: string;
+  imageAlt?: string;
   title: string;
 }
 
@@ -43,7 +47,7 @@ interface LegalFrontmatter {
 }
 
 export interface BlogPostMeta {
-  authors: BlogFrontmatter["authors"];
+  authors: NonNullable<BlogFrontmatter["authors"]>;
   categories: string[];
   date: string;
   description: string;
@@ -88,9 +92,9 @@ function extractToc(raw: string): TocEntry[] {
   for (const match of raw.matchAll(HEADING_RE)) {
     const title = match[2].trim();
     toc.push({
+      depth: match[1].length,
       id: slugger.slug(title),
       title,
-      depth: match[1].length,
     });
   }
 
@@ -105,8 +109,8 @@ function computeReadingTime(content: string): number {
 async function compileMdx(raw: string): Promise<MDXContent> {
   const { default: Content } = await evaluate(raw, {
     ...runtime,
-    remarkPlugins: [remarkGfm],
     rehypePlugins: [rehypeSlug, [rehypeShiki, { theme: "vesper" }]],
+    remarkPlugins: [remarkGfm],
   });
 
   return Content;
@@ -130,14 +134,14 @@ export function getBlogPosts(): BlogPostMeta[] {
       const fm = data as BlogFrontmatter;
 
       return {
-        slug,
-        title: fm.title,
-        description: fm.description,
-        date: fm.date,
-        image: fm.image,
-        imageAlt: fm.imageAlt ?? "",
         authors: fm.authors ?? [],
         categories: fm.categories ?? [],
+        date: fm.date,
+        description: fm.description,
+        image: fm.image,
+        imageAlt: fm.imageAlt ?? "",
+        slug,
+        title: fm.title,
       };
     })
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -158,17 +162,17 @@ export async function getBlogPost(slug: string): Promise<BlogPost | null> {
   const readingTime = computeReadingTime(mdxSource);
 
   return {
-    slug,
-    title: fm.title,
-    description: fm.description,
-    date: fm.date,
-    image: fm.image,
-    imageAlt: fm.imageAlt ?? "",
     authors: fm.authors ?? [],
     categories: fm.categories ?? [],
     content,
-    toc,
+    date: fm.date,
+    description: fm.description,
+    image: fm.image,
+    imageAlt: fm.imageAlt ?? "",
     readingTime,
+    slug,
+    title: fm.title,
+    toc,
   };
 }
 
@@ -181,9 +185,9 @@ export function getLegalPages(): LegalPageMeta[] {
     const fm = data as LegalFrontmatter;
 
     return {
+      description: fm.description,
       slug,
       title: fm.title,
-      description: fm.description,
     };
   });
 }
@@ -203,11 +207,11 @@ export async function getLegalPage(slug: string): Promise<LegalPage | null> {
   const readingTime = computeReadingTime(mdxSource);
 
   return {
+    content,
+    description: fm.description,
+    readingTime,
     slug,
     title: fm.title,
-    description: fm.description,
-    content,
     toc,
-    readingTime,
   };
 }

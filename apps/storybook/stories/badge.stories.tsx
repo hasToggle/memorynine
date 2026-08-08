@@ -5,20 +5,20 @@ import type { Meta, StoryObj } from "@storybook/react";
  * Displays a badge or a component that looks like a badge.
  */
 const meta = {
-  title: "ui/Badge",
-  component: Badge,
-  tags: ["autodocs"],
+  args: {
+    children: "Badge",
+  },
   argTypes: {
     children: {
       control: "text",
     },
   },
-  args: {
-    children: "Badge",
-  },
+  component: Badge,
   parameters: {
     layout: "centered",
   },
+  tags: ["autodocs"],
+  title: "ui/Badge",
 } satisfies Meta<typeof Badge>;
 
 export default meta;

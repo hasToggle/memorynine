@@ -2,6 +2,7 @@
 
 import { cn } from "@repo/design-system/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
+import { useCallback } from "react";
 import { adjacentBeat, BEATS } from "./beats";
 import type { StepId } from "./steps";
 
@@ -18,15 +19,64 @@ interface ArrowProps {
 }
 
 function Arrow({ dir, onSelect, target }: ArrowProps) {
+  const select = useCallback(() => {
+    if (target) {
+      onSelect(target);
+    }
+  }, [onSelect, target]);
+
   return (
     <button
       aria-label={dir === "prev" ? "Previous beat" : "Next beat"}
       className="shrink-0 rounded px-2 font-mono text-muted-foreground text-sm transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
       disabled={target === null}
-      onClick={() => target && onSelect(target)}
+      onClick={select}
       type="button"
     >
       {dir === "prev" ? "←" : "→"}
+    </button>
+  );
+}
+
+interface BeatTickProps {
+  active: boolean;
+  gap: boolean;
+  id: string;
+  label: string;
+  /** The 1-based position, or null when the rail renders ticks instead. */
+  numeral: number | null;
+  onSelect: (id: string) => void;
+}
+
+function BeatTick({
+  active,
+  gap,
+  id,
+  label,
+  numeral,
+  onSelect,
+}: BeatTickProps) {
+  const select = useCallback(() => onSelect(id), [id, onSelect]);
+
+  return (
+    <button
+      aria-current={active ? "step" : undefined}
+      aria-label={label}
+      className={cn(
+        numeral === null
+          ? "size-2.5 shrink-0 rounded-[2px] transition-colors"
+          : "flex size-7 shrink-0 items-center justify-center rounded-full font-mono text-xs tabular-nums transition-colors",
+        gap && "ml-4",
+        active && "bg-foreground text-background",
+        !active &&
+          numeral !== null &&
+          "border border-foreground/20 text-muted-foreground hover:border-foreground/40 hover:text-foreground",
+        !active && numeral === null && "bg-foreground/20 hover:bg-foreground/40"
+      )}
+      onClick={select}
+      type="button"
+    >
+      {numeral}
     </button>
   );
 }
@@ -68,33 +118,17 @@ export function BeatFooter({ current, onSelect, step }: BeatFooterProps) {
         />
 
         <div className="flex items-center gap-2">
-          {beats.map((b, i) => {
-            const active = b.id === current;
-            const gap = !numerals && beats[i - 1]?.id === GROUP_BREAK_AFTER;
-            return (
-              <button
-                aria-current={active ? "step" : undefined}
-                aria-label={b.label}
-                className={cn(
-                  numerals
-                    ? "flex size-7 shrink-0 items-center justify-center rounded-full font-mono text-xs tabular-nums transition-colors"
-                    : "size-2.5 shrink-0 rounded-[2px] transition-colors",
-                  gap && "ml-4",
-                  active && "bg-foreground text-background",
-                  !active &&
-                    numerals &&
-                    "border border-foreground/20 text-muted-foreground hover:border-foreground/40 hover:text-foreground",
-                  !(active || numerals) &&
-                    "bg-foreground/20 hover:bg-foreground/40"
-                )}
-                key={b.id}
-                onClick={() => onSelect(b.id)}
-                type="button"
-              >
-                {numerals ? i + 1 : null}
-              </button>
-            );
-          })}
+          {beats.map((b, i) => (
+            <BeatTick
+              active={b.id === current}
+              gap={!numerals && beats[i - 1]?.id === GROUP_BREAK_AFTER}
+              id={b.id}
+              key={b.id}
+              label={b.label}
+              numeral={numerals ? i + 1 : null}
+              onSelect={onSelect}
+            />
+          ))}
         </div>
 
         <Arrow

@@ -1,5 +1,6 @@
+import { PROMPTS } from "./completions";
 import { FIRST_PHASE, type PhaseId } from "./phases";
-import { type Band, INITIAL_TEMP, type Mode, PROMPTS } from "./selector";
+import { type Band, INITIAL_TEMP, type Mode } from "./selector";
 
 /** What the last run was, which is what the verdict describes. */
 export interface RunSnapshot {

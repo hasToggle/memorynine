@@ -4,8 +4,8 @@ interface CodeSnippet {
 }
 
 const CODE_ANIMATION_STEPS = {
-  STATE_UPDATE: 3,
   RENDER_UPDATE: 7,
+  STATE_UPDATE: 3,
 } as const;
 
 export const getCodeSnippets = (internalCount: number): CodeSnippet[] => {
@@ -49,14 +49,14 @@ function Counter() {
 }`.trim();
 
   return [
-    { id: 1, code: base },
+    { code: base, id: 1 },
     ...new Array(CODE_ANIMATION_STEPS.STATE_UPDATE).fill({
-      id: 2,
       code: stateUpdate,
+      id: 2,
     }),
     ...new Array(CODE_ANIMATION_STEPS.RENDER_UPDATE).fill({
-      id: 3,
       code: renderUpdate,
+      id: 3,
     }),
   ];
 };

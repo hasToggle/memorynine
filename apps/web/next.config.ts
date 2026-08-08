@@ -10,22 +10,22 @@ export default async (): Promise<NextConfig> => {
   nextConfig.reactCompiler = true;
 
   nextConfig.images?.remotePatterns?.push({
-    protocol: "https",
     hostname: "picsum.photos",
+    protocol: "https",
   });
 
   const redirects: NextConfig["redirects"] = async () => [
     {
-      source: "/legal",
       destination: "/legal/privacy",
+      source: "/legal",
       statusCode: 301,
     },
     // Short, sayable URL for the live masterclass. Temporary on purpose: a 301
     // would be cached in every attendee's browser and break the next talk.
     {
-      source: "/live",
       destination: "/learn/masterclass-28-07-2026",
       permanent: false,
+      source: "/live",
     },
   ];
 

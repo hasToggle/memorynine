@@ -37,9 +37,9 @@ export async function GET(request: NextRequest) {
         );
 
     const contactPromise = resend.contacts.create({
+      audienceId: env.RESEND_AUDIENCE_ID,
       email: subscriber.email,
       unsubscribed: false,
-      audienceId: env.RESEND_AUDIENCE_ID,
     });
 
     const [, { error }] = await Promise.all([updatePromise, contactPromise]);
@@ -49,10 +49,10 @@ export async function GET(request: NextRequest) {
     }
 
     return new Response(null, {
-      status: 303,
       headers: {
         Location: "/confirmed",
       },
+      status: 303,
     });
   } catch (error) {
     after(() => parseError(error));

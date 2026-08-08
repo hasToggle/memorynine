@@ -40,9 +40,9 @@ function PartDivider() {
 }
 
 export const metadata: Metadata = {
-  title: "hasToggle — AI makes you more.",
   description:
     "For developers who'd rather own the answer than borrow it. Every Monday, one thing built — code, demo, or walkthrough — made with AI, finished by judgment.",
+  title: "hasToggle — AI makes you more.",
 };
 
 function MisconceptionDemos() {
@@ -130,19 +130,19 @@ const VALUES: readonly {
   numeral: string;
 }[] = [
   {
-    numeral: "I",
-    heading: "Ask.",
     body: "Probe what you don't yet know. AI fills the gap before you find it. We make you find it first.",
+    heading: "Ask.",
+    numeral: "I",
   },
   {
-    numeral: "II",
-    heading: "Collide.",
     body: "You learn when your idea meets reality. AI lets you skip the meeting. We don't.",
+    heading: "Collide.",
+    numeral: "II",
   },
   {
-    numeral: "III",
-    heading: "Rediscover.",
     body: "An answer you received is borrowed. An answer you worked out is yours.",
+    heading: "Rediscover.",
+    numeral: "III",
   },
 ];
 

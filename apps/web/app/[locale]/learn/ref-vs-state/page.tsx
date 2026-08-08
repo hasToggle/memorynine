@@ -5,7 +5,7 @@ import { ImageIcon, RefreshCw } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Image from "next/image";
 import { parseAsString, useQueryState } from "nuqs";
-import { useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 // --- Constants ---
 const GRID_OPACITY = 0.03;
@@ -202,16 +202,17 @@ function ScenarioCard({
   recommendation: Mode;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const toggle = useCallback(() => setExpanded((current) => !current), []);
 
   return (
     <button
       className="w-full rounded-lg border border-white/5 bg-white/5 p-3 text-left transition-colors hover:border-white/10"
-      onClick={() => setExpanded(!expanded)}
+      onClick={toggle}
       type="button"
     >
       <div className="text-sm text-white/60">{question}</div>
       <AnimatePresence>
-        {expanded && (
+        {expanded ? (
           <motion.div
             animate={{ height: "auto", opacity: 1 }}
             className="overflow-hidden"
@@ -232,7 +233,7 @@ function ScenarioCard({
               <p className="mt-1 text-white/50 text-xs">{answer}</p>
             </div>
           </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
     </button>
   );
@@ -384,6 +385,32 @@ function DiscoveryPanel({
 
 // --- Main Component ---
 
+function ModeButton({
+  active,
+  mode,
+  onSelect,
+}: {
+  active: boolean;
+  mode: Mode;
+  onSelect: (mode: Mode) => void;
+}) {
+  const select = useCallback(() => onSelect(mode), [mode, onSelect]);
+
+  return (
+    <button
+      className={`rounded-full border px-4 py-1.5 font-mono text-xs transition-all ${
+        active
+          ? "border-white bg-white text-black"
+          : "border-white/10 text-white/40 hover:border-white/20"
+      }`}
+      onClick={select}
+      type="button"
+    >
+      {mode}
+    </button>
+  );
+}
+
 export default function RefVsStateLab() {
   const [mode, setMode] = useQueryState(
     "mode",
@@ -426,7 +453,7 @@ export default function RefVsStateLab() {
     setLoaded(false);
     setReloadCount((c) => c + 1);
     // Reset the ref-based image opacity when reloading
-    if (imgRef.current) {
+    if (imgRef.current !== null) {
       imgRef.current.classList.remove("opacity-100");
       imgRef.current.classList.add("opacity-0");
     }
@@ -487,18 +514,12 @@ export default function RefVsStateLab() {
         {/* Mode Toggle */}
         <div className="flex gap-2">
           {(["useRef", "useState"] as const).map((m) => (
-            <button
-              className={`rounded-full border px-4 py-1.5 font-mono text-xs transition-all ${
-                currentMode === m
-                  ? "border-white bg-white text-black"
-                  : "border-white/10 text-white/40 hover:border-white/20"
-              }`}
+            <ModeButton
+              active={currentMode === m}
               key={m}
-              onClick={() => handleModeChange(m)}
-              type="button"
-            >
-              {m}
-            </button>
+              mode={m}
+              onSelect={handleModeChange}
+            />
           ))}
         </div>
       </header>

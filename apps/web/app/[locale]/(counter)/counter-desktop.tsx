@@ -20,9 +20,9 @@ import {
 import { SkeletonCode } from "./skeleton";
 
 const flipVariants = {
-  initial: { rotateY: 90, opacity: 0 },
-  animate: { rotateY: 0, opacity: 1 },
-  exit: { rotateY: -90, opacity: 0 },
+  animate: { opacity: 1, rotateY: 0 },
+  exit: { opacity: 0, rotateY: -90 },
+  initial: { opacity: 0, rotateY: 90 },
 };
 
 export function CounterDesktop() {
@@ -38,6 +38,11 @@ export function CounterDesktop() {
 
   const handleAnimationComplete = useCallback(() => {
     setComponentToShow("buttonDisplay");
+  }, []);
+
+  const handleIncrease = useCallback(() => {
+    dispatch({ type: "updated" });
+    setComponentToShow("codeDisplay");
   }, []);
 
   const codeSnippets = getCodeSnippets(state.internalCount);
@@ -69,10 +74,7 @@ export function CounterDesktop() {
                 <Button
                   className="rounded-md bg-zinc-800 px-12 py-2 font-semibold text-base text-orange-500 leading-6 ring-1 ring-zinc-200/20 transition duration-150 ease-in-out enabled:hover:text-orange-400 enabled:hover:shadow-[0_0_0.5em_0em_rgba(236,159,72,0.6)] disabled:cursor-not-allowed disabled:opacity-70"
                   disabled={state.disabled}
-                  onClick={() => {
-                    dispatch({ type: "updated" });
-                    setComponentToShow("codeDisplay");
-                  }}
+                  onClick={handleIncrease}
                 >
                   <span>
                     {state.disabled
@@ -143,6 +145,10 @@ interface CounterContentProps {
 }
 
 function CounterContent({ state, dispatch }: CounterContentProps) {
+  const handleArm = useCallback(() => {
+    dispatch({ type: "updating" });
+  }, [dispatch]);
+
   return (
     <>
       <div className="flex h-full w-[600px] flex-col items-center justify-center gap-y-6 self-center p-4 font-medium text-foreground">
@@ -164,9 +170,7 @@ function CounterContent({ state, dispatch }: CounterContentProps) {
         <Button
           className="rounded-md bg-zinc-800 px-12 py-2 font-semibold text-base text-orange-200 leading-6 ring-1 ring-zinc-200/20 transition duration-150 ease-in-out hover:bg-zinc-800/90 enabled:hover:text-orange-100 enabled:hover:shadow-[0_0_0.5em_0em_rgba(161,161,170,0.6)] disabled:cursor-not-allowed disabled:opacity-70"
           disabled={!state.disabled}
-          onClick={() => {
-            dispatch({ type: "updating" });
-          }}
+          onClick={handleArm}
         >
           +1 {"\u{1F330}"}
         </Button>

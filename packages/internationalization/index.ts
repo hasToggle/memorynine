@@ -16,12 +16,13 @@ const dictionaries: Record<string, () => Promise<Dictionary>> =
   Object.fromEntries(
     locales.map((locale) => [
       locale,
-      () =>
-        import(`./dictionaries/${locale}.json`)
-          .then((mod) => mod.default)
-          .catch((_err) =>
-            import("./dictionaries/en.json").then((mod) => mod.default)
-          ),
+      async (): Promise<Dictionary> => {
+        try {
+          return (await import(`./dictionaries/${locale}.json`)).default;
+        } catch {
+          return (await import("./dictionaries/en.json")).default;
+        }
+      },
     ])
   );
 
@@ -30,7 +31,7 @@ const isValidLocale = (locale: string): locale is Locale =>
 
 export const getDictionary = cache(
   async (locale: string): Promise<Dictionary> => {
-    const normalizedLocale = locale.split("-")[0];
+    const [normalizedLocale] = locale.split("-");
 
     if (!isValidLocale(normalizedLocale)) {
       return dictionaries.en();
@@ -38,7 +39,7 @@ export const getDictionary = cache(
 
     try {
       return await dictionaries[normalizedLocale]();
-    } catch (_error) {
+    } catch {
       return dictionaries.en();
     }
   }

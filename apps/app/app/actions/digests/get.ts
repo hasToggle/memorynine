@@ -9,18 +9,18 @@ export async function getPublishedDigests() {
 
   const digests = await database.digest
     .find({
-      status: "sent",
       sentAt: { $lte: sevenDaysAgo },
+      status: "sent",
     })
     .sort({ sentAt: -1 })
     .toArray();
 
   return digests.map((d) => ({
     id: d._id.toString(),
-    title: d.title,
     misconception: d.misconception,
-    series: d.series,
     sentAt: d.sentAt,
+    series: d.series,
+    title: d.title,
   }));
 }
 
@@ -39,11 +39,11 @@ export async function getDigestById(id: string) {
   }
 
   return {
-    id: digest._id.toString(),
-    title: digest.title,
-    misconception: digest.misconception,
     content: digest.content,
-    series: digest.series,
+    id: digest._id.toString(),
+    misconception: digest.misconception,
     sentAt: digest.sentAt,
+    series: digest.series,
+    title: digest.title,
   };
 }

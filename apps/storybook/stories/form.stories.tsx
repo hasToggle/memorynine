@@ -9,7 +9,7 @@ import {
   FormMessage,
 } from "@repo/design-system/components/ui/form";
 import type { Meta, StoryObj } from "@storybook/react";
-import { useForm } from "react-hook-form";
+import { type ControllerRenderProps, useForm } from "react-hook-form";
 import { action } from "storybook/actions";
 import { z } from "zod";
 
@@ -17,11 +17,11 @@ import { z } from "zod";
  * Building forms with React Hook Form and Zod.
  */
 const meta: Meta<typeof Form> = {
-  title: "ui/Form",
-  component: Form,
-  tags: ["autodocs"],
   argTypes: {},
+  component: Form,
   render: (args) => <ProfileForm {...args} />,
+  tags: ["autodocs"],
+  title: "ui/Form",
 } satisfies Meta<typeof Form>;
 
 export default meta;
@@ -34,12 +34,32 @@ const formSchema = z.object({
   }),
 });
 
+type UsernameField = ControllerRenderProps<
+  z.infer<typeof formSchema>,
+  "username"
+>;
+
+const renderUsernameField = ({ field }: { field: UsernameField }) => (
+  <FormItem>
+    <FormLabel>Username</FormLabel>
+    <FormControl>
+      <input
+        className="w-full rounded-md border border-input bg-background px-3 py-2"
+        placeholder="username"
+        {...field}
+      />
+    </FormControl>
+    <FormDescription>This is your public display name.</FormDescription>
+    <FormMessage />
+  </FormItem>
+);
+
 const ProfileForm = (args: Story["args"]) => {
   const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
     defaultValues: {
       username: "",
     },
+    resolver: zodResolver(formSchema),
   });
   function onSubmit(values: z.infer<typeof formSchema>) {
     action("onSubmit")(values);
@@ -50,22 +70,7 @@ const ProfileForm = (args: Story["args"]) => {
         <FormField
           control={form.control}
           name="username"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Username</FormLabel>
-              <FormControl>
-                <input
-                  className="w-full rounded-md border border-input bg-background px-3 py-2"
-                  placeholder="username"
-                  {...field}
-                />
-              </FormControl>
-              <FormDescription>
-                This is your public display name.
-              </FormDescription>
-              <FormMessage />
-            </FormItem>
-          )}
+          render={renderUsernameField}
         />
         <button
           className="rounded bg-primary px-4 py-2 text-primary-foreground"

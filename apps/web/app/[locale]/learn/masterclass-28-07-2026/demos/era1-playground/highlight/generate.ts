@@ -15,7 +15,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHighlighter } from "shiki";
-import { PROMPTS } from "../selector";
+import { PROMPTS } from "../completions";
 import {
   type CompletionToken,
   fingerprintSources,

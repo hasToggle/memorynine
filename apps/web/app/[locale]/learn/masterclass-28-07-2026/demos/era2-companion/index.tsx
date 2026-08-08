@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
-import { SUGGESTION } from "./apply";
+import { useCallback, useState } from "react";
 import type { FilePhase } from "./highlight/index";
 import { FILE_TOKENS } from "./highlight/tokens.generated";
+import { SUGGESTION } from "./suggestions";
 
 /** VS Code Dark+, held deliberately outside the page's theme. */
 const EDITOR_BG = "#1e1e1e";
@@ -40,12 +40,13 @@ export function Era2Companion() {
   const [phase, setPhase] = useState<FilePhase>("initial");
   const [ghostAccepted, setGhostAccepted] = useState(false);
 
-  const apply = () => setPhase("applied");
-  const fix = () => setPhase("resolved");
-  const reset = () => {
+  const apply = useCallback(() => setPhase("applied"), []);
+  const fix = useCallback(() => setPhase("resolved"), []);
+  const acceptGhost = useCallback(() => setGhostAccepted(true), []);
+  const reset = useCallback(() => {
     setPhase("initial");
     setGhostAccepted(false);
-  };
+  }, []);
 
   const lines = FILE_TOKENS[phase];
   const ghostShowing = phase === "initial";
@@ -76,6 +77,18 @@ export function Era2Companion() {
       return { backgroundColor: ADDED_BG };
     }
   };
+
+  // Identity is assigned here rather than in the JSX: a phase swaps the whole
+  // token table at once, so position is the only identity these rows have.
+  const gutter = Array.from({ length: rowCount }, (_, i) => i + 1);
+  const rows = lines.map((tokens, lineIndex) => ({
+    background: rowBackground(lineIndex),
+    id: `line-${lineIndex}`,
+    tokens: tokens.map((token, tokenIndex) => ({
+      ...token,
+      id: `token-${lineIndex}-${tokenIndex}`,
+    })),
+  }));
 
   return (
     <div className="space-y-3">
@@ -111,8 +124,8 @@ export function Era2Companion() {
                 className="select-none border-r px-3 py-3 text-right"
                 style={{ borderColor: RULE, color: GUTTER_FG }}
               >
-                {Array.from({ length: rowCount }, (_, i) => (
-                  <div key={`ln${i + 1}`}>{i + 1}</div>
+                {gutter.map((n) => (
+                  <div key={n}>{n}</div>
                 ))}
               </div>
               {/* `whitespace-pre` keeps the indentation HTML would otherwise
@@ -122,15 +135,12 @@ export function Era2Companion() {
                 className="flex-1 overflow-x-auto whitespace-pre px-3 py-3"
                 style={{ color: EDITOR_FG, minHeight: CODE_MIN_HEIGHT }}
               >
-                {lines.map((tokens, lineIndex) => (
-                  <div key={`l${lineIndex}`} style={rowBackground(lineIndex)}>
-                    {tokens.length === 0
+                {rows.map((row) => (
+                  <div key={row.id} style={row.background}>
+                    {row.tokens.length === 0
                       ? " "
-                      : tokens.map((token, tokenIndex) => (
-                          <span
-                            key={`t${tokenIndex}`}
-                            style={{ color: token.c }}
-                          >
+                      : row.tokens.map((token) => (
+                          <span key={token.id} style={{ color: token.c }}>
                             {token.t}
                           </span>
                         ))}
@@ -143,7 +153,7 @@ export function Era2Companion() {
                 {ghostShowing ? (
                   <button
                     className="block w-full text-left italic hover:brightness-125"
-                    onClick={() => setGhostAccepted(true)}
+                    onClick={acceptGhost}
                     style={{ color: EDITOR_DIM }}
                     type="button"
                   >

@@ -16,7 +16,7 @@ const baseUrl = process.env.NEXT_PUBLIC_APEX_URL
   ? `https://${process.env.NEXT_PUBLIC_APEX_URL}`
   : "";
 
-export const WelcomeEmail = (): ReactElement => (
+const WelcomeEmail = (): ReactElement => (
   <Html>
     <Head />
     <Preview>

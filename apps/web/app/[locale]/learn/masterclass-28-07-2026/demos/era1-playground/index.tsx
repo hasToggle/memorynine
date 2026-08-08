@@ -4,6 +4,7 @@ import { Button } from "@repo/design-system/components/ui/button";
 import { AnimatePresence, motion } from "motion/react";
 import type { CSSProperties, MouseEvent } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { OUTPUT_LINES, PROMPTS } from "./completions";
 import { ConsoleChrome } from "./console-chrome";
 import { dispositionFor } from "./disposition";
 import { completionClass, prefixIsComment, visibleTokens } from "./highlight";
@@ -11,14 +12,7 @@ import { COMPLETION_TOKENS, PREFIX_TOKENS } from "./highlight/tokens.generated";
 import { PhaseFooter } from "./phase-footer";
 import { furthestOf, type PhaseId, phaseFor, phaseImpliedBy } from "./phases";
 import { PromptTabs } from "./prompt-tabs";
-import {
-  bandFor,
-  INITIAL_TEMP,
-  type Mode,
-  OUTPUT_LINES,
-  PROMPTS,
-  selectCompletion,
-} from "./selector";
+import { bandFor, INITIAL_TEMP, type Mode, selectCompletion } from "./selector";
 import {
   type DemoSnapshot,
   freshSnapshot,
@@ -52,7 +46,7 @@ export function Era1Playground({ presenter }: Era1PlaygroundProps) {
   }, [snap]);
 
   const stopTimer = useCallback(() => {
-    if (timer.current) {
+    if (timer.current !== null) {
       clearInterval(timer.current);
       timer.current = null;
     }
@@ -63,7 +57,7 @@ export function Era1Playground({ presenter }: Era1PlaygroundProps) {
   // returns a completed run rather than a sentence cut in half.
   useEffect(
     () => () => {
-      if (timer.current) {
+      if (timer.current !== null) {
         clearInterval(timer.current);
         timer.current = null;
         saveSnapshot({ ...latest.current, output: target.current });
@@ -232,6 +226,16 @@ export function Era1Playground({ presenter }: Era1PlaygroundProps) {
     COMPLETION_TOKENS[completionKey] ?? [],
     snap.output.length
   );
+  // Tokens are a positional stream — the same word recurs — so identity is
+  // assigned here rather than leaning on the render-time index.
+  const prefixSpans = prefixTokens.map((token, index) => ({
+    ...token,
+    id: `${prompt.id}-prefix-${index}`,
+  }));
+  const completionSpans = shownTokens.map((token, index) => ({
+    ...token,
+    id: `${completionKey}-${index}`,
+  }));
 
   return (
     <div className="mb-6">
@@ -257,21 +261,21 @@ export function Era1Playground({ presenter }: Era1PlaygroundProps) {
               className="overflow-auto whitespace-pre-wrap p-4 font-mono text-[15px] leading-7"
               style={{ height: OUTPUT_HEIGHT }}
             >
-              {prefixTokens.map((token, index) => (
+              {prefixSpans.map((token) => (
                 <span
                   className={
                     prefixIsComment(token.k)
                       ? "text-foreground/85 italic"
                       : "text-[var(--tl)] dark:text-[var(--td)]"
                   }
-                  key={`p${index}`}
+                  key={token.id}
                   style={{ "--td": token.d, "--tl": token.l } as CSSProperties}
                 >
                   {token.t}
                 </span>
               ))}
-              {shownTokens.map((token, index) => (
-                <span className={completionClass(token.k)} key={`c${index}`}>
+              {completionSpans.map((token) => (
+                <span className={completionClass(token.k)} key={token.id}>
                   {token.t}
                 </span>
               ))}

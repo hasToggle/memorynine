@@ -4,9 +4,9 @@ import { POST } from "./route";
 
 function makeRequest(body: Record<string, unknown>) {
   return new NextRequest("http://localhost:3001/api/confirm", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
   });
 }
 

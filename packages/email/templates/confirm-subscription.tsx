@@ -21,7 +21,7 @@ interface ConfirmSubscriptionProps {
   readonly token: string;
 }
 
-export const ConfirmSubscription = ({
+const ConfirmSubscription = ({
   token,
   baseUrl = fallbackBaseUrl,
 }: ConfirmSubscriptionProps) => (
@@ -80,8 +80,8 @@ export const ConfirmSubscription = ({
 );
 
 ConfirmSubscription.PreviewProps = {
-  token: "abc123",
   baseUrl: "https://example.com",
+  token: "abc123",
 };
 
 export default ConfirmSubscription;

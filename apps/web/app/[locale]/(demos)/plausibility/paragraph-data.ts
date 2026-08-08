@@ -47,11 +47,11 @@ export const GROUNDED_PARAGRAPH: { segments: GroundedSegment[] } = {
       kind: "text",
       text: "Move your fetches to a Server Component and mark them with ",
     },
-    { kind: "api", text: "'use cache'", api: "use cache" },
+    { api: "use cache", kind: "api", text: "'use cache'" },
     { kind: "text", text: " plus " },
-    { kind: "api", text: "cacheLife('minutes')", api: "cacheLife" },
+    { api: "cacheLife", kind: "api", text: "cacheLife('minutes')" },
     { kind: "text", text: ". Use " },
-    { kind: "api", text: "<Suspense>", api: "Suspense" },
+    { api: "Suspense", kind: "api", text: "<Suspense>" },
     {
       kind: "text",
       text: " boundaries to stream the rest of the shell in parallel. ",
@@ -68,7 +68,7 @@ export const GROUNDED_PARAGRAPH: { segments: GroundedSegment[] } = {
 };
 
 export const API_TOOLTIPS: Record<ApiName, string> = {
-  "use cache": "verified against retrieved docs.",
   cacheLife: "verified against retrieved docs.",
   Suspense: "verified against retrieved docs.",
+  "use cache": "verified against retrieved docs.",
 };

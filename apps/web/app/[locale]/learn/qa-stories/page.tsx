@@ -3,7 +3,7 @@
 import { Button } from "@repo/design-system/components/ui/button";
 import { Bug, ListTodo, Plus, Trash2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 // --- Constants ---
 const GRID_OPACITY = 0.03;
@@ -30,49 +30,49 @@ const CLICKS_FOR_INSIGHT = 2;
 // --- User Stories (hidden until revealed) ---
 const USER_STORIES = [
   {
-    id: "US-001",
-    title: "As a user, I can add a text item to my list",
     criteria: [
       { id: "AC1", text: "Input accepts text up to 200 characters" },
       { id: "AC2", text: "Empty input shows validation error" },
       { id: "AC3", text: "Leading/trailing whitespace is trimmed" },
       { id: "AC4", text: "Pressing Enter submits the form" },
     ],
+    id: "US-001",
+    title: "As a user, I can add a text item to my list",
   },
   {
-    id: "US-002",
-    title: "As a user, I can see my list of items",
     criteria: [
       { id: "AC1", text: "Items display in order added (newest last)" },
       { id: "AC2", text: "Special characters are safely displayed" },
       { id: "AC3", text: "Long items are truncated with ellipsis" },
     ],
+    id: "US-002",
+    title: "As a user, I can see my list of items",
   },
   {
-    id: "US-003",
-    title: "As a user, I can delete items from my list",
     criteria: [
       { id: "AC1", text: "Each item has a delete button" },
       { id: "AC2", text: "Clicking delete removes item immediately" },
       { id: "AC3", text: "No confirmation required (per UX decision)" },
     ],
+    id: "US-003",
+    title: "As a user, I can delete items from my list",
   },
   {
-    id: "US-004",
-    title: "As a user, I expect standard accessibility",
     criteria: [
       { id: "AC1", text: "All interactive elements are keyboard accessible" },
       { id: "AC2", text: "Screen readers can navigate the list" },
       { id: "AC3", text: "Focus moves appropriately after actions" },
     ],
+    id: "US-004",
+    title: "As a user, I expect standard accessibility",
   },
   {
-    id: "US-005",
-    title: "As a user, my data persists",
     criteria: [
       { id: "AC1", text: "Items are saved to localStorage" },
       { id: "AC2", text: "Refreshing page restores my list" },
     ],
+    id: "US-005",
+    title: "As a user, my data persists",
   },
 ];
 
@@ -81,6 +81,39 @@ const USER_STORIES = [
 interface BugEntry {
   id: string;
   text: string;
+}
+
+function BugRow({
+  bug,
+  onRemove,
+}: {
+  bug: BugEntry;
+  onRemove: (id: string) => void;
+}) {
+  const remove = useCallback(() => onRemove(bug.id), [bug.id, onRemove]);
+
+  return (
+    <motion.div
+      animate={{ opacity: 1, x: 0 }}
+      className="group flex items-start gap-2 rounded-lg border border-white/5 bg-white/5 p-2"
+      exit={{ opacity: 0, x: -20 }}
+      initial={{ opacity: 0, x: -20 }}
+      layout
+    >
+      <Bug className="mt-0.5 h-3 w-3 shrink-0 text-red-400" />
+      {/* Bug: whitespace-nowrap causes long descriptions to overflow */}
+      <span className="flex-1 whitespace-nowrap text-white/70 text-xs">
+        {bug.text}
+      </span>
+      <button
+        className="opacity-0 transition-opacity group-hover:opacity-100"
+        onClick={remove}
+        type="button"
+      >
+        <Trash2 className="h-3 w-3 text-white/30 hover:text-red-400" />
+      </button>
+    </motion.div>
+  );
 }
 
 function BugLogPanel({
@@ -94,12 +127,18 @@ function BugLogPanel({
 }) {
   const [input, setInput] = useState("");
 
-  const handleSubmit = () => {
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) =>
+      setInput(event.target.value),
+    []
+  );
+
+  const handleSubmit = useCallback(() => {
     if (input.trim()) {
       onAddBug(input);
       setInput("");
     }
-  };
+  }, [input, onAddBug]);
 
   return (
     <div className="flex h-full flex-col">
@@ -111,7 +150,7 @@ function BugLogPanel({
         {/* Bug: Intentional typo in placeholder - "you" instead of "your" */}
         <input
           className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
-          onChange={(e) => setInput(e.target.value)}
+          onChange={handleChange}
           placeholder="Log your findings..."
           type="text"
           value={input}
@@ -130,27 +169,7 @@ function BugLogPanel({
       <div className="flex-1 space-y-2 overflow-hidden">
         <AnimatePresence mode="popLayout">
           {bugs.map((bug) => (
-            <motion.div
-              animate={{ opacity: 1, x: 0 }}
-              className="group flex items-start gap-2 rounded-lg border border-white/5 bg-white/5 p-2"
-              exit={{ opacity: 0, x: -20 }}
-              initial={{ opacity: 0, x: -20 }}
-              key={bug.id}
-              layout
-            >
-              <Bug className="mt-0.5 h-3 w-3 shrink-0 text-red-400" />
-              {/* Bug: whitespace-nowrap causes long descriptions to overflow */}
-              <span className="flex-1 whitespace-nowrap text-white/70 text-xs">
-                {bug.text}
-              </span>
-              <button
-                className="opacity-0 transition-opacity group-hover:opacity-100"
-                onClick={() => onRemoveBug(bug.id)}
-                type="button"
-              >
-                <Trash2 className="h-3 w-3 text-white/30 hover:text-red-400" />
-              </button>
-            </motion.div>
+            <BugRow bug={bug} key={bug.id} onRemove={onRemoveBug} />
           ))}
         </AnimatePresence>
 
@@ -178,22 +197,66 @@ interface TodoItem {
   text: string;
 }
 
+function TodoRow({
+  item,
+  onDelete,
+}: {
+  item: TodoItem;
+  onDelete: (id: string) => void;
+}) {
+  const remove = useCallback(() => onDelete(item.id), [item.id, onDelete]);
+
+  return (
+    <motion.div
+      animate={{ opacity: 1, y: 0 }}
+      className="group flex items-center gap-3 rounded-lg border border-white/5 bg-white/5 p-3"
+      exit={{ opacity: 0, scale: 0.8 }}
+      initial={{ opacity: 0, y: -10 }}
+      layout
+    >
+      {/* Bug: No truncation, special chars render raw, broken tabindex */}
+      <span
+        className="flex-1 text-sm text-white/80"
+        // biome-ignore lint/security/noDangerouslySetInnerHtml: Intentional bug for demo
+        dangerouslySetInnerHTML={{ __html: item.text }}
+      />
+      <button
+        className="opacity-0 transition-opacity group-hover:opacity-100"
+        onClick={remove}
+        tabIndex={-1} // Bug: broken tab order
+        type="button"
+      >
+        <Trash2 className="h-4 w-4 text-white/30 hover:text-red-400" />
+      </button>
+    </motion.div>
+  );
+}
+
 function BuggyTodoDemo({ onInteraction }: { onInteraction: () => void }) {
   const [items, setItems] = useState<TodoItem[]>([]);
   const [input, setInput] = useState("");
 
+  const handleChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) =>
+      setInput(event.target.value),
+    []
+  );
+
   // Bug: No validation, no trimming, doesn't clear input
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     const newItem: TodoItem = { id: crypto.randomUUID(), text: input };
     setItems([...items, newItem]); // Bug: doesn't validate empty, doesn't trim, doesn't clear
     onInteraction();
-  };
+  }, [input, items, onInteraction]);
 
   // Bug: No confirmation, no undo, broken tab order after delete
-  const handleDelete = (id: string) => {
-    setItems(items.filter((item) => item.id !== id));
-    onInteraction();
-  };
+  const handleDelete = useCallback(
+    (id: string) => {
+      setItems(items.filter((item) => item.id !== id));
+      onInteraction();
+    },
+    [items, onInteraction]
+  );
 
   return (
     <div className="flex w-full max-w-md flex-col gap-4">
@@ -207,7 +270,7 @@ function BuggyTodoDemo({ onInteraction }: { onInteraction: () => void }) {
             {/* Bug: No Enter key support, no maxLength */}
             <input
               className="flex-1 rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
-              onChange={(e) => setInput(e.target.value)}
+              onChange={handleChange}
               placeholder="Add an item..."
               type="text"
               value={input}
@@ -225,29 +288,7 @@ function BuggyTodoDemo({ onInteraction }: { onInteraction: () => void }) {
           <div className="min-h-[200px] space-y-2">
             <AnimatePresence mode="popLayout">
               {items.map((item) => (
-                <motion.div
-                  animate={{ opacity: 1, y: 0 }}
-                  className="group flex items-center gap-3 rounded-lg border border-white/5 bg-white/5 p-3"
-                  exit={{ opacity: 0, scale: 0.8 }}
-                  initial={{ opacity: 0, y: -10 }}
-                  key={item.id}
-                  layout
-                >
-                  {/* Bug: No truncation, special chars render raw, broken tabindex */}
-                  <span
-                    className="flex-1 text-sm text-white/80"
-                    // biome-ignore lint/security/noDangerouslySetInnerHtml: Intentional bug for demo
-                    dangerouslySetInnerHTML={{ __html: item.text }}
-                  />
-                  <button
-                    className="opacity-0 transition-opacity group-hover:opacity-100"
-                    onClick={() => handleDelete(item.id)}
-                    tabIndex={-1} // Bug: broken tab order
-                    type="button"
-                  >
-                    <Trash2 className="h-4 w-4 text-white/30 hover:text-red-400" />
-                  </button>
-                </motion.div>
+                <TodoRow item={item} key={item.id} onDelete={handleDelete} />
               ))}
             </AnimatePresence>
 
@@ -268,12 +309,14 @@ function UserStoryCard({
 }: {
   story: (typeof USER_STORIES)[0];
   expanded: boolean;
-  onToggle: () => void;
+  onToggle: (id: string) => void;
 }) {
+  const toggle = useCallback(() => onToggle(story.id), [onToggle, story.id]);
+
   return (
     <button
       className="w-full rounded-lg border border-white/10 bg-white/5 p-3 text-left transition-colors hover:border-white/20"
-      onClick={onToggle}
+      onClick={toggle}
       type="button"
     >
       <div className="flex items-center gap-2">
@@ -283,7 +326,7 @@ function UserStoryCard({
         <span className="text-white/60 text-xs">{story.title}</span>
       </div>
       <AnimatePresence>
-        {expanded && (
+        {expanded ? (
           <motion.div
             animate={{ height: "auto", opacity: 1 }}
             className="overflow-hidden"
@@ -302,7 +345,7 @@ function UserStoryCard({
               ))}
             </ul>
           </motion.div>
-        )}
+        ) : null}
       </AnimatePresence>
     </button>
   );
@@ -318,6 +361,10 @@ function DiscoveryPanel({
   challengeClicks: number;
 }) {
   const [expandedStory, setExpandedStory] = useState<string | null>(null);
+  const toggleStory = useCallback(
+    (id: string) => setExpandedStory((current) => (current === id ? null : id)),
+    []
+  );
 
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto">
@@ -424,9 +471,7 @@ function DiscoveryPanel({
               <UserStoryCard
                 expanded={expandedStory === story.id}
                 key={story.id}
-                onToggle={() =>
-                  setExpandedStory(expandedStory === story.id ? null : story.id)
-                }
+                onToggle={toggleStory}
                 story={story}
               />
             ))}

@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@repo/design-system/lib/utils";
-import { useEffect, useReducer } from "react";
+import { useCallback, useEffect, useReducer } from "react";
 import { LANES, type LaneMeta } from "./lanes";
 import {
   type BoardAction,
@@ -11,6 +11,7 @@ import {
   initialBoardState,
   isAnyExecuting,
   isBoardDone,
+  type LaneId,
   type LaneState,
 } from "./reducer";
 
@@ -22,6 +23,8 @@ export function Era3Pipeline() {
     undefined,
     initialBoardState
   );
+
+  const reset = useCallback(() => dispatch({ type: "reset" }), []);
 
   // Only on the clock while something is actually running.
   const running = isAnyExecuting(state);
@@ -73,7 +76,7 @@ export function Era3Pipeline() {
           </span>
           <button
             className="shrink-0 rounded border border-foreground/15 px-2 py-1 font-mono text-muted-foreground text-xs hover:text-foreground"
-            onClick={() => dispatch({ type: "reset" })}
+            onClick={reset}
             type="button"
           >
             ↺ reset
@@ -132,6 +135,31 @@ const CELL_SPENT = "border-foreground/10 text-muted-foreground";
 const ACTION =
   "w-full rounded bg-foreground px-2 py-1 text-background transition-opacity hover:opacity-90";
 
+/** One click, one lane transition — the callback lives here so each cell's
+ *  button gets a stable handler. */
+function LaneAction({
+  dispatch,
+  label,
+  lane,
+  type,
+}: {
+  dispatch: React.Dispatch<BoardAction>;
+  label: string;
+  lane: LaneId;
+  type: "accept" | "handOff" | "markDone" | "toValidation";
+}) {
+  const fire = useCallback(
+    () => dispatch({ lane, type }),
+    [dispatch, lane, type]
+  );
+
+  return (
+    <button className={ACTION} onClick={fire} type="button">
+      {label}
+    </button>
+  );
+}
+
 function PlanCell({
   dispatch,
   laneId,
@@ -144,13 +172,12 @@ function PlanCell({
   if (phase === "planned") {
     return (
       <div className={cn(CELL, "border-ht-cyan-500/50")}>
-        <button
-          className={ACTION}
-          onClick={() => dispatch({ lane: laneId, type: "handOff" })}
-          type="button"
-        >
-          Hand off →
-        </button>
+        <LaneAction
+          dispatch={dispatch}
+          label="Hand off →"
+          lane={laneId}
+          type="handOff"
+        />
       </div>
     );
   }
@@ -178,13 +205,12 @@ function ExecuteCell({
         <div className="text-foreground tabular-nums">
           ⏱ {formatElapsed(elapsedMs)}
         </div>
-        <button
-          className={ACTION}
-          onClick={() => dispatch({ lane: laneId, type: "markDone" })}
-          type="button"
-        >
-          done
-        </button>
+        <LaneAction
+          dispatch={dispatch}
+          label="done"
+          lane={laneId}
+          type="markDone"
+        />
       </div>
     );
   }
@@ -207,26 +233,24 @@ function ValidateCell({
   if (phase === "executed") {
     return (
       <div className={cn(CELL, "border-ht-cyan-500/50")}>
-        <button
-          className={ACTION}
-          onClick={() => dispatch({ lane: laneId, type: "toValidation" })}
-          type="button"
-        >
-          Validate →
-        </button>
+        <LaneAction
+          dispatch={dispatch}
+          label="Validate →"
+          lane={laneId}
+          type="toValidation"
+        />
       </div>
     );
   }
   if (phase === "validating") {
     return (
       <div className={cn(CELL, "border-ht-cyan-500/50")}>
-        <button
-          className={ACTION}
-          onClick={() => dispatch({ lane: laneId, type: "accept" })}
-          type="button"
-        >
-          Accept ✓
-        </button>
+        <LaneAction
+          dispatch={dispatch}
+          label="Accept ✓"
+          lane={laneId}
+          type="accept"
+        />
       </div>
     );
   }

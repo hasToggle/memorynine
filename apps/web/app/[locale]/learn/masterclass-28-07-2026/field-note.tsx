@@ -27,6 +27,10 @@ export function FieldNote({
   date,
   label = "field note",
 }: FieldNoteProps) {
+  // One expression, not `{label} · {date}`: JSX would leave the separator
+  // and its spaces behind when the date is absent.
+  const attribution = date ? `${label} · ${date}` : label;
+
   return (
     <aside
       className={cn(
@@ -34,10 +38,8 @@ export function FieldNote({
         className
       )}
     >
-      {/* One expression, not `{label} · {date}`: JSX would leave the separator
-          and its spaces behind when the date is absent. */}
       <p className="font-mono text-[11px] text-muted-foreground uppercase tracking-[0.2em]">
-        {date ? `${label} · ${date}` : label}
+        {attribution}
       </p>
       <div className="mt-2 font-mono text-foreground/70 text-sm/6">
         {children}

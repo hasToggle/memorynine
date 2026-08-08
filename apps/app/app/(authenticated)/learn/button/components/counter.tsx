@@ -34,15 +34,15 @@ interface CounterAction {
 }
 
 const initialState: CounterState = {
-  count: 0,
-  internalCount: 0,
-  disabled: true,
-  info: "Hazel is a professional squirrel and junior React developer. She can collect hazelnuts for you.",
-  title: "About hazelnuts 🌰",
+  animateRerendering: false,
   aside:
     "Winter is coming. Hazel needs to save some hazelnuts for the cold months.",
+  count: 0,
+  disabled: true,
+  info: "Hazel is a professional squirrel and junior React developer. She can collect hazelnuts for you.",
+  internalCount: 0,
   label: "Become a React dev",
-  animateRerendering: false,
+  title: "About hazelnuts 🌰",
 };
 
 const counterReducer: Reducer<CounterState, CounterAction> = (
@@ -53,23 +53,23 @@ const counterReducer: Reducer<CounterState, CounterAction> = (
     case "updating":
       return {
         ...state,
-        internalCount: state.internalCount + 1,
-        info: "Hazel has got a fine nose. She can smell something's happening.",
-        label: "React",
-        disabled: false,
-        title: "Hazel is ready!",
         aside: "Click the button to have Hazel get another hazelnut.",
+        disabled: false,
+        info: "Hazel has got a fine nose. She can smell something's happening.",
+        internalCount: state.internalCount + 1,
+        label: "React",
+        title: "Hazel is ready!",
       };
     case "updated":
       return {
         ...state,
+        animateRerendering: true,
+        aside: "You are now a React dev.",
         count: state.count + 1,
+        disabled: true,
         info: "That's the spirit! You and Hazel are a great team.",
         label: "React",
-        animateRerendering: true,
-        disabled: true,
         title: "Well done!",
-        aside: "You are now a React dev.",
       };
     default:
       return state;
@@ -77,9 +77,9 @@ const counterReducer: Reducer<CounterState, CounterAction> = (
 };
 
 const flipVariants = {
-  initial: { rotateY: 90, opacity: 0 },
-  animate: { rotateY: 0, opacity: 1 },
-  exit: { rotateY: -90, opacity: 0 },
+  animate: { opacity: 1, rotateY: 0 },
+  exit: { opacity: 0, rotateY: -90 },
+  initial: { opacity: 0, rotateY: 90 },
 };
 
 export function Counter() {
@@ -89,6 +89,11 @@ export function Counter() {
   >("buttonDisplay");
 
   const pendingHighlighter = initHighlighter();
+
+  const handleIncrease = useCallback(() => {
+    dispatch({ type: "updated" });
+    setComponentToShow("codeDisplay");
+  }, []);
 
   const handleAnimationComplete = useCallback(() => {
     setComponentToShow("buttonDisplay");
@@ -128,10 +133,7 @@ export function Counter() {
                 <Button
                   className="rounded-md bg-zinc-800 px-12 py-2 font-semibold text-base text-orange-500 leading-6 ring-1 ring-zinc-200/20 transition duration-150 ease-in-out enabled:hover:text-orange-400 enabled:hover:shadow-[0_0_0.5em_0em_rgba(236,159,72,0.6)] disabled:cursor-not-allowed disabled:opacity-70"
                   disabled={state.disabled}
-                  onClick={() => {
-                    dispatch({ type: "updated" });
-                    setComponentToShow("codeDisplay");
-                  }}
+                  onClick={handleIncrease}
                 >
                   <span>
                     {state.disabled

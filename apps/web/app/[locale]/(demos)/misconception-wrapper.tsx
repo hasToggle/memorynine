@@ -34,14 +34,14 @@ export function MisconceptionWrapper({
             <span className="font-mono text-4xl text-muted-foreground/40 tabular-nums leading-none tracking-tight lg:text-right lg:text-5xl">
               {chapterNumber}
             </span>
-            {tag && (
+            {tag ? (
               <Badge
                 className="border-ht-cyan-700/25 font-mono font-normal text-[0.65rem] text-ht-cyan-800/70 uppercase tracking-[0.2em] lg:mt-4 dark:border-ht-cyan-500/35 dark:text-ht-cyan-300/85"
                 variant="outline"
               >
                 {tag}
               </Badge>
-            )}
+            ) : null}
           </div>
 
           <div className="max-w-2xl">
@@ -56,7 +56,7 @@ export function MisconceptionWrapper({
               {hook}
             </Heading>
 
-            {question && (
+            {question ? (
               <div className="mt-6">
                 <p className="mb-1 font-medium font-mono text-[0.7rem] text-muted-foreground uppercase tracking-[0.2em]">
                   Question you didn&apos;t ask
@@ -65,11 +65,11 @@ export function MisconceptionWrapper({
                   {question}
                 </p>
               </div>
-            )}
+            ) : null}
 
-            {meta && <MetaAside className="mt-5">{meta}</MetaAside>}
+            {meta ? <MetaAside className="mt-5">{meta}</MetaAside> : null}
 
-            {reality && (
+            {reality ? (
               <div className="mt-10">
                 <p className="mb-2 font-medium font-mono text-[0.7rem] text-ht-cyan-700 uppercase tracking-[0.2em] dark:text-ht-cyan-300/90">
                   Reality
@@ -78,7 +78,7 @@ export function MisconceptionWrapper({
                   {reality}
                 </p>
               </div>
-            )}
+            ) : null}
           </div>
         </div>
 

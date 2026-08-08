@@ -9,8 +9,8 @@ export function initHighlighter() {
     highlighterInstance = import("shiki").then(
       ({ createHighlighter: create }) =>
         create({
-          themes: ["ayu-dark"],
           langs: ["jsx", "tsx"],
+          themes: ["ayu-dark"],
         })
     );
   }

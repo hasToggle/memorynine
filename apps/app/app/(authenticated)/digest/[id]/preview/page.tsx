@@ -1,7 +1,7 @@
 import { render } from "@react-email/render";
 import { auth } from "@repo/auth/server";
 import { database, ObjectId } from "@repo/database";
-import { DigestEmail } from "@repo/email/templates/digest";
+import DigestEmail from "@repo/email/templates/digest";
 import { notFound } from "next/navigation";
 
 interface PreviewPageProps {

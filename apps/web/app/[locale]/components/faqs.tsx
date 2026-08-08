@@ -58,7 +58,7 @@ function FaqItem({
       </h3>
       <div className="max-w-2xl">
         <p className="text-base text-foreground/75 leading-8">{answer}</p>
-        {meta && <MetaAside className="mt-3">{meta}</MetaAside>}
+        {meta ? <MetaAside className="mt-3">{meta}</MetaAside> : null}
       </div>
     </div>
   );

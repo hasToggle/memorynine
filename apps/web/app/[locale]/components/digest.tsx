@@ -4,7 +4,7 @@ import { Button } from "@repo/design-system/components/ui/button";
 import { Input } from "@repo/design-system/components/ui/input";
 import { Label } from "@repo/design-system/components/ui/label";
 import { toast } from "@repo/design-system/components/ui/sonner";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 interface SignUpSuccess {
   message: string;
@@ -22,32 +22,35 @@ type SignUpResponse = SignUpSuccess | SignUpError;
 export function Digest() {
   const [status, setStatus] = useState<"idle" | "loading">("idle");
 
-  const handleSignUp = async (event: React.SyntheticEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const form = event.currentTarget;
-    const emailInput = form.elements.namedItem("email") as HTMLInputElement;
-    setStatus("loading");
+  const handleSignUp = useCallback(
+    async (event: React.SyntheticEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      const form = event.currentTarget;
+      const emailInput = form.elements.namedItem("email") as HTMLInputElement;
+      setStatus("loading");
 
-    try {
-      const res = await fetch("/api/confirm", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: emailInput.value }),
-      });
-      const data: SignUpResponse = await res.json();
+      try {
+        const res = await fetch("/api/confirm", {
+          body: JSON.stringify({ email: emailInput.value }),
+          headers: { "Content-Type": "application/json" },
+          method: "POST",
+        });
+        const data: SignUpResponse = await res.json();
 
-      if ("error" in data) {
-        toast.error(data.error.message);
-      } else {
-        toast.success("Check your inbox — we sent you a confirmation.");
-        form.reset();
+        if ("error" in data) {
+          toast.error(data.error.message);
+        } else {
+          toast.success("Check your inbox — we sent you a confirmation.");
+          form.reset();
+        }
+      } catch {
+        toast.error("A network error occurred. Please try again.");
+      } finally {
+        setStatus("idle");
       }
-    } catch {
-      toast.error("A network error occurred. Please try again.");
-    } finally {
-      setStatus("idle");
-    }
-  };
+    },
+    []
+  );
 
   return (
     <form

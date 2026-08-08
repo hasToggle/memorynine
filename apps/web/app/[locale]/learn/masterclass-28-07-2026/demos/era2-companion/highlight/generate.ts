@@ -19,13 +19,9 @@ import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { createHighlighter } from "shiki";
 import { fingerprintText, kindFromScopes } from "../../highlight";
-import {
-  applySuggestion,
-  INITIAL_FILE,
-  resolveMismatch,
-  SUGGESTION,
-} from "../apply";
+import { applySuggestion, resolveMismatch } from "../apply";
 import { THREAD_ANSWER } from "../extraction";
+import { INITIAL_FILE, SUGGESTION } from "../suggestions";
 import type { EditorToken, FilePhase } from "./index";
 
 const THEME = "github-dark";

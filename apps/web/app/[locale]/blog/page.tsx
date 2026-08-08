@@ -29,8 +29,8 @@ const BlogIndex = async ({ params }: BlogProps) => {
   const posts = getBlogPosts();
 
   const jsonLd: WithContext<Blog> = {
-    "@type": "Blog",
     "@context": "https://schema.org",
+    "@type": "Blog",
   };
 
   return (
@@ -53,7 +53,7 @@ const BlogIndex = async ({ params }: BlogProps) => {
                 href={`/blog/${post.slug}`}
                 key={post.slug}
               >
-                {post.image && (
+                {post.image ? (
                   <Image
                     alt={post.imageAlt}
                     className="rounded-xl"
@@ -61,12 +61,12 @@ const BlogIndex = async ({ params }: BlogProps) => {
                     src={post.image}
                     width={800}
                   />
-                )}
+                ) : null}
                 <div className="flex flex-row items-center gap-4">
                   <p className="text-muted-foreground text-sm">
                     {new Date(post.date).toLocaleDateString("en-US", {
-                      month: "long",
                       day: "numeric",
+                      month: "long",
                       year: "numeric",
                     })}
                   </p>

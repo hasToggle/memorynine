@@ -58,11 +58,11 @@ export function Pipeline({ stage }: PipelineProps) {
                   {step.severity === "warn" ? "⚠" : "✗"}
                 </span>
                 {step.label}
-                {step.detail && (
+                {step.detail ? (
                   <span className="ml-2 text-foreground/45 text-xs">
                     ({step.detail})
                   </span>
-                )}
+                ) : null}
               </p>
             ))}
         {stage === "surface" && (

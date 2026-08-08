@@ -13,10 +13,15 @@ const ASPECT_RATIO_CINEMASCOPE = 2.35 / 1;
  * Displays content within a desired ratio.
  */
 const meta: Meta<typeof AspectRatio> = {
-  title: "ui/AspectRatio",
-  component: AspectRatio,
-  tags: ["autodocs"],
   argTypes: {},
+  component: AspectRatio,
+  decorators: [
+    (StoryComponent) => (
+      <div className="w-1/2">
+        <StoryComponent />
+      </div>
+    ),
+  ],
   render: (args) => (
     <AspectRatio {...args} className="bg-slate-50 dark:bg-slate-800">
       <Image
@@ -27,13 +32,8 @@ const meta: Meta<typeof AspectRatio> = {
       />
     </AspectRatio>
   ),
-  decorators: [
-    (StoryComponent) => (
-      <div className="w-1/2">
-        <StoryComponent />
-      </div>
-    ),
-  ],
+  tags: ["autodocs"],
+  title: "ui/AspectRatio",
 } satisfies Meta<typeof AspectRatio>;
 
 export default meta;

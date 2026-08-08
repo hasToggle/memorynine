@@ -14,13 +14,13 @@ const Label = ({
 }) => (
   <div
     className={clsx("rounded-full px-4 py-1 shadow-[0_0_1px_2px_black]", {
+      "animate-[highlight_1s_ease-in-out_1]": animateRerendering,
       "bg-gray-800 text-gray-300": color === "default",
-      "bg-hastoggle-pink text-pink-50": color === "pink",
       "bg-hastoggle-blue text-white": color === "blue",
-      "bg-hastoggle-violet text-violet-50": color === "violet",
       "bg-hastoggle-cyan text-cyan-50": color === "cyan",
       "bg-hastoggle-orange text-orange-50": color === "orange",
-      "animate-[highlight_1s_ease-in-out_1]": animateRerendering,
+      "bg-hastoggle-pink text-pink-50": color === "pink",
+      "bg-hastoggle-violet text-violet-50": color === "violet",
     })}
   >
     {children}
@@ -42,16 +42,16 @@ export const Boundary = ({
 }) => (
   <div
     className={clsx("relative rounded-xl border border-dashed", {
+      "animate-[rerender_1s_ease-in-out_1]": animateRerendering,
+      "border-gray-700": color === "default",
+      "border-hastoggle-blue": color === "blue",
+      "border-hastoggle-cyan": color === "cyan",
+      "border-hastoggle-orange": color === "orange",
+      "border-hastoggle-pink": color === "pink",
+      "border-hastoggle-violet": color === "violet",
       "p-5": size === "small",
       "p-8": size === "medium",
       "p-10": size === "default",
-      "border-gray-700": color === "default",
-      "border-hastoggle-pink": color === "pink",
-      "border-hastoggle-blue": color === "blue",
-      "border-hastoggle-cyan": color === "cyan",
-      "border-hastoggle-violet": color === "violet",
-      "border-hastoggle-orange": color === "orange",
-      "animate-[rerender_1s_ease-in-out_1]": animateRerendering,
     })}
   >
     <div

@@ -21,7 +21,7 @@ export function Era3Loop() {
 
   useEffect(
     () => () => {
-      if (timer.current) {
+      if (timer.current !== null) {
         clearInterval(timer.current);
       }
     },
@@ -29,7 +29,7 @@ export function Era3Loop() {
   );
 
   const run = useCallback(() => {
-    if (timer.current) {
+    if (timer.current !== null) {
       clearInterval(timer.current);
     }
     const reduce = window.matchMedia(
@@ -46,7 +46,7 @@ export function Era3Loop() {
       setActive((i) => {
         const next = i === null ? 0 : advanceLoop(i);
         if (next === null) {
-          if (timer.current) {
+          if (timer.current !== null) {
             clearInterval(timer.current);
           }
           setRunning(false);

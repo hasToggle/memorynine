@@ -20,10 +20,10 @@ export const SURFACE_STEPS: readonly SurfaceStep[] = [
 
 export const REVEAL_STEPS: readonly RevealStep[] = [
   {
+    detail: "auth token expired, returned empty",
     id: "fetch",
     label: "fetch source records → []",
     severity: "warn",
-    detail: "auth token expired, returned empty",
   },
   {
     id: "normalize",

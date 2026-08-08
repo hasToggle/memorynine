@@ -1,4 +1,5 @@
-import { INITIAL_TEMP, type Mode, PROMPTS } from "./selector";
+import { PROMPTS } from "./completions";
+import { INITIAL_TEMP, type Mode } from "./selector";
 
 export type PhaseId = "autocomplete" | "unanswered" | "dial" | "taught";
 

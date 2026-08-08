@@ -30,13 +30,14 @@ export const POST = async () => {
   }
 
   return authenticate({
-    userId: user.id,
     orgId,
+    userId: user.id,
     userInfo: {
+      // The auth shim normalises a missing image to "", which is not a URL.
+      avatar: user.imageUrl || undefined,
+      color: COLORS[Math.floor(Math.random() * COLORS.length)],
       name:
         user.fullName ?? user.emailAddresses.at(0)?.emailAddress ?? undefined,
-      avatar: user.imageUrl ?? undefined,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
     },
   });
 };

@@ -14,10 +14,11 @@ import type { Meta, StoryObj } from "@storybook/react";
  * A drawer component for React.
  */
 const meta: Meta = {
-  title: "ui/Drawer",
-  component: Drawer,
-  tags: ["autodocs"],
   argTypes: {},
+  component: Drawer,
+  parameters: {
+    layout: "centered",
+  },
   render: (args) => (
     <Drawer {...args}>
       <DrawerTrigger>Open</DrawerTrigger>
@@ -42,9 +43,8 @@ const meta: Meta = {
       </DrawerContent>
     </Drawer>
   ),
-  parameters: {
-    layout: "centered",
-  },
+  tags: ["autodocs"],
+  title: "ui/Drawer",
 };
 
 export default meta;

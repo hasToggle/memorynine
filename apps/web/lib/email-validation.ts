@@ -92,7 +92,7 @@ async function checkEmailDeliverability(
     }
 
     if (parsed.data.deliverability === "UNDELIVERABLE") {
-      return { valid: false, reason: "undeliverable" };
+      return { reason: "undeliverable", valid: false };
     }
 
     return { valid: true };
@@ -117,11 +117,11 @@ export async function validateEmail(email: string): Promise<ValidationResult> {
     email.length > 254 ||
     !EMAIL_RE.test(email)
   ) {
-    return { valid: false, reason: "invalid_format" };
+    return { reason: "invalid_format", valid: false };
   }
 
   if (isDisposableEmail(email)) {
-    return { valid: false, reason: "disposable" };
+    return { reason: "disposable", valid: false };
   }
 
   return await checkEmailDeliverability(email);

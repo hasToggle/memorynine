@@ -1,5 +1,16 @@
 import { describe, expect, test } from "bun:test";
-import { bandFor, PROMPTS, selectCompletion } from "./selector";
+import type { PromptSeed } from "./completions";
+import { PROMPTS } from "./completions";
+import { bandFor, selectCompletion } from "./selector";
+
+/** Narrows the lookup so the assertions read against a concrete seed. */
+function seed(id: string): PromptSeed {
+  const found = PROMPTS.find((p) => p.id === id);
+  if (!found) {
+    throw new Error(`No prompt seed named "${id}"`);
+  }
+  return found;
+}
 
 describe("era1 selector", () => {
   test("bandFor splits the temperature range", () => {
@@ -9,10 +20,9 @@ describe("era1 selector", () => {
   });
 
   test("selectCompletion returns the band-specific continuation", () => {
-    const fn = PROMPTS.find((p) => p.id === "reverse-fn");
-    expect(fn).toBeDefined();
-    expect(selectCompletion("reverse-fn", 0.1)).toBe(fn!.continuations.low);
-    expect(selectCompletion("reverse-fn", 1.3)).toBe(fn!.continuations.high);
+    const fn = seed("reverse-fn");
+    expect(selectCompletion("reverse-fn", 0.1)).toBe(fn.continuations.low);
+    expect(selectCompletion("reverse-fn", 1.3)).toBe(fn.continuations.high);
   });
 
   test("the question prompt never answers — it continues into more questions", () => {
@@ -52,8 +62,7 @@ describe("era1 selector", () => {
   });
 
   test("mode defaults to base", () => {
-    const fn = PROMPTS.find((p) => p.id === "reverse-fn");
-    expect(fn).toBeDefined();
-    expect(selectCompletion("reverse-fn", 0.1)).toBe(fn!.continuations.low);
+    const fn = seed("reverse-fn");
+    expect(selectCompletion("reverse-fn", 0.1)).toBe(fn.continuations.low);
   });
 });

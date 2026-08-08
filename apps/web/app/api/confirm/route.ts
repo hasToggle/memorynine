@@ -1,6 +1,6 @@
 import { createId, database } from "@repo/database";
 import { resend } from "@repo/email";
-import { ConfirmSubscription } from "@repo/email/templates/confirm-subscription";
+import ConfirmSubscription from "@repo/email/templates/confirm-subscription";
 import { parseError } from "@repo/observability/error";
 import { log } from "@repo/observability/log";
 import { after, type NextRequest, NextResponse } from "next/server";
@@ -15,17 +15,16 @@ const TOKEN_EXPIRY_MS = 1000 * 60 * 60 * 24;
 
 // Vague messaging for disposable/undeliverable to avoid revealing rejection reason
 const VALIDATION_MESSAGES: Record<ValidationFailureReason, string> = {
-  invalid_format: "Invalid email address provided",
   disposable:
     "This email address doesn't look quite right. Mind trying another one?",
+  invalid_format: "Invalid email address provided",
   undeliverable:
     "This email address doesn't look quite right. Mind trying another one?",
 };
 
 export async function POST(request: NextRequest) {
   try {
-    const res = await request.json();
-    const email = res.email;
+    const { email } = await request.json();
 
     const validation = await validateEmail(email);
 
@@ -52,11 +51,11 @@ export async function POST(request: NextRequest) {
         },
         $setOnInsert: {
           _id: createId(),
-          role: "user",
-          name: null,
+          createdAt: new Date(),
           emailVerified: null,
           image: null,
-          createdAt: new Date(),
+          name: null,
+          role: "user",
         },
       },
       { upsert: true }
@@ -64,12 +63,12 @@ export async function POST(request: NextRequest) {
 
     const { error } = await resend.emails.send({
       from: env.RESEND_FROM,
-      to: [email],
-      subject: "Important: Confirm your subscription",
       react: ConfirmSubscription({
-        token,
         baseUrl: new URL(request.url).origin,
+        token,
       }),
+      subject: "Important: Confirm your subscription",
+      to: [email],
     });
 
     if (error) {

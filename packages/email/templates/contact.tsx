@@ -16,11 +16,7 @@ interface ContactTemplateProps {
   readonly name: string;
 }
 
-export const ContactTemplate = ({
-  name,
-  email,
-  message,
-}: ContactTemplateProps) => (
+const ContactTemplate = ({ name, email, message }: ContactTemplateProps) => (
   <Tailwind>
     <Html>
       <Head />
@@ -46,9 +42,9 @@ export const ContactTemplate = ({
 );
 
 ContactTemplate.PreviewProps = {
-  name: "Jane Smith",
   email: "jane.smith@example.com",
   message: "I'm interested in your services.",
+  name: "Jane Smith",
 };
 
 export default ContactTemplate;
