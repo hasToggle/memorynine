@@ -3,11 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "storybook dev -p 6006",
     "build": "storybook build",
     "chromatic": "chromatic --exit-zero-on-changes",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "dev": "storybook dev -p 6006",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "overrides": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.7.1",
@@ -39,9 +43,5 @@
     "storybook": "^10.5.7",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2"
-  },
-  "overrides": {
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.4"
   }
 }

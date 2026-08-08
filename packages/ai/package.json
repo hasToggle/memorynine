@@ -6,6 +6,10 @@
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
+  "overrides": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4"
+  },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.36",
     "@ai-sdk/react": "^4.0.61",
@@ -21,10 +25,6 @@
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
     "@types/node": "26.2.0",
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.4"
-  },
-  "overrides": {
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4"
   }

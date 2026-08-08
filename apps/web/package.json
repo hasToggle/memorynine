@@ -2,15 +2,19 @@
   "name": "web",
   "private": true,
   "scripts": {
-    "dev": "next dev -p 3001",
-    "build": "next build",
-    "start": "next start",
     "analyze": "ANALYZE=true npm run build",
-    "test": "bun test",
+    "build": "next build",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "dev": "next dev -p 3001",
     "gen:era1-highlight": "bun run \"./app/[locale]/learn/masterclass-28-07-2026/demos/era1-playground/highlight/generate.ts\"",
     "gen:era2-highlight": "bun run \"./app/[locale]/learn/masterclass-28-07-2026/demos/era2-companion/highlight/generate.ts\"",
+    "start": "next start",
+    "test": "bun test",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "overrides": {
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4"
   },
   "dependencies": {
     "@radix-ui/react-icons": "^1.3.2",
@@ -55,9 +59,5 @@
     "babel-plugin-react-compiler": "^1.0.0",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2"
-  },
-  "overrides": {
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.4"
   }
 }

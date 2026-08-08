@@ -3,9 +3,9 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "translate": "bunx --bun -y languine@latest translate",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
     "test": "bun test",
+    "translate": "bunx --bun -y languine@latest translate",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {

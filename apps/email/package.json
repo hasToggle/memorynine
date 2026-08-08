@@ -4,11 +4,14 @@
   "private": true,
   "scripts": {
     "build": "email build --dir ../../packages/email/templates",
-    "dev": "email dev --port 3003 --dir ../../packages/email/templates",
-    "export": "email export --dir ../../packages/email/templates",
     "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "dev": "email dev --port 3003 --dir ../../packages/email/templates",
     "digest": "bun run scripts/digest.ts",
+    "export": "email export --dir ../../packages/email/templates",
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
+  },
+  "overrides": {
+    "@types/react": "19.2.18"
   },
   "dependencies": {
     "@react-email/render": "^2.1.0",
@@ -24,8 +27,5 @@
     "@types/react": "^19.2.18",
     "next": "16.3.0",
     "typescript": "^7.0.2"
-  },
-  "overrides": {
-    "@types/react": "19.2.18"
   }
 }
