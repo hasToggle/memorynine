@@ -40,3 +40,40 @@ export const pickRecordingMimeType = (
   isTypeSupported: (type: string) => boolean
 ): string | undefined =>
   RECORDING_PREFERENCES.find((type) => isTypeSupported(type));
+
+const extensionFor = (contentType: string): string => {
+  if (contentType === "audio/mp4" || contentType === "audio/x-m4a") {
+    return "m4a";
+  }
+  if (contentType === "audio/mpeg") {
+    return "mp3";
+  }
+  if (contentType === "audio/wav" || contentType === "audio/x-wav") {
+    return "wav";
+  }
+  if (contentType === "audio/ogg") {
+    return "ogg";
+  }
+  if (contentType === "audio/aac") {
+    return "aac";
+  }
+  if (contentType === "audio/flac") {
+    return "flac";
+  }
+  return "webm";
+};
+
+/**
+ * Where one voice memo goes and what it says it is. Both halves belong
+ * together: Blob derives the content type from the pathname extension unless
+ * the upload declares one, and ".webm" maps to video/webm — which the
+ * audio-only `allowedContentTypes` on the signed token rejects. So
+ * `contentType` must be passed to `uploadPresigned` alongside the pathname.
+ */
+export const voiceUploadTarget = (
+  contentType: string,
+  timestamp: number
+): { contentType: string; pathname: string } => ({
+  contentType,
+  pathname: `voice/memo-${timestamp}.${extensionFor(contentType)}`,
+});
