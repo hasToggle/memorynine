@@ -7,6 +7,7 @@ import { createVoiceSource } from "@/app/actions/knowledge/create-source";
 import {
   normalizeAudioContentType,
   pickRecordingMimeType,
+  voiceUploadTarget,
 } from "@/lib/capture";
 
 type RecorderState =
@@ -16,22 +17,6 @@ type RecorderState =
   | { kind: "recorded"; blob: Blob; objectUrl: string }
   | { kind: "recording" }
   | { kind: "uploading" };
-
-const extensionFor = (contentType: string): string => {
-  if (contentType === "audio/mp4" || contentType === "audio/x-m4a") {
-    return "m4a";
-  }
-  if (contentType === "audio/mpeg") {
-    return "mp3";
-  }
-  if (contentType === "audio/wav" || contentType === "audio/x-wav") {
-    return "wav";
-  }
-  if (contentType === "audio/ogg") {
-    return "ogg";
-  }
-  return "webm";
-};
 
 const formatSeconds = (total: number): string => {
   const minutes = Math.floor(total / 60);
@@ -124,9 +109,13 @@ export const Recorder = ({ onCaptured }: { onCaptured: () => void }) => {
     const { blob, objectUrl } = state;
     setState({ kind: "uploading" });
     try {
-      const pathname = `voice/memo-${Date.now()}.${extensionFor(blob.type)}`;
+      const { contentType, pathname } = voiceUploadTarget(
+        blob.type,
+        Date.now()
+      );
       const result = await uploadPresigned(pathname, blob, {
         access: "private",
+        contentType,
         handleUploadUrl: "/api/knowledge/upload",
       });
       const created = await createVoiceSource(result.url, blob.type);
