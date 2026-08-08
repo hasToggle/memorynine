@@ -4,9 +4,9 @@ import { Container } from "./container";
 import { Wordmark } from "./mark";
 
 const LINKS: readonly { href: string; label: string }[] = [
-  { href: "#how", label: "How a fact gets in" },
-  { href: "#gate", label: "The review gate" },
-  { href: "#refusals", label: "Refusals" },
+  { href: "#hunting", label: "The problem" },
+  { href: "#how", label: "How it works" },
+  { href: "#trust", label: "Why you can trust it" },
 ];
 
 export function Nav() {

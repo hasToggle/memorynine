@@ -32,9 +32,9 @@ const TRANSCRIPT: readonly {
 ];
 
 const CONSEQUENCES: readonly string[] = [
-  "Every fact anchored to that person is deleted, and so is every fact that was consolidated out of those facts.",
-  "Their name and addresses are redacted out of the source transcripts and out of the review trail, so the audit log survives without them in it.",
-  "Audio left with nothing pointing at it is marked for deletion and the blobs go with it.",
+  "Everything you knew about them goes, including the bits that had already been folded into other notes.",
+  "Their name and address come out of the transcripts and out of the history, so the record of the meeting survives without them in it.",
+  "Recordings with nothing left pointing at them are deleted too.",
 ];
 
 export function Erasure() {
@@ -43,14 +43,14 @@ export function Erasure() {
       <Container>
         <div className="grid gap-14 lg:grid-cols-2 lg:gap-20">
           <div>
-            <Eyebrow>Erasure · GDPR Art. 17</Eyebrow>
+            <Eyebrow>The awkward request</Eyebrow>
             <SectionHeading className="mt-5">
-              One person, one click, the whole trail.
+              &ldquo;Please delete everything you have on me.&rdquo;
             </SectionHeading>
             <p className="mt-6 text-[1rem] text-mn-ink-soft leading-[1.7]">
-              A memory that keeps everything forever is a liability with a
-              search box. When someone asks to be forgotten, you open their row
-              and erase them.
+              In Germany that is a legal right, and for most teams it is a
+              fortnight of somebody chasing files. Here you open their row and
+              press erase.
             </p>
             <ul className="mt-8 space-y-4">
               {CONSEQUENCES.map((consequence) => (
@@ -63,13 +63,14 @@ export function Erasure() {
               ))}
             </ul>
             <p className="mt-8 font-medium text-[0.9375rem] text-mn-ink leading-[1.65]">
-              It is irreversible, and it is supposed to be.
+              It cannot be undone, which is the point. You get to say yes to
+              that request in a minute, instead of opening a project.
             </p>
           </div>
 
           <div className="self-start rounded-lg border border-mn-rule bg-mn-raised p-6">
             <p className="font-medium font-mono text-[0.625rem] text-mn-graphite uppercase tracking-[0.18em]">
-              Sources, after erasing Anna Bergmann
+              What is left afterwards
             </p>
             <ul className="mt-6 space-y-6">
               {TRANSCRIPT.map((line) => (
@@ -101,8 +102,8 @@ export function Erasure() {
               ))}
             </ul>
             <p className="mt-8 border-mn-rule border-t pt-5 text-[0.8125rem] text-mn-graphite leading-[1.6]">
-              The memos stay, because the rest of the meeting still happened.
-              The person is gone from them.
+              The memos stay, because the rest of those meetings still happened
+              and you still need them. She is gone from them.
             </p>
           </div>
         </div>

@@ -3,28 +3,33 @@ import { Container, Eyebrow, SectionHeading } from "./container";
 const FAQS: readonly { answer: string; question: string }[] = [
   {
     answer:
-      "No. A CRM holds the fields somebody decided to have — stage, value, next step. memorynine holds what people actually said, in the words they said it in, anchored to the person, the company or the engagement it was about. The two answer different questions, and only one of them survives a colleague leaving.",
-    question: "Does this replace our CRM?",
+      "Keep it. A CRM holds the fields somebody decided to have — stage, value, next step. It has no idea that Anna will not take a meeting before ten, or that their finance lead quietly hated the phased option. That is the stuff that wins the second meeting, and it is exactly the stuff nobody types into a form.",
+    question: "We already have a CRM.",
   },
   {
     answer:
-      "Yes. It answers in the language the question was asked in, and it keeps German fact text in German rather than translating it quietly — a paraphrase is a claim, and a quote is evidence.",
+      "They do not have to open one. The ask is talking into their phone for ninety seconds on the way back, which most people already do. The only new habit is one person spending a minute a day tapping yes — and if that minute stops happening you still keep every recording, searchable.",
+    question: "My team will not adopt another tool.",
+  },
+  {
+    answer:
+      "Yes, and it does not quietly translate. Ask in German and you get German back, with your client's words left exactly as they said them. A paraphrase is somebody's interpretation; a quote is what you can repeat.",
     question: "Does it work in German?",
   },
   {
     answer:
-      "Then you have an archive, not a memory. Raw sources are searchable the moment they land, so nothing is lost, but the assistant marks everything it takes from them as unreviewed and attributes it to the recording. Review is what turns a pile of memos into something the company can state.",
-    question: "What if nobody on the team ever reviews anything?",
+      "We are setting the first workspaces up by hand, so pricing is still a conversation rather than a table. Ask on the call and you will get a straight number, not a range.",
+    question: "What does it cost?",
   },
   {
     answer:
-      "Audio goes to a private blob store; the transcription provider only ever receives a short-lived signed link, never a stored URL. Financial and medical details are redacted during transcription, before extraction sees them. Data sits in MongoDB Atlas, one database per deployment, scoped to your organisation on every read.",
-    question: "Where does the audio and the text actually go?",
+      "Recordings go into private storage, and the transcription service only ever receives a link that expires — never a permanent one. Money and health details are stripped out before anything else reads them, and every read is scoped to your workspace. Ask us about hosting regions and a DPA on the call; you will get specifics rather than reassurance.",
+    question: "Where does our client data actually go?",
   },
   {
     answer:
-      "No. Erasure deletes the facts, deletes what was consolidated out of them, redacts the person out of the transcripts and the review trail, and marks the orphaned audio for deletion. There is no undo, because an undo would mean we kept a copy.",
-    question: "Can I get a fact back after erasing someone?",
+      "Record a memo after your next call with one client. Spend a minute confirming what it found. Then, before the following call with them, ask it what you need to know — and notice whether you still open Slack. That is the entire evaluation.",
+    question: "How do we know it works for us?",
   },
 ];
 
@@ -35,7 +40,9 @@ export function Faqs() {
         <div className="grid gap-12 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] lg:gap-20">
           <div>
             <Eyebrow>Questions</Eyebrow>
-            <SectionHeading className="mt-5">Before you ask.</SectionHeading>
+            <SectionHeading className="mt-5">
+              The ones you were about to ask.
+            </SectionHeading>
           </div>
 
           <dl>

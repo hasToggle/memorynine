@@ -1,37 +1,40 @@
 import { Container, Eyebrow } from "./container";
 
+// Same four guarantees the product actually holds, but each one is stated as
+// what it saves the reader from, because that is the only reason they care.
 const REFUSALS: readonly { body: string; title: string }[] = [
   {
-    body: "When the search comes back thin, it says what is missing and where it might live — “nothing has been captured about this engagement since April.” A confident summary of too little is worse than an admitted gap, because nobody can tell which one they are reading.",
-    title: "To answer past its evidence",
+    body: "When there is nothing captured, it tells you that, and tells you where to look instead. You would far rather hear “nobody has written anything about this since April” than a smooth paragraph you then repeat to a client.",
+    title: "It won't invent an answer",
   },
   {
-    body: "When two facts disagree, it shows both and says they disagree. A conflict resolved silently is a conflict nobody fixes: the reviewer never sees it, so it stays wrong for as long as it takes somebody to notice.",
-    title: "To settle a contradiction quietly",
+    body: "If they said one thing in March and something else in July, you get both, side by side, flagged. Better you spot the contradiction on the way in than they do halfway through the meeting.",
+    title: "It won't hide a disagreement",
   },
   {
-    body: "Transcripts and forwarded mail are written by people outside your company. If retrieved text contains something shaped like an instruction, it is treated as a quotation of what someone wrote — never as something to do.",
-    title: "To follow instructions it read somewhere",
+    body: "Anything nobody has checked yet is marked as such, with whose memo it came from. So you can use it to prepare, and still never quote it as fact by accident.",
+    title: "It won't pass a rumour off as a fact",
   },
   {
-    body: "The organisation comes from your signed-in session, never from the question. There is no way to phrase a question that reaches another workspace's facts, because the question never gets to name the workspace.",
-    title: "To cross a tenant line",
+    body: "Your workspace only ever sees its own memory. And material that arrives from outside — a forwarded thread, a transcript — is treated as something a person said, never as an instruction to follow.",
+    title: "It won't confuse your memory with anyone else's",
   },
 ];
 
 export function Refusals() {
   return (
-    <section className="bg-mn-ink py-20 text-mn-paper sm:py-24" id="refusals">
+    <section className="bg-mn-ink py-20 text-mn-paper sm:py-24" id="trust">
       <Container>
         <div className="max-w-2xl">
-          <Eyebrow className="text-mn-paper/60">What it refuses to do</Eyebrow>
+          <Eyebrow className="text-mn-paper/60">Why you can trust it</Eyebrow>
           <h2 className="mt-5 font-cabinet font-extrabold text-[2rem] leading-[1.05] tracking-[-0.035em] sm:text-[2.75rem]">
-            A memory is only worth having if you can trust the shape of its
-            silence.
+            The worst thing an assistant can do is sound sure.
           </h2>
           <p className="mt-6 text-[1rem] text-mn-paper/65 leading-[1.7]">
-            Each of these is a rule the assistant is held to, and each one has a
-            test in the repository that fails the build when it slips.
+            You are going to repeat this to a paying client, out loud, with your
+            name on it. So it is built to be unhelpful rather than confidently
+            wrong — and every one of these has a test that fails the build when
+            it slips.
           </p>
         </div>
 
@@ -42,9 +45,6 @@ export function Refusals() {
               key={refusal.title}
             >
               <h3 className="font-bold font-cabinet text-[1.25rem] leading-[1.25] tracking-[-0.02em]">
-                <span aria-hidden="true" className="mr-2 text-mn-paper/35">
-                  ✕
-                </span>
                 {refusal.title}
               </h3>
               <p className="mt-3 text-[0.9375rem] text-mn-paper/65 leading-[1.7]">

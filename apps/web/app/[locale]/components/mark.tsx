@@ -18,15 +18,12 @@ const TONES = {
     muted: "fill-mn-graphite/40",
     stroke: "stroke-mn-ink",
   },
+  // The two tones the brand SVGs ship in: ink for light surfaces, paper for
+  // dark ones. See packages/design-system/brand.
   paper: {
     accent: "fill-mn-paper",
     muted: "fill-mn-paper/25",
     stroke: "stroke-mn-paper",
-  },
-  stamp: {
-    accent: "fill-mn-stamp",
-    muted: "fill-mn-graphite/35",
-    stroke: "stroke-mn-stamp",
   },
 } as const;
 

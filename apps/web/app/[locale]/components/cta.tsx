@@ -11,30 +11,33 @@ export function Cta() {
           <div className="max-w-xl">
             <Eyebrow className="text-mn-paper/60">Start</Eyebrow>
             <h2 className="mt-5 font-cabinet font-extrabold text-[2rem] leading-[1.05] tracking-[-0.035em] sm:text-[2.75rem]">
-              Put your next call in and see what it knew by Friday.
+              Pick one client. Try it for a week.
             </h2>
             <p className="mt-6 text-[1rem] text-mn-paper/65 leading-[1.7]">
-              One memo is enough to try it. Record after the call, confirm the
-              handful of drafts it comes back with, and ask it something on
-              Friday that you would otherwise have gone hunting for.
+              Record a memo after your next call with them. Spend the minute
+              confirming what it found. Then, before the following call, ask it
+              what you need to know — and notice whether you still open Slack.
+            </p>
+            <p className="mt-4 text-[1rem] text-mn-paper/65 leading-[1.7]">
+              One client is enough to tell. You will know by Friday.
             </p>
             <div className="mt-9">
               <Link
                 className="inline-flex rounded-[5px] bg-mn-paper px-5 py-2.5 font-medium text-[0.9375rem] text-mn-ink transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-mn-paper focus-visible:outline-offset-2"
                 href={env.NEXT_PUBLIC_APP_URL}
               >
-                Open your workspace
+                Start with one client
               </Link>
             </div>
           </div>
 
           <div className="lg:pt-14">
             <p className="font-medium font-mono text-[0.6875rem] text-mn-paper/60 uppercase tracking-[0.18em]">
-              Or get a walkthrough first
+              Or have us set it up with you
             </p>
             <p className="mt-4 mb-6 text-[0.9375rem] text-mn-paper/65 leading-[1.65]">
-              Leave your address and we'll send a confirmation link. Confirm it
-              and we'll get in touch about setting your workspace up.
+              Half an hour, your own client, your questions about where the data
+              sits. Leave your address and we will send a confirmation link.
             </p>
             <EarlyAccess />
           </div>

@@ -36,8 +36,8 @@ const ConfirmSubscription = ({
   <Html>
     <Head />
     <Preview>
-      Confirm this address and we&apos;ll be in touch about your memorynine
-      workspace.
+      Confirm this address and we&apos;ll book half an hour to set memorynine up
+      with you.
     </Preview>
     <Tailwind>
       <Body className="bg-[#f6f5f1] font-sans">
@@ -53,8 +53,9 @@ const ConfirmSubscription = ({
             </Section>
             <Hr className="my-5 border-[#cdcac2]" />
             <Text className="text-left text-[#4b4f56] text-base leading-6">
-              You asked for early access to memorynine. Confirm this address and
-              we&apos;ll get in touch about setting your workspace up.
+              You asked us to walk you through memorynine. Confirm this address
+              and we&apos;ll be in touch to find half an hour — your own client,
+              your own questions.
             </Text>
             <Link
               className="mx-0 my-1.5 inline-block rounded bg-[#14161a] px-4 py-3 text-center text-base text-white leading-6 no-underline"

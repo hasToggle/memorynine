@@ -1,18 +1,18 @@
 import type { Metadata } from "next";
 import { Cta } from "./components/cta";
+import { Effort } from "./components/effort";
 import { Erasure } from "./components/erasure";
 import { Faqs } from "./components/faqs";
 import { Footer } from "./components/footer";
-import { Gate } from "./components/gate";
 import { Hero } from "./components/hero";
+import { Hunting } from "./components/hunting";
 import { Nav } from "./components/nav";
-import { Pipeline } from "./components/pipeline";
 import { Refusals } from "./components/refusals";
 
 export const metadata: Metadata = {
   description:
-    "memorynine turns calls, notes and forwarded mail into a company memory anyone can question. Every answer cites the fact or the raw source behind it, and nothing enters the record without a human confirming it.",
-  title: "memorynine — nothing becomes knowledge until a human says so",
+    "Talk for ninety seconds after a client call. memorynine turns it into something your whole team can ask — so nobody digs through Slack before a meeting, and nobody's knowledge leaves when they do.",
+  title: "memorynine — walk into every client call already knowing",
 };
 
 export default function LandingPage() {
@@ -21,8 +21,8 @@ export default function LandingPage() {
       <Nav />
       <main>
         <Hero />
-        <Pipeline />
-        <Gate />
+        <Hunting />
+        <Effort />
         <Refusals />
         <Erasure />
         <Faqs />

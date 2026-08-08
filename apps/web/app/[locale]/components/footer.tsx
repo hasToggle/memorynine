@@ -16,8 +16,7 @@ export function Footer() {
         <div>
           <Wordmark />
           <p className="mt-3 max-w-xs text-[0.8125rem] text-mn-graphite leading-[1.6]">
-            Six captured, three confirmed. The memory your company can stand
-            behind.
+            Everything your team knows about a client, one question away.
           </p>
         </div>
 

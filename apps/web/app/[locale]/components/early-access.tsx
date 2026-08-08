@@ -71,7 +71,7 @@ export function EarlyAccess() {
         disabled={status === "sending"}
         type="submit"
       >
-        {status === "sending" ? "Requesting…" : "Request access"}
+        {status === "sending" ? "Sending…" : "Book the half hour"}
       </button>
     </form>
   );
