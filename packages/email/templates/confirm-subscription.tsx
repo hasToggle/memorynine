@@ -16,6 +16,14 @@ const fallbackBaseUrl = process.env.NEXT_PUBLIC_APEX_URL
   ? `https://${process.env.NEXT_PUBLIC_APEX_URL}`
   : "";
 
+/**
+ * The lockup is served as a PNG because no email client can be relied on to
+ * render SVG. `bun render-brand` in @repo/design-system writes it at twice this
+ * width, so it stays sharp on a retina screen.
+ */
+const LOCKUP_WIDTH = 160;
+const LOCKUP_HEIGHT = 31;
+
 interface ConfirmSubscriptionProps {
   readonly baseUrl?: string;
   readonly token: string;
@@ -28,49 +36,42 @@ const ConfirmSubscription = ({
   <Html>
     <Head />
     <Preview>
-      Thanks for signing up. Click the link below to confirm your subscription
-      and you&apos;ll be on your way.
+      Confirm this address and we&apos;ll be in touch about your memorynine
+      workspace.
     </Preview>
     <Tailwind>
-      <Body className="bg-[#f6f9fc] font-sans">
+      <Body className="bg-[#f6f5f1] font-sans">
         <Container className="mx-auto mb-16 bg-white py-5 pb-12">
           <Section className="px-12">
-            <Section className="text-center">
+            <Section>
               <Img
-                alt="hasToggle logo"
-                className="mr-2 inline-block h-[52px] w-[39px] rounded-md"
-                height="52"
-                src={`${baseUrl}/logo.png`}
-                width="39"
-              />
-              <Img
-                alt="hasToggle lettering"
-                className="inline-block h-6"
-                height="24"
-                src={`${baseUrl}/hasToggle.png`}
-                width="118"
+                alt="memorynine"
+                height={LOCKUP_HEIGHT}
+                src={`${baseUrl}/brand/lockup.png`}
+                width={LOCKUP_WIDTH}
               />
             </Section>
-            <Hr className="my-5 border-[#e6ebf1]" />
-            <Text className="text-left text-[#525f7f] text-base leading-6">
-              Thanks for signing up. Click the link below to confirm your
-              subscription and you&apos;ll be on your way.
+            <Hr className="my-5 border-[#cdcac2]" />
+            <Text className="text-left text-[#4b4f56] text-base leading-6">
+              You asked for early access to memorynine. Confirm this address and
+              we&apos;ll get in touch about setting your workspace up.
             </Text>
             <Link
-              className="mx-0 my-1.5 inline-block rounded bg-[#1677be] px-4 py-3 text-center text-base text-white leading-6 no-underline"
+              className="mx-0 my-1.5 inline-block rounded bg-[#14161a] px-4 py-3 text-center text-base text-white leading-6 no-underline"
               href={`${baseUrl}/api/confirmed?token=${token}`}
             >
-              Confirm your subscription
+              Confirm this address
             </Link>
-            <Text className="text-left text-[#525f7f] text-base leading-6">
-              It's good to have you!
+            <Text className="text-left text-[#4b4f56] text-base leading-6">
+              If you didn&apos;t ask for this, ignore it — nothing happens until
+              you confirm.
             </Text>
-            <Text className="text-left text-[#525f7f] text-base leading-6">
+            <Text className="text-left text-[#4b4f56] text-base leading-6">
               — Eric
             </Text>
-            <Hr className="my-5 border-[#e6ebf1]" />
-            <Text className="text-[#8898aa] text-xs leading-4">
-              hasToggle, Limberger Straße 40, 49080 Osnabrück, Germany
+            <Hr className="my-5 border-[#cdcac2]" />
+            <Text className="text-[#65635d] text-xs leading-4">
+              memorynine, Limberger Straße 40, 49080 Osnabrück, Germany
             </Text>
           </Section>
         </Container>

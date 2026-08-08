@@ -1,16 +1,49 @@
 import { cn } from "@repo/design-system/lib/utils";
 
-const styles = {
-  lg: "mx-auto px-4 sm:px-6 md:max-w-2xl md:px-4 lg:max-w-7xl lg:px-8",
-  md: "mx-auto px-4 sm:px-6 md:max-w-2xl md:px-4 lg:max-w-5xl lg:px-8",
-  sm: "mx-auto px-4 sm:px-6 md:max-w-2xl md:px-4 lg:max-w-4xl lg:px-12",
-  xs: "mx-auto px-4 sm:px-6 md:max-w-2xl md:px-4 lg:px-2",
+const widths = {
+  narrow: "max-w-3xl",
+  wide: "max-w-6xl",
 };
 
 export function Container({
-  size = "lg",
+  className,
+  width = "wide",
+  ...props
+}: React.ComponentPropsWithoutRef<"div"> & { width?: keyof typeof widths }) {
+  return (
+    <div
+      className={cn("mx-auto px-6 sm:px-8", widths[width], className)}
+      {...props}
+    />
+  );
+}
+
+export function Eyebrow({
   className,
   ...props
-}: React.ComponentPropsWithoutRef<"div"> & { size?: keyof typeof styles }) {
-  return <div className={cn(styles[size], className)} {...props} />;
+}: React.ComponentPropsWithoutRef<"p">) {
+  return (
+    <p
+      className={cn(
+        "font-medium font-mono text-[0.6875rem] text-mn-graphite uppercase tracking-[0.22em]",
+        className
+      )}
+      {...props}
+    />
+  );
+}
+
+export function SectionHeading({
+  className,
+  ...props
+}: React.ComponentPropsWithoutRef<"h2">) {
+  return (
+    <h2
+      className={cn(
+        "font-cabinet font-extrabold text-[2rem] leading-[1.05] tracking-[-0.035em] sm:text-[2.75rem]",
+        className
+      )}
+      {...props}
+    />
+  );
 }

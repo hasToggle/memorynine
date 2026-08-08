@@ -8,7 +8,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarGroup,
-  SidebarGroupContent,
   SidebarHeader,
   SidebarInset,
   SidebarMenu,
@@ -20,11 +19,9 @@ import {
 import { cn } from "@repo/design-system/lib/utils";
 import { NotificationsTrigger } from "@repo/notifications/components/trigger";
 import {
-  AnchorIcon,
   BrainIcon,
   ClipboardCheckIcon,
   type LucideIcon,
-  NewspaperIcon,
   UsersIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -59,19 +56,6 @@ const navMain: NavItem[] = [
     icon: UsersIcon,
     title: "Team",
     url: "/team",
-  },
-  {
-    icon: NewspaperIcon,
-    title: "Digest",
-    url: "/digest",
-  },
-];
-
-const navSecondary: NavItem[] = [
-  {
-    icon: AnchorIcon,
-    title: "Webhooks",
-    url: "/webhooks",
   },
 ];
 
@@ -145,11 +129,6 @@ export const GlobalSidebar = ({
         <SidebarContent>
           <SidebarGroup>
             <NavMenu items={items} />
-          </SidebarGroup>
-          <SidebarGroup className="mt-auto">
-            <SidebarGroupContent>
-              <NavMenu items={navSecondary} />
-            </SidebarGroupContent>
           </SidebarGroup>
         </SidebarContent>
         <SidebarFooter>

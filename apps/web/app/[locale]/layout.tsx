@@ -1,4 +1,3 @@
-import { NuqsAdapter } from "nuqs/adapters/next/app";
 import type { ReactNode } from "react";
 
 interface LocaleLayoutProperties {
@@ -9,16 +8,16 @@ interface LocaleLayoutProperties {
 }
 
 const LocaleLayout = ({ children }: LocaleLayoutProperties) => (
-  <div className="font-switzer selection:bg-ht-cyan-400/30">
+  <div className="font-switzer selection:bg-mn-stamp/15">
     <link
-      href="https://api.fontshare.com/css?f%5B%5D=switzer@400,500,600,700&display=swap"
+      href="https://api.fontshare.com/css?f%5B%5D=switzer@400,500,600,700&f%5B%5D=cabinet-grotesk@500,700,800&display=swap"
       rel="stylesheet"
     />
     <link
       href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
-    <NuqsAdapter>{children}</NuqsAdapter>
+    {children}
   </div>
 );
 

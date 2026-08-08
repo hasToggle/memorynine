@@ -1,124 +1,35 @@
 @import "tailwindcss";
 @import "@repo/design-system/styles/globals.css";
 
-/* Marketing color scales & design tokens */
 @theme inline {
-  /* Brand colors */
-  --color-hastoggle-pink: #ff0080;
-  --color-hastoggle-blue: #0070f3;
-  --color-hastoggle-cyan: #50e3c2;
-  --color-hastoggle-orange: #f5a623;
-  --color-hastoggle-violet: #7928ca;
-  --color-hastoggle-green: #008000;
+  /* memorynine landing.
+     The palette is the product's own semantics, not decoration: graphite is
+     material nobody has reviewed, ochre is a raw source (quotable, unverified),
+     stamp is a confirmed fact, ink is redaction. If a colour appears on the
+     landing page it is because the knowledge base draws that same distinction. */
+  --color-mn-paper: #e9e7e1;
+  --color-mn-raised: #f6f5f1;
+  --color-mn-rule: #cdcac2;
+  --color-mn-ink: #14161a;
+  --color-mn-ink-soft: #4b4f56;
+  /* Dark enough to clear 4.5:1 on --color-mn-paper: it carries 11-13px
+     labels and captions, which get no large-text exemption. */
+  --color-mn-graphite: #65635d;
+  --color-mn-stamp: #20348f;
+  --color-mn-stamp-tint: #dfe3f4;
+  --color-mn-ochre: #8f5c0e;
+  --color-mn-ochre-tint: #f1e4cc;
 
-  /* ht-blue (hue: 236) */
-  --color-ht-blue-50: oklch(0.99 0.003 236);
-  --color-ht-blue-100: oklch(0.98 0.009 236);
-  --color-ht-blue-200: oklch(0.965 0.018 236);
-  --color-ht-blue-300: oklch(0.953 0.028 235.946);
-  --color-ht-blue-400: oklch(0.871 0.08 236);
-  --color-ht-blue-500: oklch(0.789 0.135 236);
-  --color-ht-blue-600: oklch(0.707 0.192 235.993);
-  --color-ht-blue-700: oklch(0.624 0.176 236.001);
-  --color-ht-blue-800: oklch(0.542 0.153 236);
-  --color-ht-blue-900: oklch(0.46 0.13 236);
-  --color-ht-blue-950: oklch(0.419 0.1 236);
-
-  /* ht-red (hue: 20) */
-  --color-ht-red-50: oklch(0.99 0.003 20);
-  --color-ht-red-100: oklch(0.98 0.009 20);
-  --color-ht-red-200: oklch(0.965 0.02 20);
-  --color-ht-red-300: oklch(0.953 0.03 20);
-  --color-ht-red-400: oklch(0.871 0.089 20);
-  --color-ht-red-500: oklch(0.789 0.158 20);
-  --color-ht-red-600: oklch(0.707 0.237 20);
-  --color-ht-red-700: oklch(0.624 0.283 20);
-  --color-ht-red-800: oklch(0.542 0.246 20.005);
-  --color-ht-red-900: oklch(0.46 0.208 20);
-  --color-ht-red-950: oklch(0.419 0.1 20);
-
-  /* ht-green (hue: 147) */
-  --color-ht-green-50: oklch(0.99 0.009 147);
-  --color-ht-green-100: oklch(0.98 0.027 147);
-  --color-ht-green-200: oklch(0.965 0.058 147);
-  --color-ht-green-300: oklch(0.953 0.089 147);
-  --color-ht-green-400: oklch(0.871 0.29 147);
-  --color-ht-green-500: oklch(0.789 0.329 146.998);
-  --color-ht-green-600: oklch(0.707 0.295 147);
-  --color-ht-green-700: oklch(0.624 0.26 146.998);
-  --color-ht-green-800: oklch(0.542 0.226 146.994);
-  --color-ht-green-900: oklch(0.46 0.192 147);
-  --color-ht-green-950: oklch(0.419 0.1 147);
-
-  /* ht-greenish (hue: 156) */
-  --color-ht-greenish-50: oklch(0.99 0.008 156);
-  --color-ht-greenish-100: oklch(0.98 0.025 156);
-  --color-ht-greenish-200: oklch(0.965 0.053 156);
-  --color-ht-greenish-300: oklch(0.953 0.082 156.001);
-  --color-ht-greenish-400: oklch(0.871 0.259 156);
-  --color-ht-greenish-500: oklch(0.789 0.265 155.998);
-  --color-ht-greenish-600: oklch(0.707 0.237 156);
-  --color-ht-greenish-700: oklch(0.624 0.21 156);
-  --color-ht-greenish-800: oklch(0.542 0.182 156);
-  --color-ht-greenish-900: oklch(0.46 0.154 156);
-  --color-ht-greenish-950: oklch(0.419 0.1 156);
-
-  /* ht-darkgreen (hue: 169) */
-  --color-ht-darkgreen-50: oklch(0.99 0.008 169);
-  --color-ht-darkgreen-100: oklch(0.98 0.023 169);
-  --color-ht-darkgreen-200: oklch(0.965 0.049 169);
-  --color-ht-darkgreen-300: oklch(0.953 0.076 169.005);
-  --color-ht-darkgreen-400: oklch(0.871 0.238 168.997);
-  --color-ht-darkgreen-500: oklch(0.789 0.216 168.996);
-  --color-ht-darkgreen-600: oklch(0.707 0.193 169);
-  --color-ht-darkgreen-700: oklch(0.624 0.171 168.996);
-  --color-ht-darkgreen-800: oklch(0.542 0.148 168.999);
-  --color-ht-darkgreen-900: oklch(0.46 0.126 168.994);
-  --color-ht-darkgreen-950: oklch(0.419 0.1 169);
-
-  /* ht-cyan (hue: 206) */
-  --color-ht-cyan-50: oklch(0.99 0.005 206);
-  --color-ht-cyan-100: oklch(0.98 0.015 206);
-  --color-ht-cyan-200: oklch(0.965 0.033 206);
-  --color-ht-cyan-300: oklch(0.953 0.05 205.984);
-  --color-ht-cyan-400: oklch(0.871 0.142 205.994);
-  --color-ht-cyan-500: oklch(0.789 0.18 206.003);
-  --color-ht-cyan-600: oklch(0.707 0.162 206.003);
-  --color-ht-cyan-700: oklch(0.624 0.143 206);
-  --color-ht-cyan-800: oklch(0.542 0.124 206.008);
-  --color-ht-cyan-900: oklch(0.46 0.105 206);
-  --color-ht-cyan-950: oklch(0.419 0.096 206.008);
-
-  /* ht-orange (hue: 47) */
-  --color-ht-orange-50: oklch(0.99 0.003 47);
-  --color-ht-orange-100: oklch(0.98 0.01 47);
-  --color-ht-orange-200: oklch(0.965 0.021 47);
-  --color-ht-orange-300: oklch(0.953 0.033 47.025);
-  --color-ht-orange-400: oklch(0.871 0.096 47.001);
-  --color-ht-orange-500: oklch(0.789 0.168 47.005);
-  --color-ht-orange-600: oklch(0.707 0.222 47);
-  --color-ht-orange-700: oklch(0.624 0.196 46.992);
-  --color-ht-orange-800: oklch(0.542 0.17 47);
-  --color-ht-orange-900: oklch(0.46 0.144 47);
-  --color-ht-orange-950: oklch(0.419 0.1 47);
-
-  /* Extended radius */
-  --radius-4xl: 2rem;
-
-  /* Marketing animations */
-  --animate-rerender: rerender 1s ease-in-out 1;
-  --animate-highlight: highlight 1s ease-in-out 1;
-  --animate-shimmer: shimmer 2s infinite;
-
-  /* Switzer font (loaded via CDN in marketing layout) */
+  /* Both loaded via CDN in the marketing layout: Cabinet Grotesk carries the
+     display voice, Switzer the body copy. */
+  --font-cabinet: "Cabinet Grotesk", "Switzer", system-ui, sans-serif;
   --font-switzer: "Switzer", system-ui, sans-serif;
 }
 
-/* JetBrains Mono (loaded via Google Fonts in marketing layout) for the
-   meta-layer voice. The design system sets --font-mono to Geist Mono for
-   app-wide consistency; marketing uses a dedicated editorial face. This
-   override is scoped to the .font-switzer wrapper so it only affects the
-   marketing route tree. */
+/* JetBrains Mono (loaded via Google Fonts in the marketing layout) for labels,
+   ids and timestamps. The design system sets --font-mono to Geist Mono for
+   app-wide consistency; marketing uses a dedicated face. Scoped to the
+   .font-switzer wrapper so it only affects the marketing route tree. */
 .font-switzer .font-mono,
 .font-switzer.font-mono {
   font-family:
@@ -126,120 +37,12 @@
     monospace;
 }
 
-/* Marketing keyframes */
-@keyframes rerender {
-  0% {
-    border-color: var(--color-hastoggle-orange);
-  }
-  40% {
-    border-color: var(--color-hastoggle-orange);
-  }
-}
-
-@keyframes highlight {
-  0% {
-    background: var(--color-hastoggle-orange);
-    color: white;
-  }
-  40% {
-    background: var(--color-hastoggle-orange);
-    color: white;
-  }
-}
-
-@keyframes highlightFadeIn {
-  from {
-    background-color: transparent;
-  }
-  to {
-    background-color: #808080;
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(100%);
-  }
-}
-
-@keyframes move-x {
-  0% {
-    transform: translateX(var(--move-x-from));
-  }
-  100% {
-    transform: translateX(var(--move-x-to));
-  }
-}
-
-/* Mirror demo — diff flash on toggle. The differing segments of the agent
-   response wear this class for ~600ms after a toggle. The animation runs on
-   mount, which is when each differing span enters the DOM (its React key
-   changes on every toggle so it remounts; shared spans keep stable keys and
-   are unaffected). prefers-reduced-motion suppresses the animation entirely
-   so the swap is instantaneous. */
-@keyframes mirror-flash {
-  from {
-    background-color: rgb(245 158 11 / 0.15);
-  }
-  to {
-    background-color: transparent;
-  }
-}
-
-.mirror-flash {
-  border-radius: 0.1875rem;
-  animation: mirror-flash 600ms ease-out 1;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .mirror-flash {
-    animation: none;
-  }
-}
-
-.highlighted-line {
-  padding: 2px 8px 2px 0;
-  border-radius: 12px;
-  animation: highlightFadeIn 0.2s ease-in-out forwards;
-}
-
-/* Shiki code syntax highlighting styles */
-.shiki {
-  color: var(--shiki-light);
-  background-color: var(--shiki-light-bg);
-  @apply border-border;
-}
-
-.shiki span {
-  color: var(--shiki-light);
-}
-
-.dark .shiki {
-  color: var(--shiki-dark);
-  background-color: var(--shiki-dark-bg);
-}
-
-.dark .shiki span {
-  color: var(--shiki-dark);
-}
-
-.shiki code {
-  display: grid;
-  font-size: 13px;
-  counter-reset: line;
-}
-
-.shiki .line:before {
-  content: counter(line);
-  counter-increment: line;
-
-  @apply inline-block w-4 mr-8 text-muted-foreground text-right;
-}
-
-.shiki[title]:before {
-  content: attr(title);
-  @apply inline-block text-muted-foreground text-right mb-6 text-sm;
+/* The landing page is art-directed light in both themes: its colours carry
+   product meaning (confirmed / raw / redacted) that a dark inversion would
+   scramble. Pinning color-scheme keeps form controls and scrollbars light
+   inside it even when the rest of the site follows a dark system theme. */
+.mn-surface {
+  color: var(--color-mn-ink);
+  color-scheme: light;
+  background-color: var(--color-mn-paper);
 }
