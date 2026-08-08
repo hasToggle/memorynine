@@ -1,12 +1,21 @@
 @import "tailwindcss";
 @import "@repo/design-system/styles/globals.css";
 
-@theme inline {
+/* Deliberately not `@theme inline`: inline substitutes each value into the
+   utilities at build time, which would bake the light palette in and leave the
+   dark override below with nothing to override. Referenced variables are what
+   let one block at the bottom of this file re-colour the whole page. */
+@theme {
   /* memorynine landing.
      The palette is the product's own semantics, not decoration: graphite is
      material nobody has reviewed, ochre is a raw source (quotable, unverified),
      stamp is a confirmed fact, ink is redaction. If a colour appears on the
-     landing page it is because the knowledge base draws that same distinction. */
+     landing page it is because the knowledge base draws that same distinction.
+
+     These are the light values. The dark set is further down, and it is a
+     translation rather than an inversion: each token keeps its job and its hue,
+     and the contrast ratios are re-checked against the dark ground rather than
+     assumed to survive a flip. */
   --color-mn-paper: #e9e7e1;
   --color-mn-raised: #f6f5f1;
   --color-mn-rule: #cdcac2;
@@ -19,6 +28,18 @@
   --color-mn-stamp-tint: #dfe3f4;
   --color-mn-ochre: #8f5c0e;
   --color-mn-ochre-tint: #f1e4cc;
+
+  /* The two full-width contrast bands. They get their own tokens rather than
+     reusing ink/paper: in dark mode a band painted with the flipped ink would
+     become a glaring light slab, when what it needs to be is a recess. */
+  --color-mn-band: #14161a;
+  --color-mn-band-ink: #e9e7e1;
+
+  /* The redaction bar. Its own token because it is the one mark on the page
+     that has to read as "something was removed here" rather than as a colour:
+     a block of ink on light paper, and a block of paper on dark, both sitting
+     at a lightness the surrounding copy does not have to compete with. */
+  --color-mn-redaction: #14161a;
 
   /* Both loaded via CDN in the marketing layout: Cabinet Grotesk carries the
      display voice, Switzer the body copy. */
@@ -37,12 +58,40 @@
     monospace;
 }
 
-/* The landing page is art-directed light in both themes: its colours carry
-   product meaning (confirmed / raw / redacted) that a dark inversion would
-   scramble. Pinning color-scheme keeps form controls and scrollbars light
-   inside it even when the rest of the site follows a dark system theme. */
 .mn-surface {
   color: var(--color-mn-ink);
   color-scheme: light;
   background-color: var(--color-mn-paper);
+}
+
+/* The dark set. Because the theme is declared `@theme inline`, every utility
+   already points at these variables — redefining them here re-colours the whole
+   page without a single `dark:` class in a component.
+
+   Ratios against the dark ground (#191817): ink 14.7:1, ink-soft 7.3:1,
+   graphite 4.9:1, stamp 7.7:1, ochre 8.3:1. The two chip pairings were checked
+   against their own tints rather than the page: stamp on stamp-tint 6.1:1,
+   ochre on ochre-tint 6.4:1. */
+.dark .mn-surface {
+  --color-mn-paper: #191817;
+  --color-mn-raised: #212020;
+  --color-mn-rule: #343331;
+  --color-mn-ink: #eceae4;
+  --color-mn-ink-soft: #a9a69f;
+  --color-mn-graphite: #8a877f;
+  /* Ultramarine and ochre keep their hue and swap their lightness: a confirmed
+     fact still reads blue and a raw source still reads amber, which is the only
+     part of this palette a reader has to learn. */
+  --color-mn-stamp: #9aa8ee;
+  --color-mn-stamp-tint: #252a4a;
+  --color-mn-ochre: #e0a856;
+  --color-mn-ochre-tint: #3a2c14;
+
+  /* Recessed rather than inverted — see the note above. */
+  --color-mn-band: #0f1012;
+  --color-mn-band-ink: #eceae4;
+  /* A shade under the body ink, so the bars read as solid mass rather than as
+     highlighter. */
+  --color-mn-redaction: #c9c6bf;
+  color-scheme: dark;
 }

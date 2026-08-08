@@ -2,6 +2,7 @@ import Link from "next/link";
 import { env } from "@/env";
 import { Container } from "./container";
 import { Wordmark } from "./mark";
+import { ThemeToggle } from "./theme-toggle";
 
 const LINKS: readonly { href: string; label: string }[] = [
   { href: "#hunting", label: "The problem" },
@@ -33,12 +34,15 @@ export function Nav() {
           ))}
         </nav>
 
-        <Link
-          className="rounded-[5px] border border-mn-ink px-3.5 py-1.5 font-medium text-[0.8125rem] text-mn-ink transition-colors hover:bg-mn-ink hover:text-mn-paper focus-visible:outline-2 focus-visible:outline-mn-ink focus-visible:outline-offset-2"
-          href={env.NEXT_PUBLIC_APP_URL}
-        >
-          Sign in
-        </Link>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Link
+            className="rounded-[5px] border border-mn-ink px-3.5 py-1.5 font-medium text-[0.8125rem] text-mn-ink transition-colors hover:bg-mn-ink hover:text-mn-paper focus-visible:outline-2 focus-visible:outline-mn-ink focus-visible:outline-offset-2"
+            href={env.NEXT_PUBLIC_APP_URL}
+          >
+            Sign in
+          </Link>
+        </div>
       </Container>
     </header>
   );

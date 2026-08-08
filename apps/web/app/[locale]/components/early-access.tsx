@@ -58,7 +58,7 @@ export function EarlyAccess() {
         <span className="sr-only">Work email</span>
         <input
           autoComplete="email"
-          className="h-11 w-full rounded-[5px] border border-mn-paper/45 bg-transparent px-3.5 text-[0.9375rem] text-mn-paper placeholder:text-mn-paper/55 focus-visible:border-mn-paper focus-visible:outline-2 focus-visible:outline-mn-paper focus-visible:outline-offset-2"
+          className="h-11 w-full rounded-[5px] border border-mn-band-ink/45 bg-transparent px-3.5 text-[0.9375rem] text-mn-band-ink placeholder:text-mn-band-ink/55 focus-visible:border-mn-band-ink focus-visible:outline-2 focus-visible:outline-mn-band-ink focus-visible:outline-offset-2"
           id="access-email"
           name="email"
           placeholder="you@yourcompany.de"
@@ -67,7 +67,7 @@ export function EarlyAccess() {
         />
       </label>
       <button
-        className="h-11 shrink-0 rounded-[5px] bg-mn-paper px-5 font-medium text-[0.9375rem] text-mn-ink transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-mn-paper focus-visible:outline-offset-2 disabled:opacity-60"
+        className="h-11 shrink-0 rounded-[5px] bg-mn-band-ink px-5 font-medium text-[0.9375rem] text-mn-band transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-mn-band-ink focus-visible:outline-offset-2 disabled:opacity-60"
         disabled={status === "sending"}
         type="submit"
       >

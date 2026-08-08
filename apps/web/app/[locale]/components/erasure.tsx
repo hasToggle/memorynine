@@ -89,7 +89,7 @@ export function Erasure() {
                       ) : (
                         <span
                           aria-label="redacted"
-                          className="mx-px inline-block h-[0.85em] translate-y-[0.1em] rounded-[1px] bg-mn-ink"
+                          className="mx-px inline-block h-[0.85em] translate-y-[0.1em] rounded-[1px] bg-mn-redaction"
                           // biome-ignore lint/suspicious/noArrayIndexKey: fragments of one fixed sentence, never reordered
                           key={index}
                           role="img"
