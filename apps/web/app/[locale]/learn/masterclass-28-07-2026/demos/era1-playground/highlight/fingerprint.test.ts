@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { PROMPTS } from "../selector";
+import { PROMPTS } from "../completions";
 import { fingerprintSources } from "./index";
 import {
   COMPLETION_TOKENS,

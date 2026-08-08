@@ -5,7 +5,7 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@repo/design-system/components/ui/chart";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   Bar,
   BarChart,
@@ -66,6 +66,7 @@ function LineBlock({ widget }: { widget: Extract<Widget, { kind: "line" }> }) {
 
 function TableBlock({ widget }: { widget: TableWidget }) {
   const [desc, setDesc] = useState(true);
+  const toggleSort = useCallback(() => setDesc((d) => !d), []);
   const col = widget.sortableColumn ?? -1;
   const rows =
     col >= 0
@@ -75,6 +76,14 @@ function TableBlock({ widget }: { widget: TableWidget }) {
           return desc ? bv - av : av - bv;
         })
       : widget.rows;
+  // Cells are positional, so their identity is the column they sit under.
+  const bodyRows = rows.map((row) => ({
+    cells: row.map((value, i) => ({
+      id: `${row[0]}-${widget.columns[i]}`,
+      value,
+    })),
+    id: String(row[0]),
+  }));
   return (
     <table className="w-full text-sm">
       <thead>
@@ -82,7 +91,7 @@ function TableBlock({ widget }: { widget: TableWidget }) {
           {widget.columns.map((c, i) => (
             <th className="py-2 pr-4" key={c}>
               {col === i ? (
-                <button onClick={() => setDesc((d) => !d)} type="button">
+                <button onClick={toggleSort} type="button">
                   {c} {desc ? "↓" : "↑"}
                 </button>
               ) : (
@@ -93,11 +102,11 @@ function TableBlock({ widget }: { widget: TableWidget }) {
         </tr>
       </thead>
       <tbody>
-        {rows.map((row) => (
-          <tr className="border-foreground/5 border-b" key={String(row[0])}>
-            {row.map((cell, i) => (
-              <td className="py-2 pr-4" key={`${row[0]}-${i}`}>
-                {cell}
+        {bodyRows.map((row) => (
+          <tr className="border-foreground/5 border-b" key={row.id}>
+            {row.cells.map((cell) => (
+              <td className="py-2 pr-4" key={cell.id}>
+                {cell.value}
               </td>
             ))}
           </tr>
@@ -134,11 +143,11 @@ export function DashboardRenderer({ spec }: { spec: RenderSpec }) {
               className="rounded-lg border border-foreground/10 p-4"
               key={key}
             >
-              {"title" in w && w.title && (
+              {"title" in w && w.title ? (
                 <div className="mb-3 text-muted-foreground text-sm">
                   {w.title}
                 </div>
-              )}
+              ) : null}
               {w.kind === "bar" && <BarBlock widget={w} />}
               {w.kind === "line" && <LineBlock widget={w} />}
               {w.kind === "table" && <TableBlock widget={w} />}
@@ -146,11 +155,11 @@ export function DashboardRenderer({ spec }: { spec: RenderSpec }) {
           );
         })}
       </div>
-      {spec.source && (
+      {spec.source ? (
         <p className="font-mono text-muted-foreground text-xs">
           source: {spec.source}
         </p>
-      )}
+      ) : null}
     </div>
   );
 }

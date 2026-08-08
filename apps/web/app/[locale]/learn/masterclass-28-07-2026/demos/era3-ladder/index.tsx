@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@repo/design-system/lib/utils";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { LADDER_STAGES, type LadderStage } from "./stages";
 
 const RUNNER_TESTS = [
@@ -12,6 +12,8 @@ const RUNNER_TESTS = [
   "applyDiscount › never throws at checkout",
 ] as const;
 const RUNNER_MS = 450;
+/** Plan bodies ship their own "1. " prefixes; the <ol> renders them instead. */
+const LEADING_ORDINAL = /^\d+\.\s*/;
 
 /** The bar is relative to the worst year, so 2024 reads as full. */
 const MAX_LINES = Math.max(...LADDER_STAGES.map((s) => s.lines));
@@ -26,9 +28,40 @@ function diffTone(line: string): string {
   return "text-muted-foreground";
 }
 
+interface YearTabProps {
+  active: boolean;
+  onSelect: (year: LadderStage["year"]) => void;
+  year: LadderStage["year"];
+}
+
+function YearTab({ active, onSelect, year }: YearTabProps) {
+  const select = useCallback(() => onSelect(year), [onSelect, year]);
+
+  return (
+    <button
+      aria-pressed={active}
+      className={cn(
+        "rounded-t-md px-4 font-mono text-xs transition-colors sm:text-sm",
+        active
+          ? "bg-muted/40 text-foreground"
+          : "text-muted-foreground hover:text-foreground"
+      )}
+      onClick={select}
+      type="button"
+    >
+      {year}
+    </button>
+  );
+}
+
 export function Era3Ladder() {
   const [year, setYear] = useState<LadderStage["year"]>("2024");
   const stage = LADDER_STAGES.find((s) => s.year === year) ?? LADDER_STAGES[0];
+  // Diff hunks repeat their text, so position carries the identity here.
+  const diffLines = stage.body.map((text, index) => ({
+    id: `${stage.year}-${index}`,
+    text,
+  }));
 
   return (
     <div className="mt-10 rounded-xl border border-foreground/10 p-4 sm:p-6">
@@ -45,20 +78,12 @@ export function Era3Ladder() {
       <div className="mt-4 overflow-hidden rounded-lg border border-foreground/10">
         <div className="flex h-10 items-stretch gap-1 bg-foreground/[0.04] dark:bg-black/30">
           {LADDER_STAGES.map((s) => (
-            <button
-              aria-pressed={s.year === year}
-              className={cn(
-                "rounded-t-md px-4 font-mono text-xs transition-colors sm:text-sm",
-                s.year === year
-                  ? "bg-muted/40 text-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
+            <YearTab
+              active={s.year === year}
               key={s.year}
-              onClick={() => setYear(s.year)}
-              type="button"
-            >
-              {s.year}
-            </button>
+              onSelect={setYear}
+              year={s.year}
+            />
           ))}
         </div>
 
@@ -88,12 +113,12 @@ export function Era3Ladder() {
                 every nested line lands flush against the +. */}
             {stage.artifact === "diff" && (
               <div className="max-h-44 overflow-auto font-mono text-xs leading-5">
-                {stage.body.map((l, i) => (
+                {diffLines.map((line) => (
                   <div
-                    className={cn("whitespace-pre", diffTone(l))}
-                    key={`${i}-${l}`}
+                    className={cn("whitespace-pre", diffTone(line.text))}
+                    key={line.id}
                   >
-                    {l}
+                    {line.text}
                   </div>
                 ))}
               </div>
@@ -101,7 +126,7 @@ export function Era3Ladder() {
             {stage.artifact === "plan" && (
               <ol className="list-decimal space-y-1 pl-5 font-mono text-xs leading-6">
                 {stage.body.map((l) => (
-                  <li key={l}>{l.replace(/^\d+\.\s*/, "")}</li>
+                  <li key={l}>{l.replace(LEADING_ORDINAL, "")}</li>
                 ))}
               </ol>
             )}

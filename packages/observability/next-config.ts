@@ -19,14 +19,11 @@ export const sentryConfig: Parameters<typeof withSentryConfig>[1] = {
     ? {}
     : {
         release: {
-          name: "",
           create: false,
+          name: "",
         },
       }),
   telemetry: hasAuthToken,
-
-  // Upload a larger set of source maps for prettier stack traces (increases build time)
-  widenClientFileUpload: true,
 
   /*
    * Route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
@@ -44,11 +41,14 @@ export const sentryConfig: Parameters<typeof withSentryConfig>[1] = {
    * https://vercel.com/docs/cron-jobs
    */
   webpack: {
+    automaticVercelMonitors: true,
     treeshake: {
       removeDebugLogging: true,
     },
-    automaticVercelMonitors: true,
   },
+
+  // Upload a larger set of source maps for prettier stack traces (increases build time)
+  widenClientFileUpload: true,
 };
 
 export const withSentry = (sourceConfig: object): object => {

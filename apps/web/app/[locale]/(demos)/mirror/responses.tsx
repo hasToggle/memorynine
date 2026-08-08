@@ -51,6 +51,10 @@ const TESTS_FIRST_CODE = (
 );
 
 const SHIP_FIRST: ResponseContent = {
+  closing:
+    "When the first issue surfaces, we'll lock the behavior in with a regression test.",
+  code: SHIP_FIRST_CODE,
+  codeIntro: "Here's the implementation:",
   position: <strong>shipping first is the right call</strong>,
   reason: (
     <>
@@ -60,20 +64,16 @@ const SHIP_FIRST: ResponseContent = {
       report than from ten speculative cases.
     </>
   ),
-  codeIntro: "Here's the implementation:",
-  code: SHIP_FIRST_CODE,
-  closing:
-    "When the first issue surfaces, we'll lock the behavior in with a regression test.",
 };
 
 const TESTS_FIRST: ResponseContent = {
+  closing:
+    "Once it fails for the right reason, we'll write the implementation against it.",
+  code: TESTS_FIRST_CODE,
+  codeIntro: "Here's the test:",
   position: <strong>writing tests first is the right call</strong>,
   reason:
     "The test is the spec; if you can't articulate what should be true, you don't yet know what you're building. You save the round-trip of writing the code, finding it doesn't work, and retrofitting a test against partial behavior.",
-  codeIntro: "Here's the test:",
-  code: TESTS_FIRST_CODE,
-  closing:
-    "Once it fails for the right reason, we'll write the implementation against it.",
 };
 
 export const RESPONSES: Record<Framing, ResponseContent> = {

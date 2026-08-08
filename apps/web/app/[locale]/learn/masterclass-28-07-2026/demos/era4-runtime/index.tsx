@@ -16,6 +16,26 @@ const CHAR_MS = 6;
  *  catalog, not free-form UI. */
 const WIDGET_KINDS: Widget["kind"][] = ["kpi", "bar", "line", "table"];
 
+interface IntentButtonProps {
+  label: string;
+  onAsk: (question: string) => void;
+  question: string;
+}
+
+function IntentButton({ label, onAsk, question }: IntentButtonProps) {
+  const select = useCallback(() => onAsk(question), [onAsk, question]);
+
+  return (
+    <button
+      className="rounded-full border border-foreground/15 px-3 py-1 text-muted-foreground text-xs hover:text-foreground"
+      onClick={select}
+      type="button"
+    >
+      {label}
+    </button>
+  );
+}
+
 export function Era4Runtime() {
   const [question, setQuestion] = useState(
     "Is AI taking junior developer jobs?"
@@ -25,60 +45,76 @@ export function Era4Runtime() {
   const [spec, setSpec] = useState<RenderSpec | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const ask = useCallback((q: string) => {
-    if (timer.current) {
+  const stopTicker = useCallback(() => {
+    if (timer.current !== null) {
       clearInterval(timer.current);
+      timer.current = null;
     }
-    const { spec: result } = generateDashboard(q);
-    const json = JSON.stringify(result, null, 2);
-    const reduce =
-      typeof window !== "undefined" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    setSpec(result);
-    if (reduce) {
-      setSpecText(json);
-      setView("rendered");
-      return;
-    }
-    setView("compiling");
-    setSpecText("");
-    let i = 0;
-    timer.current = setInterval(() => {
-      i += 24;
-      setSpecText(json.slice(0, i));
-      if (i >= json.length) {
-        if (timer.current) {
-          clearInterval(timer.current);
-        }
-        setView("rendered");
-      }
-    }, CHAR_MS);
   }, []);
 
-  useEffect(
-    () => () => {
-      if (timer.current) {
-        clearInterval(timer.current);
+  const ask = useCallback(
+    (q: string) => {
+      stopTicker();
+      const { spec: result } = generateDashboard(q);
+      const json = JSON.stringify(result, null, 2);
+      const reduce =
+        typeof window !== "undefined" &&
+        window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      setSpec(result);
+      if (reduce) {
+        setSpecText(json);
+        setView("rendered");
+        return;
       }
+      setView("compiling");
+      setSpecText("");
+      let i = 0;
+      timer.current = setInterval(() => {
+        i += 24;
+        setSpecText(json.slice(0, i));
+        if (i >= json.length) {
+          stopTicker();
+          setView("rendered");
+        }
+      }, CHAR_MS);
+    },
+    [stopTicker]
+  );
+
+  const askFromIntent = useCallback(
+    (q: string) => {
+      setQuestion(q);
+      ask(q);
+    },
+    [ask]
+  );
+
+  const handleSubmit = useCallback(
+    (event: React.FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      ask(question);
+    },
+    [ask, question]
+  );
+
+  const handleQuestionChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>) => {
+      setQuestion(event.target.value);
     },
     []
   );
+
+  useEffect(() => stopTicker, [stopTicker]);
 
   const usedKinds = new Set(spec?.widgets.map((w) => w.kind));
 
   return (
     <>
       <div className="rounded-xl border border-foreground/10 p-4 sm:p-6">
-        <form
-          className="flex gap-2"
-          onSubmit={(e) => {
-            e.preventDefault();
-            ask(question);
-          }}
-        >
+        <form className="flex gap-2" onSubmit={handleSubmit}>
           <input
             className="flex-1 rounded-md border border-foreground/15 bg-background px-3 py-2 text-sm"
-            onChange={(e) => setQuestion(e.target.value)}
+            onChange={handleQuestionChange}
             value={question}
           />
           <button
@@ -91,17 +127,12 @@ export function Era4Runtime() {
 
         <div className="mt-3 flex flex-wrap gap-2">
           {INTENTS.map((intent) => (
-            <button
-              className="rounded-full border border-foreground/15 px-3 py-1 text-muted-foreground text-xs hover:text-foreground"
+            <IntentButton
               key={intent.id}
-              onClick={() => {
-                setQuestion(intent.question);
-                ask(intent.question);
-              }}
-              type="button"
-            >
-              {intent.label}
-            </button>
+              label={intent.label}
+              onAsk={askFromIntent}
+              question={intent.question}
+            />
           ))}
         </div>
 

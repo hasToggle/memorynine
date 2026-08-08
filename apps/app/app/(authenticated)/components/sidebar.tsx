@@ -101,7 +101,7 @@ const NavMenu = ({ items }: { items: NavItem[] }) => {
             // sidebar-accent-foreground, which vanishes against bg-primary
             // (black on black in light mode, white on white in dark) — pin
             // the text color across those states too.
-            <SidebarMenuBadge className="rounded-full bg-primary font-medium text-primary-foreground tabular-nums peer-data-[active=true]/menu-button:text-primary-foreground peer-hover/menu-button:text-primary-foreground">
+            <SidebarMenuBadge className="rounded-full bg-primary font-medium text-primary-foreground tabular-nums peer-hover/menu-button:text-primary-foreground peer-data-[active=true]/menu-button:text-primary-foreground">
               {item.badge}
             </SidebarMenuBadge>
           ) : null}

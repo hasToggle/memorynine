@@ -9,6 +9,7 @@ import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
 
 export const env = createEnv({
+  client: {},
   extends: [
     core(),
     database(),
@@ -18,11 +19,10 @@ export const env = createEnv({
     security(),
     rateLimit(),
   ],
-  server: {
-    ABSTRACT_API_KEY: z.string().min(1).optional(),
-  },
-  client: {},
   runtimeEnv: {
     ABSTRACT_API_KEY: process.env.ABSTRACT_API_KEY,
+  },
+  server: {
+    ABSTRACT_API_KEY: z.string().min(1).optional(),
   },
 });

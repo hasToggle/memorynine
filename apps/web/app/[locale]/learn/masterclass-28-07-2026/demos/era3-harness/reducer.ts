@@ -1,8 +1,5 @@
 import { type DiffItem, INITIAL_DIFFS } from "./diff-data";
 
-export type { DiffItem };
-export { INITIAL_DIFFS };
-
 export interface HarnessState {
   diffs: DiffItem[];
   log: string[];

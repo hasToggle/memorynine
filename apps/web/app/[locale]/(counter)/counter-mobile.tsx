@@ -23,9 +23,9 @@ import {
 import { SkeletonCode } from "./skeleton";
 
 const flipVariants = {
-  initial: { rotateY: 90, opacity: 0 },
-  animate: { rotateY: 0, opacity: 1 },
-  exit: { rotateY: -90, opacity: 0 },
+  animate: { opacity: 1, rotateY: 0 },
+  exit: { opacity: 0, rotateY: -90 },
+  initial: { opacity: 0, rotateY: 90 },
 };
 
 export function CounterMobile() {
@@ -43,9 +43,9 @@ export function CounterMobile() {
     setComponentToShow("buttonDisplay");
   }, []);
 
-  const handleButtonClick = () => {
+  const handleButtonClick = useCallback(() => {
     setComponentToShow("codeDisplay");
-  };
+  }, []);
 
   const codeSnippets = getCodeSnippets(state.count);
 
@@ -109,6 +109,16 @@ function CounterContent({
   dispatch,
   onButtonClick,
 }: CounterContentProps) {
+  const handleTake = useCallback(() => {
+    dispatch({ type: "decrement" });
+    onButtonClick();
+  }, [dispatch, onButtonClick]);
+
+  const handleGive = useCallback(() => {
+    dispatch({ type: "increment" });
+    onButtonClick();
+  }, [dispatch, onButtonClick]);
+
   return (
     <div className="flex w-full flex-col gap-y-6">
       <div className="flex justify-between self-center sm:self-auto">
@@ -136,10 +146,7 @@ function CounterContent({
         <Button
           className="hidden w-full rounded-md bg-zinc-800 px-12 py-2 font-semibold text-base text-orange-200 leading-6 ring-1 ring-zinc-200/20 transition duration-150 ease-in-out hover:bg-zinc-800/90 enabled:hover:text-orange-100 enabled:hover:shadow-[0_0_0.5em_0em_rgba(161,161,170,0.6)] disabled:cursor-not-allowed disabled:opacity-70 sm:block"
           disabled={state.decrementDisabled}
-          onClick={() => {
-            dispatch({ type: "decrement" });
-            onButtonClick();
-          }}
+          onClick={handleTake}
         >
           take one
         </Button>
@@ -149,10 +156,7 @@ function CounterContent({
         <Button
           className="w-full rounded-md bg-zinc-800 font-semibold text-base text-orange-200 leading-6 ring-1 ring-zinc-200/20 transition duration-150 ease-in-out hover:bg-zinc-800/90 enabled:hover:text-orange-100 enabled:hover:shadow-[0_0_0.5em_0em_rgba(161,161,170,0.6)] disabled:cursor-not-allowed disabled:opacity-70 sm:px-12 sm:py-2"
           disabled={state.incrementDisabled}
-          onClick={() => {
-            dispatch({ type: "increment" });
-            onButtonClick();
-          }}
+          onClick={handleGive}
         >
           give one
         </Button>

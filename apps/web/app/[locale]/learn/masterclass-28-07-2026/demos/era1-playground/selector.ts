@@ -1,18 +1,10 @@
-import {
-  OUTPUT_COLUMNS,
-  OUTPUT_LINES,
-  PROMPTS,
-  type PromptSeed,
-} from "./completions";
+import { PROMPTS } from "./completions";
 
 export type Band = "low" | "mid" | "high";
 export type Mode = "base" | "instruct";
 
 /** The dial's standing value. The S3 gate opens only on a band the presenter moved to. */
 export const INITIAL_TEMP = 0.7;
-
-export type { PromptSeed };
-export { OUTPUT_COLUMNS, OUTPUT_LINES, PROMPTS };
 
 export function bandFor(temp: number): Band {
   if (temp < 0.4) {

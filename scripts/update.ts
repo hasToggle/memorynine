@@ -39,7 +39,7 @@ const createTemporaryDirectory = async (name: string) => {
   const cwd = process.cwd();
   const tempDir = join(cwd, name);
 
-  await rm(tempDir, { recursive: true, force: true });
+  await rm(tempDir, { force: true, recursive: true });
   await mkdir(tempDir, { recursive: true });
 };
 
@@ -59,11 +59,15 @@ const updateFiles = async (files: string[]) => {
   const cwd = process.cwd();
   const tempDir = join(cwd, tempDirName);
 
+  // Serial on purpose: a next-forge checkout is well over a thousand files, and
+  // fanning the copies out with Promise.all opens that many descriptors at once
+  // — past the default per-process limit on macOS.
   for (const file of files) {
     const sourcePath = join(tempDir, file);
     const destPath = join(cwd, file);
 
     // Ensure destination directory exists
+    // biome-ignore lint/performance/noAwaitInLoops: bounded fd usage, see above
     await mkdir(dirname(destPath), { recursive: true });
 
     await copyFile(sourcePath, destPath);
@@ -71,7 +75,7 @@ const updateFiles = async (files: string[]) => {
 };
 
 const deleteTemporaryDirectory = async () =>
-  await rm(tempDirName, { recursive: true, force: true });
+  await rm(tempDirName, { force: true, recursive: true });
 
 const getCurrentVersion = async (): Promise<string | undefined> => {
   const packageJsonPath = join(process.cwd(), "package.json");
@@ -87,10 +91,10 @@ const selectVersion = async (
   initialValue: string | undefined
 ) => {
   const version = await select({
-    message: `Select a version to update ${label}:`,
-    options: availableVersions.map((v) => ({ value: v, label: `v${v}` })),
     initialValue,
     maxItems: 10,
+    message: `Select a version to update ${label}:`,
+    options: availableVersions.map((v) => ({ label: `v${v}`, value: v })),
   });
 
   if (isCancel(version)) {
@@ -113,18 +117,19 @@ const getDiff = async (
       continue;
     }
 
-    const hasChanged =
-      !from.files.includes(file) ||
-      (
-        await exec(
-          `git diff ${from.version} ${to.version} -- "${cleanFileName(file)}"`,
-          { maxBuffer: GIT_DIFF_MAX_BUFFER }
-        )
-      )
-        .toString()
-        .trim() !== "";
+    // A file the old version never had is new, so there is nothing to diff.
+    if (!from.files.includes(file)) {
+      filesToUpdate.push(file);
+      continue;
+    }
 
-    if (hasChanged) {
+    // biome-ignore lint/performance/noAwaitInLoops: one git subprocess per file; fanning out would spawn thousands at once
+    const diff = await exec(
+      `git diff ${from.version} ${to.version} -- "${cleanFileName(file)}"`,
+      { maxBuffer: GIT_DIFF_MAX_BUFFER }
+    );
+
+    if (diff.toString().trim() !== "") {
       filesToUpdate.push(file);
     }
   }
@@ -189,12 +194,12 @@ export const update = async (options: { from?: string; to?: string }) => {
     s.message(`Computing diff between versions ${from} and ${to}...`);
     const diff = await getDiff(
       {
-        version: from,
         files: fromFiles,
+        version: from,
       },
       {
-        version: to,
         files: toFiles,
+        version: to,
       }
     );
 

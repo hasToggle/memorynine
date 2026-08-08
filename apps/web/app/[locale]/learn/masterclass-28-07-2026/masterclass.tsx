@@ -3,7 +3,7 @@
 import { Button } from "@repo/design-system/components/ui/button";
 import { AnimatePresence, motion } from "motion/react";
 import { createParser, parseAsStringLiteral, useQueryState } from "nuqs";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { AddressStrip } from "./address-strip";
 import { BeatFooter } from "./beat-footer";
 import { BeatSlot } from "./beat-slot";
@@ -71,6 +71,18 @@ export function Masterclass() {
 
   const { current: beat, go: goBeat, has } = useBeats(step, presenter);
 
+  const begin = useCallback(() => setStep("completion"), [setStep]);
+  const goPrev = useCallback(() => {
+    if (prev) {
+      setStep(prev);
+    }
+  }, [prev, setStep]);
+  const goNext = useCallback(() => {
+    if (next) {
+      setStep(next);
+    }
+  }, [next, setStep]);
+
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       if (isPresenterToggle(event) && !isTextEntryTarget(event.target)) {
@@ -123,9 +135,7 @@ export function Masterclass() {
             key={step}
             transition={{ duration: 0.2 }}
           >
-            {step === "intro" && (
-              <Intro onBegin={() => setStep("completion")} />
-            )}
+            {step === "intro" && <Intro onBegin={begin} />}
             {step === "completion" && (
               <EraPanel
                 name="The completion machine"
@@ -229,17 +239,13 @@ export function Masterclass() {
         <footer className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-8">
           <Button
             disabled={!prev}
-            onClick={() => prev && setStep(prev)}
+            onClick={goPrev}
             type="button"
             variant="ghost"
           >
             ← Back
           </Button>
-          <Button
-            disabled={!next}
-            onClick={() => next && setStep(next)}
-            type="button"
-          >
+          <Button disabled={!next} onClick={goNext} type="button">
             Next →
           </Button>
         </footer>

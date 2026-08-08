@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@repo/design-system/lib/utils";
+import { useCallback } from "react";
 
 interface GroundingToggleProps {
   grounding: boolean;
@@ -8,6 +9,8 @@ interface GroundingToggleProps {
 }
 
 export function GroundingToggle({ grounding, onChange }: GroundingToggleProps) {
+  const toggle = useCallback(() => onChange(!grounding), [grounding, onChange]);
+
   return (
     <button
       aria-label={`Grounding ${grounding ? "on" : "off"}. Click to toggle.`}
@@ -17,7 +20,7 @@ export function GroundingToggle({ grounding, onChange }: GroundingToggleProps) {
         "rounded-full px-2 py-1 hover:bg-foreground/[0.04]",
         "focus-visible:outline-2 focus-visible:outline-ht-cyan-700/60 focus-visible:outline-offset-2 dark:focus-visible:outline-ht-cyan-400/60"
       )}
-      onClick={() => onChange(!grounding)}
+      onClick={toggle}
       type="button"
     >
       <span className="text-foreground/55">grounding</span>

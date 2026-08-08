@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@repo/design-system/lib/utils";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 
 interface ExpandableProps {
   children: React.ReactNode;
@@ -11,12 +11,13 @@ interface ExpandableProps {
 
 export function Expandable({ children, className, label }: ExpandableProps) {
   const [open, setOpen] = useState(false);
+  const toggle = useCallback(() => setOpen((current) => !current), []);
 
   return (
     <div className={cn("mt-6", className)}>
       <button
         className="group flex items-center gap-2 font-medium text-foreground text-sm hover:text-muted-foreground"
-        onClick={() => setOpen(!open)}
+        onClick={toggle}
         type="button"
       >
         <span
@@ -29,9 +30,9 @@ export function Expandable({ children, className, label }: ExpandableProps) {
         </span>
         {label}
       </button>
-      {open && (
+      {open ? (
         <div className="mt-4 text-muted-foreground text-sm/6">{children}</div>
-      )}
+      ) : null}
     </div>
   );
 }

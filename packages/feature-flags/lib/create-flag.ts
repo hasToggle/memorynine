@@ -4,13 +4,6 @@ import { flag } from "flags/next";
 
 export const createFlag = (key: string, description?: string) =>
   flag({
-    key,
-    description,
-    defaultValue: false,
-    options: [
-      { value: true, label: "On" },
-      { value: false, label: "Off" },
-    ],
     async decide() {
       const { userId } = await auth();
 
@@ -30,4 +23,11 @@ export const createFlag = (key: string, description?: string) =>
         ? (this.defaultValue as boolean)
         : value !== false;
     },
+    defaultValue: false,
+    description,
+    key,
+    options: [
+      { label: "On", value: true },
+      { label: "Off", value: false },
+    ],
   });

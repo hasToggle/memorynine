@@ -5,9 +5,9 @@ import { validateEmail } from "./email-validation";
 mock.module("@/env", () => ({
   env: {
     ABSTRACT_API_KEY: "test-key",
-    RESEND_FROM: "test@example.com",
     NEXT_PUBLIC_APP_URL: "http://localhost:3000",
     NEXT_PUBLIC_WEB_URL: "http://localhost:3001",
+    RESEND_FROM: "test@example.com",
   },
 }));
 

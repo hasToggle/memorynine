@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { PROMPTS } from "./completions";
 import {
   adjacentPhase,
   FIRST_PHASE,
@@ -8,7 +9,7 @@ import {
   phaseImpliedBy,
   reached,
 } from "./phases";
-import { INITIAL_TEMP, PROMPTS } from "./selector";
+import { INITIAL_TEMP } from "./selector";
 
 const QUESTION_PROMPT_ID = PROMPTS.find((p) => p.isQuestion)?.id ?? "";
 const OTHER_PROMPT_ID = PROMPTS.find((p) => !p.isQuestion)?.id ?? "reverse-fn";

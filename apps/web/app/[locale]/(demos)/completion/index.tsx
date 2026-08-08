@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@repo/design-system/components/ui/button";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Expandable } from "../../components/expandable";
 import { MetaAside } from "../../components/meta-aside";
 import { RalphEssay } from "./ralph-essay";
@@ -14,6 +14,8 @@ type Stage = "surface" | "revealed";
 
 export function Completion() {
   const [stage, setStage] = useState<Stage>("surface");
+  const reveal = useCallback(() => setStage("revealed"), []);
+  const reset = useCallback(() => setStage("surface"), []);
 
   return (
     <div className="space-y-6">
@@ -21,15 +23,11 @@ export function Completion() {
 
       <div className="flex flex-wrap items-center gap-3">
         {stage === "surface" ? (
-          <Button onClick={() => setStage("revealed")} type="button">
+          <Button onClick={reveal} type="button">
             See what passed
           </Button>
         ) : (
-          <Button
-            onClick={() => setStage("surface")}
-            type="button"
-            variant="ghost"
-          >
+          <Button onClick={reset} type="button" variant="ghost">
             Reset
           </Button>
         )}

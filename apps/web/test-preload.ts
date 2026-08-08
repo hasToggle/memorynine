@@ -20,15 +20,15 @@ mock.module("server-only", () => ({}));
 mock.module("@/env", () => ({
   env: {
     ABSTRACT_API_KEY: "",
-    RESEND_FROM: "test@example.com",
     NEXT_PUBLIC_APP_URL: "http://localhost:3000",
     NEXT_PUBLIC_WEB_URL: "http://localhost:3001",
+    RESEND_FROM: "test@example.com",
   },
 }));
 
 mock.module("@repo/database", () => ({
-  database: { subscriber: { updateOne: async () => ({}) } },
   createId: () => "test-id",
+  database: { subscriber: { updateOne: async () => ({}) } },
 }));
 
 mock.module("@repo/email", () => ({
@@ -36,7 +36,7 @@ mock.module("@repo/email", () => ({
 }));
 
 mock.module("@repo/email/templates/confirm-subscription", () => ({
-  ConfirmSubscription: () => null,
+  default: () => null,
 }));
 
 mock.module("@repo/observability/error", () => ({
@@ -44,5 +44,5 @@ mock.module("@repo/observability/error", () => ({
 }));
 
 mock.module("@repo/observability/log", () => ({
-  log: { info: () => undefined, warn: () => undefined, error: () => undefined },
+  log: { error: () => undefined, info: () => undefined, warn: () => undefined },
 }));

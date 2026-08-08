@@ -1,13 +1,15 @@
 "use client";
 
 import { Button } from "@repo/design-system/components/ui/button";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { MetaAside } from "../../components/meta-aside";
 
 type Stage = "surface" | "revealed";
 
 export function Proof() {
   const [stage, setStage] = useState<Stage>("surface");
+  const reveal = useCallback(() => setStage("revealed"), []);
+  const reset = useCallback(() => setStage("surface"), []);
 
   return (
     <div className="space-y-6">
@@ -15,15 +17,11 @@ export function Proof() {
 
       <div className="flex flex-wrap items-center gap-3">
         {stage === "surface" ? (
-          <Button onClick={() => setStage("revealed")} type="button">
+          <Button onClick={reveal} type="button">
             See what it returned
           </Button>
         ) : (
-          <Button
-            onClick={() => setStage("surface")}
-            type="button"
-            variant="ghost"
-          >
+          <Button onClick={reset} type="button" variant="ghost">
             Reset
           </Button>
         )}

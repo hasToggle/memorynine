@@ -34,13 +34,15 @@ const cloneNextForge = async (name: string, packageManager: string) => {
 };
 
 const deleteInternalContent = async () => {
-  for (const folder of internalContentDirs) {
-    await rm(folder, { recursive: true, force: true });
-  }
+  await Promise.all(
+    internalContentDirs.map((folder) =>
+      rm(folder, { force: true, recursive: true })
+    )
+  );
 
-  for (const file of internalContentFiles) {
-    await rm(file, { force: true });
-  }
+  await Promise.all(
+    internalContentFiles.map((file) => rm(file, { force: true }))
+  );
 };
 
 const installDependencies = async (packageManager: string) => {
@@ -65,9 +67,11 @@ const setupEnvironmentVariables = async () => {
     { source: join("packages", "internationalization"), target: ".env.local" },
   ];
 
-  for (const { source, target } of files) {
-    await copyFile(join(source, ".env.example"), join(source, target));
-  }
+  await Promise.all(
+    files.map(({ source, target }) =>
+      copyFile(join(source, ".env.example"), join(source, target))
+    )
+  );
 };
 
 const setupOrm = async (packageManager: string) => {
@@ -157,15 +161,18 @@ const updateInternalDependencies = async (projectDir: string) => {
 
   const workspaceDirs = ["apps", "packages"];
 
-  for (const dir of workspaceDirs) {
-    const dirPath = join(projectDir, dir);
-    const packages = await readdir(dirPath);
+  await Promise.all(
+    workspaceDirs.map(async (dir) => {
+      const dirPath = join(projectDir, dir);
+      const packages = await readdir(dirPath);
 
-    for (const pkg of packages) {
-      const path = join(dirPath, pkg, "package.json");
-      await updateInternalPackageDependencies(path);
-    }
-  }
+      await Promise.all(
+        packages.map((pkg) =>
+          updateInternalPackageDependencies(join(dirPath, pkg, "package.json"))
+        )
+      );
+    })
+  );
 };
 
 const getName = async () => {
@@ -189,12 +196,12 @@ const getName = async () => {
 
 const getPackageManager = async () => {
   const value = await select({
+    initialValue: "pnpm",
     message: "Which package manager would you like to use?",
     options: supportedPackageManagers.map((choice) => ({
-      value: choice,
       label: choice,
+      value: choice,
     })),
-    initialValue: "pnpm",
   });
 
   if (isCancel(value)) {

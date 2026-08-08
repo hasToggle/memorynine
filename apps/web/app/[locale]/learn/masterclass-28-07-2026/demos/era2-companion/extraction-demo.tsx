@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
   type ClipPhase,
   clipTransition,
@@ -17,6 +17,20 @@ const EDITOR_DIM = "#858585";
 const GUTTER_FG = "#6e7681";
 const RULE = "#2b2b2b";
 
+/**
+ * The generated token table never reorders, so identity is assigned once here
+ * rather than leaning on the render-time index.
+ */
+const EDITOR_LINES = EDITOR_TOKENS.map((tokens, lineIndex) => ({
+  id: `line-${lineIndex}`,
+  tokens: tokens.map((token, tokenIndex) => ({
+    ...token,
+    id: `token-${lineIndex}-${tokenIndex}`,
+  })),
+}));
+
+const GUTTER_NUMBERS = EDITOR_TOKENS.map((_, index) => index + 1);
+
 const PLACEHOLDER: Record<"copied" | "idle", string> = {
   copied: "// the answer is on your clipboard. Bring it over yourself.",
   idle: "// empty. The knowledge lives in another window.",
@@ -25,7 +39,17 @@ const PLACEHOLDER: Record<"copied" | "idle", string> = {
 export function Era2Extraction() {
   const [phase, setPhase] = useState<ClipPhase>("idle");
   const pasted = phase === "pasted";
-  const lineCount = pasted ? EDITOR_TOKENS.length : 1;
+  const gutter = pasted ? GUTTER_NUMBERS : [1];
+
+  const copy = useCallback(
+    () => setPhase((p) => clipTransition(p, "copy")),
+    []
+  );
+  const paste = useCallback(
+    () => setPhase((p) => clipTransition(p, "paste")),
+    []
+  );
+  const reset = useCallback(() => setPhase("idle"), []);
 
   return (
     <div className="mb-6 space-y-5">
@@ -53,7 +77,7 @@ export function Era2Extraction() {
             <button
               className="mt-2 rounded border border-foreground/15 px-2 py-1 font-mono text-[11px] text-muted-foreground hover:text-foreground disabled:opacity-40"
               disabled={phase !== "idle"}
-              onClick={() => setPhase((p) => clipTransition(p, "copy"))}
+              onClick={copy}
               type="button"
             >
               {phase === "idle" ? "Copy" : "Copied ✓"}
@@ -92,7 +116,7 @@ export function Era2Extraction() {
             <button
               className="rounded border px-2 py-0.5 disabled:opacity-40"
               disabled={phase !== "copied"}
-              onClick={() => setPhase((p) => clipTransition(p, "paste"))}
+              onClick={paste}
               style={{ borderColor: "#3c3c3c", color: EDITOR_FG }}
               type="button"
             >
@@ -107,8 +131,8 @@ export function Era2Extraction() {
             className="select-none border-r px-3 py-3 text-right"
             style={{ borderColor: RULE, color: GUTTER_FG }}
           >
-            {Array.from({ length: lineCount }, (_, i) => (
-              <div key={`ln${i + 1}`}>{i + 1}</div>
+            {gutter.map((n) => (
+              <div key={n}>{n}</div>
             ))}
           </div>
           {/* `whitespace-pre` is load-bearing twice over: these are divs, not a
@@ -120,12 +144,12 @@ export function Era2Extraction() {
             style={{ color: EDITOR_FG }}
           >
             {pasted ? (
-              EDITOR_TOKENS.map((line, lineIndex) => (
-                <div key={`l${lineIndex}`}>
-                  {line.length === 0
+              EDITOR_LINES.map((line) => (
+                <div key={line.id}>
+                  {line.tokens.length === 0
                     ? " "
-                    : line.map((token, tokenIndex) => (
-                        <span key={`t${tokenIndex}`} style={{ color: token.c }}>
+                    : line.tokens.map((token) => (
+                        <span key={token.id} style={{ color: token.c }}>
                           {token.t}
                         </span>
                       ))}
@@ -151,7 +175,7 @@ export function Era2Extraction() {
         ) : null}
         <button
           className="ml-auto shrink-0 rounded border border-foreground/15 px-2 py-1 font-mono text-muted-foreground text-xs hover:text-foreground"
-          onClick={() => setPhase("idle")}
+          onClick={reset}
           type="button"
         >
           ↺ reset

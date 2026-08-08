@@ -9,7 +9,7 @@
  */
 
 import { fingerprintText, type Kind } from "../../highlight";
-import type { PromptSeed } from "../selector";
+import type { PromptSeed } from "../completions";
 
 export type { Kind } from "../../highlight";
 // biome-ignore lint/performance/noBarrelFile: re-exports the shared vocabulary so this module's public surface stays unchanged

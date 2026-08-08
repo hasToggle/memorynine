@@ -3,7 +3,7 @@
 import { cn } from "@repo/design-system/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
 import type { MouseEvent } from "react";
-import { PROMPTS } from "./selector";
+import { PROMPTS } from "./completions";
 
 const FADE = { duration: 0.25 } as const;
 

@@ -17,7 +17,7 @@ export function PromptInput({ amended }: PromptInputProps) {
         {PROMPT}
       </p>
 
-      {amended && (
+      {amended ? (
         <>
           <p className="text-ht-cyan-700 dark:text-ht-cyan-300">
             <span aria-hidden="true" className="mr-2 select-none">
@@ -32,7 +32,7 @@ export function PromptInput({ amended }: PromptInputProps) {
             </span>
           </p>
         </>
-      )}
+      ) : null}
     </div>
   );
 }

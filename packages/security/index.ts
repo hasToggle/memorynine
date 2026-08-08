@@ -18,10 +18,10 @@ export const secure = async (
   }
 
   const base = arcjet({
-    // Get your site key from https://app.arcjet.com
-    key: arcjetKey,
     // Identify the user by their IP address
     characteristics: ["ip.src"],
+    // Get your site key from https://app.arcjet.com
+    key: arcjetKey,
     rules: [
       // Protect against common attacks with Arcjet Shield
       shield({
@@ -33,7 +33,7 @@ export const secure = async (
   });
 
   const req = sourceRequest ?? (await request());
-  const aj = base.withRule(detectBot({ mode: "LIVE", allow }));
+  const aj = base.withRule(detectBot({ allow, mode: "LIVE" }));
   const decision = await aj.protect(req);
 
   if (decision.isDenied()) {

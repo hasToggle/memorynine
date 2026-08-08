@@ -1,7 +1,8 @@
 "use client";
 
 import { cn } from "@repo/design-system/lib/utils";
-import { useEffect, useReducer } from "react";
+import { useCallback, useEffect, useReducer } from "react";
+import type { DiffStatus } from "./diff-data";
 import {
   harnessReducer,
   initialHarnessState,
@@ -10,6 +11,12 @@ import {
 } from "./reducer";
 
 const TICK_MS = 650;
+
+const STATUS_GLYPH: Record<DiffStatus, string> = {
+  excepted: "⚠ ",
+  pending: "● ",
+  resolved: "✓ ",
+};
 
 export function Era3Harness() {
   const [state, dispatch] = useReducer(
@@ -26,8 +33,13 @@ export function Era3Harness() {
     return () => clearInterval(id);
   }, [state.running]);
 
-  const resolved = (id: string) =>
-    state.diffs.find((d) => d.id === id)?.status === "resolved";
+  const resolved = useCallback(
+    (id: string) => state.diffs.find((d) => d.id === id)?.status === "resolved",
+    [state.diffs]
+  );
+
+  const run = useCallback(() => dispatch({ type: "run" }), []);
+  const reset = useCallback(() => dispatch({ type: "reset" }), []);
 
   return (
     <div className="rounded-xl border border-foreground/10 p-4 sm:p-6">
@@ -63,19 +75,16 @@ export function Era3Harness() {
               )}
               key={d.id}
             >
-              {d.status === "resolved"
-                ? "✓ "
-                : d.status === "excepted"
-                  ? "⚠ "
-                  : "● "}
+              {STATUS_GLYPH[d.status]}
               {d.label}
             </li>
           ))}
         </ul>
 
         <div className="rounded-lg border border-foreground/10 bg-[#0d1117] p-3 font-mono text-[#8b949e] text-xs leading-6">
-          {state.log.map((line, i) => (
-            <div className="text-[#3fb950]" key={`${i}-${line}`}>
+          {/* Every log line is a distinct constant, so the text is a stable key. */}
+          {state.log.map((line) => (
+            <div className="text-[#3fb950]" key={line}>
               › {line}
             </div>
           ))}
@@ -91,7 +100,7 @@ export function Era3Harness() {
             <button
               className="rounded bg-[#21262d] px-3 py-1 text-[#c9d1d9] disabled:opacity-40"
               disabled={state.running || isClear(state)}
-              onClick={() => dispatch({ type: "run" })}
+              onClick={run}
               type="button"
             >
               Run audit
@@ -107,7 +116,7 @@ export function Era3Harness() {
         <button
           className="ml-auto shrink-0 rounded border border-foreground/15 px-2 py-1 font-mono text-muted-foreground text-xs hover:text-foreground disabled:pointer-events-none disabled:opacity-40"
           disabled={state.running}
-          onClick={() => dispatch({ type: "reset" })}
+          onClick={reset}
           type="button"
         >
           ↺ reset
@@ -147,7 +156,7 @@ function Mock({
     <div>
       <div className="mb-1 font-mono text-[10px] text-muted-foreground uppercase tracking-wide">
         {label}
-        {converged && <span className="text-emerald-600"> ▸ match</span>}
+        {converged ? <span className="text-emerald-600"> ▸ match</span> : null}
       </div>
       <div className="rounded-lg border border-foreground/10 bg-background p-4">
         <div

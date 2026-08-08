@@ -1,10 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import {
-  applySuggestion,
-  INITIAL_FILE,
-  resolveMismatch,
-  SUGGESTION,
-} from "./apply";
+import { applySuggestion, resolveMismatch } from "./apply";
+import { INITIAL_FILE, SUGGESTION } from "./suggestions";
 
 describe("era2 apply", () => {
   test("applying inserts the suggested block after the target line", () => {

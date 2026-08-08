@@ -1,7 +1,7 @@
 "use client";
 
 import { Menu } from "lucide-react";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { Logo } from "./logo";
 import { Link } from "./marketing-link";
 import { PlusGrid, PlusGridItem, PlusGridRow } from "./plus-grid";
@@ -91,6 +91,7 @@ export function Navbar({
   variant?: "light" | "dark";
 }) {
   const [open, setOpen] = useState(false);
+  const toggleMobileNav = useCallback(() => setOpen((current) => !current), []);
 
   return (
     <header className="pt-12 sm:pt-16">
@@ -108,14 +109,14 @@ export function Navbar({
                 />
               </Link>
             </PlusGridItem>
-            {banner && (
+            {banner ? (
               <div className="relative hidden items-center py-3 lg:flex">
                 {banner}
               </div>
-            )}
+            ) : null}
           </div>
           <DesktopNav variant={variant} />
-          <MobileNavButton onClick={() => setOpen(!open)} variant={variant} />
+          <MobileNavButton onClick={toggleMobileNav} variant={variant} />
         </PlusGridRow>
       </PlusGrid>
       <MobileNav open={open} variant={variant} />

@@ -10,15 +10,15 @@ const DEFAULT_SLIDER_VALUE = 33;
  * An input where the user selects a value from within a given range.
  */
 const meta = {
-  title: "ui/Slider",
-  component: Slider,
-  tags: ["autodocs"],
-  argTypes: {},
   args: {
     defaultValue: [DEFAULT_SLIDER_VALUE],
     max: 100,
     step: 1,
   },
+  argTypes: {},
+  component: Slider,
+  tags: ["autodocs"],
+  title: "ui/Slider",
 } satisfies Meta<typeof Slider>;
 
 export default meta;

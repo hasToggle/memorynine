@@ -2,6 +2,7 @@
 
 import { cn } from "@repo/design-system/lib/utils";
 import { AnimatePresence, motion } from "motion/react";
+import { useCallback } from "react";
 import { adjacentPhase, PHASES, type PhaseId, phaseFor } from "./phases";
 
 const CROSSFADE = { duration: 0.2 } as const;
@@ -13,15 +14,56 @@ interface ArrowProps {
 }
 
 function Arrow({ dir, onSelect, target }: ArrowProps) {
+  const select = useCallback(() => {
+    if (target) {
+      onSelect(target);
+    }
+  }, [onSelect, target]);
+
   return (
     <button
       aria-label={dir === "prev" ? "Previous beat" : "Next beat"}
       className="shrink-0 rounded px-2 font-mono text-muted-foreground text-sm transition-colors hover:text-foreground disabled:pointer-events-none disabled:opacity-30"
       disabled={target === null}
-      onClick={() => target && onSelect(target)}
+      onClick={select}
       type="button"
     >
       {dir === "prev" ? "←" : "→"}
+    </button>
+  );
+}
+
+interface PhaseNumeralProps {
+  active: boolean;
+  id: PhaseId;
+  label: string;
+  numeral: number;
+  onSelect: (id: PhaseId) => void;
+}
+
+function PhaseNumeral({
+  active,
+  id,
+  label,
+  numeral,
+  onSelect,
+}: PhaseNumeralProps) {
+  const select = useCallback(() => onSelect(id), [id, onSelect]);
+
+  return (
+    <button
+      aria-current={active ? "step" : undefined}
+      aria-label={label}
+      className={cn(
+        "flex size-7 shrink-0 items-center justify-center rounded-full font-mono text-xs tabular-nums transition-colors",
+        active
+          ? "bg-foreground text-background"
+          : "border border-foreground/20 text-muted-foreground hover:border-foreground/40 hover:text-foreground"
+      )}
+      onClick={select}
+      type="button"
+    >
+      {numeral}
     </button>
   );
 }
@@ -58,26 +100,16 @@ export function PhaseFooter({ current, onSelect }: PhaseFooterProps) {
           onSelect={onSelect}
           target={adjacentPhase(current, "prev")}
         />
-        {PHASES.map((p, index) => {
-          const active = p.id === current;
-          return (
-            <button
-              aria-current={active ? "step" : undefined}
-              aria-label={p.label}
-              className={cn(
-                "flex size-7 shrink-0 items-center justify-center rounded-full font-mono text-xs tabular-nums transition-colors",
-                active
-                  ? "bg-foreground text-background"
-                  : "border border-foreground/20 text-muted-foreground hover:border-foreground/40 hover:text-foreground"
-              )}
-              key={p.id}
-              onClick={() => onSelect(p.id)}
-              type="button"
-            >
-              {index + 1}
-            </button>
-          );
-        })}
+        {PHASES.map((p, index) => (
+          <PhaseNumeral
+            active={p.id === current}
+            id={p.id}
+            key={p.id}
+            label={p.label}
+            numeral={index + 1}
+            onSelect={onSelect}
+          />
+        ))}
         <Arrow
           dir="next"
           onSelect={onSelect}

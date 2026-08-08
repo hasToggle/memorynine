@@ -26,7 +26,7 @@ interface DigestEmailProps {
 
 const baseUrl = process.env.NEXT_PUBLIC_APEX_URL ?? "https://hastoggle.dev";
 
-export function DigestEmail({
+function DigestEmail({
   title,
   misconception,
   content,
@@ -45,24 +45,24 @@ export function DigestEmail({
             src={`${baseUrl}/icon.png`}
             width={42}
           />
-          {series && (
+          {series ? (
             <Text style={seriesLabel}>
               {series.name} &mdash; Part {series.part}
             </Text>
-          )}
+          ) : null}
           <Heading style={heading}>{title}</Heading>
           <Text style={misconceptionStyle}>
             Misconception: &ldquo;{misconception}&rdquo;
           </Text>
           <Hr style={hr} />
           <Text style={body}>{content}</Text>
-          {archiveUrl && (
+          {archiveUrl ? (
             <Section style={ctaSection}>
               <Button href={archiveUrl} style={button}>
                 Read in the app
               </Button>
             </Section>
-          )}
+          ) : null}
           <Hr style={hr} />
           <Text style={footer}>
             You&apos;re receiving this because you subscribed to the hasToggle
@@ -75,11 +75,11 @@ export function DigestEmail({
 }
 
 DigestEmail.PreviewProps = {
-  title: "You don't need to learn to code",
-  misconception: "AI writes all the code for me",
-  content: "Here's why understanding how things work still matters...",
-  series: { name: "The AI Toolchain", part: 1 },
   archiveUrl: "https://app.hastoggle.dev/digest/123",
+  content: "Here's why understanding how things work still matters...",
+  misconception: "AI writes all the code for me",
+  series: { name: "The AI Toolchain", part: 1 },
+  title: "You don't need to learn to code",
 } satisfies DigestEmailProps;
 
 export default DigestEmail;
@@ -96,8 +96,8 @@ const container = {
   border: "1px solid #f0f0f0",
   borderRadius: "8px",
   margin: "40px auto",
-  padding: "40px 48px",
   maxWidth: "600px",
+  padding: "40px 48px",
 };
 
 const heading = {
@@ -113,8 +113,8 @@ const seriesLabel = {
   fontSize: "12px",
   fontWeight: "600" as const,
   letterSpacing: "0.05em",
-  textTransform: "uppercase" as const,
   margin: "24px 0 0",
+  textTransform: "uppercase" as const,
 };
 
 const misconceptionStyle = {
@@ -136,8 +136,8 @@ const hr = {
 };
 
 const ctaSection = {
-  textAlign: "center" as const,
   margin: "32px 0",
+  textAlign: "center" as const,
 };
 
 const button = {

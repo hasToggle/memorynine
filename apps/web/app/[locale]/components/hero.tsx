@@ -6,11 +6,11 @@ import { MetaAside } from "./meta-aside";
 import { Navbar } from "./navbar";
 
 const CHAPTERS: readonly { href: string; label: string; n: string }[] = [
-  { n: "01", label: "Understanding", href: "#misconception-01" },
-  { n: "02", label: "Defaults", href: "#misconception-02" },
-  { n: "03", label: "Stance", href: "#misconception-03" },
-  { n: "04", label: "Closure", href: "#misconception-04" },
-  { n: "05", label: "Compliance", href: "#misconception-05" },
+  { href: "#misconception-01", label: "Understanding", n: "01" },
+  { href: "#misconception-02", label: "Defaults", n: "02" },
+  { href: "#misconception-03", label: "Stance", n: "03" },
+  { href: "#misconception-04", label: "Closure", n: "04" },
+  { href: "#misconception-05", label: "Compliance", n: "05" },
 ];
 
 export function Hero() {

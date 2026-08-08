@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@repo/design-system/lib/utils";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { GroundedParagraph } from "./grounded-paragraph";
 import { PromptInput } from "./prompt-input";
 import { GroundingToggle } from "./toggles";
@@ -12,14 +12,14 @@ export function Plausibility() {
   const [seenOff, setSeenOff] = useState(true);
   const [seenOn, setSeenOn] = useState(false);
 
-  function handleChange(next: boolean) {
+  const handleChange = useCallback((next: boolean) => {
     setGrounding(next);
     if (next) {
       setSeenOn(true);
     } else {
       setSeenOff(true);
     }
-  }
+  }, []);
 
   const realityRevealed = seenOff && seenOn;
 
@@ -47,7 +47,7 @@ export function Plausibility() {
         <GroundingToggle grounding={grounding} onChange={handleChange} />
       </div>
 
-      {realityRevealed && (
+      {realityRevealed ? (
         <div
           className={cn(
             "fade-in slide-in-from-bottom-2 mt-10 animate-in border-border/60 border-t pt-8 duration-500"
@@ -80,7 +80,7 @@ export function Plausibility() {
             </p>
           </div>
         </div>
-      )}
+      ) : null}
     </div>
   );
 }

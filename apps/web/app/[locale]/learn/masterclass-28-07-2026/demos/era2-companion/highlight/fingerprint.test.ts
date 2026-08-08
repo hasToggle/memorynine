@@ -1,12 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { fingerprintText } from "../../highlight";
-import {
-  applySuggestion,
-  INITIAL_FILE,
-  resolveMismatch,
-  SUGGESTION,
-} from "../apply";
+import { applySuggestion, resolveMismatch } from "../apply";
 import { THREAD_ANSWER } from "../extraction";
+import { INITIAL_FILE, SUGGESTION } from "../suggestions";
 import {
   EDITOR_TOKENS,
   FILE_FINGERPRINT,

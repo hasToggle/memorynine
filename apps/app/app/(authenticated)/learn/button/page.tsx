@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Counter } from "./components/counter";
 
 export const metadata: Metadata = {
-  title: "The Button | Learn by Doing",
   description: "Click to increase the count and learn the web stack.",
+  title: "The Button | Learn by Doing",
 };
 
 export default function ButtonScenarioPage() {
