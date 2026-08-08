@@ -32,7 +32,7 @@
     "tsup": "^8.5.0",
     "turbo": "2.10.9",
     "typescript": "^7.0.0",
-    "ultracite": "7.9.4"
+    "ultracite": "7.10.1"
   },
   "engines": {
     "node": ">=20.19.0"
