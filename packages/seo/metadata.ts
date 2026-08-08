@@ -7,7 +7,7 @@ type MetadataGenerator = Omit<Metadata, "description" | "title"> & {
   image?: string;
 };
 
-const applicationName = "has-toggle";
+const applicationName = "memorynine";
 const author: Metadata["authors"] = {
   name: "Eric",
   url: "https://spiritsdontfly.com/",

@@ -10,6 +10,6 @@ test("Sign In Page exports default component", () => {
 
 test("Sign In Page has metadata", () => {
   expect(metadata).toBeDefined();
-  expect(metadata.title).toBe("Welcome back | has-toggle");
+  expect(metadata.title).toBe("Welcome back | memorynine");
   expect(metadata.description).toBe("Enter your details to sign in.");
 });

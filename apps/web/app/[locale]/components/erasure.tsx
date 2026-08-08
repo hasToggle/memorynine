@@ -43,7 +43,7 @@ export function Erasure() {
       <Container>
         <div className="grid gap-14 lg:grid-cols-2 lg:gap-20">
           <div>
-            <Eyebrow>The awkward request · GDPR Art. 17</Eyebrow>
+            <Eyebrow>Erasure · GDPR Art. 17</Eyebrow>
             <SectionHeading className="mt-5">
               &ldquo;Please delete everything you have on me.&rdquo;
             </SectionHeading>
