@@ -167,7 +167,9 @@ export const KnowledgeChat = () => {
       }
       // Rejections surface through agent.error, which the view renders; this
       // catch only keeps the promise from floating.
-      agent.send({ message: text }).catch(() => undefined);
+      // eve 0.31.0 made send() positional: send(message, options) instead of
+      // send({ message }).
+      agent.send(text).catch(() => undefined);
     },
     [agent, isBusy]
   );
