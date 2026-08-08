@@ -176,7 +176,7 @@ export const SignUp = () => {
             id={nameId}
             name="name"
             onChange={handleNameChange}
-            placeholder="Jane Doe"
+            placeholder="Marie Lang"
             required
             type="text"
             value={name}
@@ -196,7 +196,7 @@ export const SignUp = () => {
               id={organizationId}
               name="organization"
               onChange={handleOrganizationNameChange}
-              placeholder="Acme Inc."
+              placeholder="Lang & Partner"
               required
               type="text"
               value={organizationName}

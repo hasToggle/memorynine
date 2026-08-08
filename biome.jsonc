@@ -17,7 +17,6 @@
       "!packages/design-system/components/ai-elements",
       "!packages/design-system/lib",
       "!packages/design-system/hooks",
-      "!packages/collaboration/config.ts",
       "!docs/components/ui",
       "!docs/lib",
       "!docs/hooks",

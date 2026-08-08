@@ -1,12 +1,21 @@
+import Link from "next/link";
+
 export default function Confirmed() {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 p-4 text-center text-white">
-      <h1 className="mb-4 font-bold text-3xl">You&apos;re confirmed!</h1>
-      <p className="mb-4 max-w-md text-lg">
-        Thank you for confirming your email address. You are all set to receive
-        our weekly digest!
+    <main className="mn-surface flex min-h-screen flex-col items-center justify-center px-6 text-center">
+      <h1 className="max-w-xl font-cabinet font-extrabold text-[2rem] text-mn-ink leading-[1.05] tracking-[-0.035em] sm:text-[2.5rem]">
+        Address confirmed.
+      </h1>
+      <p className="mt-5 max-w-md text-[1rem] text-mn-ink-soft leading-[1.7]">
+        We&apos;ll be in touch about setting your workspace up. If you&apos;d
+        rather not wait, you can start one now.
       </p>
-      <p className="text-gray-400 text-lg">Eric</p>
-    </div>
+      <Link
+        className="mt-9 rounded-[5px] bg-mn-ink px-5 py-2.5 font-medium text-[0.9375rem] text-mn-paper transition-colors hover:bg-mn-stamp focus-visible:outline-2 focus-visible:outline-mn-ink focus-visible:outline-offset-2"
+        href="/"
+      >
+        Back to memorynine
+      </Link>
+    </main>
   );
 }

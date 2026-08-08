@@ -1,32 +1,306 @@
 ---
-title: "Privacy Policy"
-description: "How we handle your data"
+title: "Privacy Notice"
+description: "What memorynine does with data, where it sits, and who is responsible for what."
 ---
 
-## Overview
+Last updated: 8 August 2026.
 
-This Privacy Policy describes how has-toggle ("we", "us", or "our") collects, uses, and shares your personal information when you use our services.
+## The short version
 
-## Information We Collect
+memorynine records what your team says after a client call, turns it into a
+memory the team can question, and shows you where every answer came from.
 
-We collect information you provide directly, such as when you create an account, use our services, or contact us for support.
+- **Your workspace content is yours.** Recordings, transcripts, forwarded mail
+  and the facts drawn out of them belong to your company. We hold them on your
+  instructions and for no other purpose.
+- **Where it lives.** Recordings, transcripts and the knowledge base sit in EU
+  regions. Speech-to-text runs on an EU endpoint.
+- **Where it does not always live.** Language-model inference is routed through
+  a gateway that fails over between providers, so an individual request can be
+  processed outside the EU. Those providers retain nothing and train on nothing.
+  [Details below](#where-data-is-processed).
+- **What never reaches us.** Bank details, card numbers, passport and licence
+  numbers, health conditions, medication and injuries are removed during
+  transcription, before anything is stored.
+- **We do not train models on your content.** Neither do the providers we call.
+- **Erasing a person is real.** One action removes their facts, redacts them
+  out of the transcripts and the review history, and marks their recordings for
+  deletion. It cannot be undone.
 
-### Account Information
+The rest of this page is the detail behind those points.
 
-When you create an account, we collect your name, email address, and password.
+## Who we are
 
-### Usage Data
+**TO BE COMPLETED BEFORE PUBLISHING — the entries in this section are the only
+placeholders in this document.**
 
-We automatically collect information about how you interact with our services, including pages visited, features used, and actions taken.
+- Controller within the meaning of Art. 4(7) GDPR: **[legal entity name and
+  legal form]**
+- Address: **[registered address]**
+- Register and number: **[commercial register, HRB number]**
+- Represented by: **[managing director]**
+- Privacy contact: **[privacy@…]**
+- Data protection officer: **[name and contact, or the sentence "We are not
+  required to appoint one under Art. 37 GDPR and have not appointed one."]**
 
-## How We Use Your Information
+## Two different roles
 
-We use your information to:
+Which rules apply depends on whose data it is. We are in one of two positions,
+and the difference matters for your rights and for ours.
 
-- Provide, maintain, and improve our services
-- Send you technical notices and support messages
-- Respond to your comments and questions
+| What                                                                              | Our role      | Who decides what happens to it |
+| --------------------------------------------------------------------------------- | ------------- | ------------------------------ |
+| Visitors to this website                                                          | **Controller** | Us                             |
+| People who ask for early access or a walkthrough                                  | **Controller** | Us                             |
+| Account holders — your name, email, which workspace you belong to                 | **Controller** | Us                             |
+| Billing records                                                                   | **Controller** | Us                             |
+| Everything inside a workspace — recordings, transcripts, forwarded mail, the people and companies they describe, the facts drawn out of them | **Processor** | Your company                   |
 
-## Contact Us
+That last row is most of the product. Your company decides what goes in, what
+is confirmed, what is corrected and what is deleted. We process it on your
+instructions under a data processing agreement (Art. 28 GDPR) and for nothing
+else. If you are one of our customers' clients and want to know what is held
+about you, the company you deal with is the right place to ask — and we help
+them answer.
 
-If you have questions about this Privacy Policy, please contact us at privacy@hastoggle.dev.
+## What we process as controller
+
+### When you visit this site
+
+We process the request data your browser sends: IP address, user agent,
+referring page, and the page you asked for. This is needed to serve the site
+and to keep it standing up against abuse. Legal basis: Art. 6(1)(f) GDPR, our
+legitimate interest in operating and defending a website.
+
+Product analytics run only with your consent, and the site works without them.
+See [Cookies and analytics](#cookies-and-analytics).
+
+### When you ask for early access
+
+The form takes your email address. Before we store it, the address is checked
+for format, against a list of disposable-mail domains, and against a
+deliverability service — so the confirmation mail actually arrives and the list
+is not used to bounce traffic at somebody else. We then send you a link, and
+nothing else happens until you click it.
+
+We keep your address, the confirmation status, and the timestamps. Legal basis:
+Art. 6(1)(a) GDPR (your consent, given by confirming), and Art. 6(1)(f) for the
+validity check. You can withdraw at any time by replying to any message from us
+or writing to the privacy contact above; we delete the address.
+
+### When you hold an account
+
+better-auth stores your name, email address, a hashed password, your email
+verification state, your sessions, which organisations you belong to and your
+role in them, and any invitations you sent or received. Legal basis:
+Art. 6(1)(b) GDPR — performing the contract you signed up for.
+
+### Operating the service
+
+We record one row per model call — which operation, how many tokens, what it
+cost, and an identifier linking it to the source that triggered it. These rows
+carry no content from your workspace. They exist for billing and for spotting a
+worker that has started burning money. Legal basis: Art. 6(1)(b) and (f).
+
+## What we process as processor
+
+Everything below is workspace content. Your company is the controller; we act
+on its instructions.
+
+### Sources
+
+- **Voice memos.** The audio file, its duration and content type, who recorded
+  it, and when. Audio goes into private storage: it is not publicly reachable,
+  and every read requires a signed link that expires.
+- **Notes.** Whatever somebody typed or pasted.
+- **Forwarded email.** The body, the original sender, who forwarded it, the
+  subject, the message id and the date it was sent. Only addresses on your
+  workspace's allowlist can post mail into it.
+- **Transcripts.** The text produced from a voice memo, plus the detected
+  language.
+
+### What is removed before storage
+
+Speech-to-text is instructed to redact these categories at the provider, so
+they never reach our database at all:
+
+account numbers, banking information, blood type, credit card number, expiry
+and CVV, driver's licence numbers, drugs and medication, healthcare numbers,
+injuries, medical conditions, medical procedures, passport numbers, and social
+security numbers.
+
+Names, companies and money amounts deliberately remain. They are the signal the
+product exists to keep. If your team needs a category kept out that is not on
+this list, tell us — the list is configuration, not architecture.
+
+### Entities and facts
+
+From a source, the extraction step drafts:
+
+- **People** — name, email addresses, role, which organisation they belong to.
+- **Organisations** — name, domains, industry, whether they are a lead, active
+  or former.
+- **Engagements** — title, type, status, start and end dates.
+- **Facts** — a sentence about one of the above, its category, a confidence
+  score, when it became true and when it stopped, and the source it came from.
+
+Nothing in that list becomes part of the knowledge base until a person in your
+workspace confirms it. Until then it sits as a draft in the review queue.
+
+### The review trail
+
+We keep who confirmed, edited or discarded each draft, and when. Without it
+there is no way to answer "who decided this was true", which is the question
+that makes the rest of the record worth anything.
+
+## Where data is processed
+
+| Component                                | Where                                                             |
+| ---------------------------------------- | ----------------------------------------------------------------- |
+| Application, functions, static hosting   | EU regions                                                        |
+| Database (accounts and knowledge base)   | EU region                                                         |
+| Audio and attachment storage             | EU region, private, signed access only                            |
+| Speech-to-text                           | EU endpoint                                                       |
+| Language-model inference                 | Routed via a gateway; the serving region is not guaranteed        |
+| Reranking of search results              | Processed outside the EU                                          |
+
+The last two rows are the honest caveat, and we would rather you read it here
+than discover it in a procurement review.
+
+**Language-model inference.** Extraction, consolidation, contradiction checks
+and answering your questions all call a language model through Vercel AI
+Gateway. The gateway routes to whichever provider is healthy, which means an
+individual request can be served outside the EU. Every provider we route to
+operates under zero data retention: the request is processed and nothing is
+kept, and nothing is used for training. What is sent is the text needed for
+that one call — a transcript to be extracted from, or the facts relevant to a
+question — never your whole knowledge base.
+
+**Reranking.** When a question is asked, candidate facts are re-scored by a
+cross-encoder that runs outside the EU. What is sent is the question and the
+candidate fact texts. Nothing is retained.
+
+Transfers outside the EU rest on the European Commission's standard
+contractual clauses together with the transfer mechanisms our providers
+maintain, and on Art. 46 GDPR. If your organisation cannot accept
+model inference leaving the EU, say so before you start — it is a
+configuration question, not a fixed property of the product, and we would
+rather have that conversation up front.
+
+## Subprocessors
+
+These are the processors we use. We tell customers before adding one that
+touches workspace content.
+
+| Provider                          | What it does                                             | Touches workspace content |
+| --------------------------------- | -------------------------------------------------------- | ------------------------- |
+| Vercel                            | Hosting, serverless functions, private blob storage       | Yes                       |
+| Vercel AI Gateway + model providers | Extraction, consolidation, contradiction checks, answers | Yes                       |
+| MongoDB Atlas                     | Database                                                  | Yes                       |
+| AssemblyAI                        | Speech-to-text, PII redaction                             | Yes                       |
+| Voyage AI                         | Reranking search results                                  | Yes                       |
+| Resend                            | Transactional email and the early-access list             | No                        |
+| Sentry                            | Error tracking                                            | Incidentally, via errors  |
+| BetterStack                       | Application logs                                          | Incidentally, via logs    |
+| PostHog                           | Product analytics, with consent                           | No                        |
+| Google Analytics                  | Website analytics, with consent                           | No                        |
+| Arcjet                            | Bot and abuse protection                                  | No                        |
+| Upstash                           | Rate limiting                                             | No                        |
+| Knock                             | In-app notifications                                      | No                        |
+| Stripe                            | Payments, once billing starts                             | No                        |
+| Abstract API                      | Email deliverability check on the early-access form       | No                        |
+| BaseHub                           | Content for this site's blog and legal pages              | No                        |
+
+"Incidentally" means we do not send content there on purpose, but an error
+report or a log line can carry a fragment of whatever was being handled when
+something broke. We keep identifiers out of logs where we can.
+
+## How long we keep things
+
+| What                                    | How long                                                                     |
+| --------------------------------------- | ---------------------------------------------------------------------------- |
+| Workspace content                       | Until your company deletes it, or 30 days after the contract ends             |
+| A person you erase                      | Removed immediately; see [Erasure](#erasure)                                  |
+| Account and session data                | For as long as the account exists, then deleted                               |
+| Early-access address                    | Until you withdraw, or 24 months after the last contact                       |
+| Unconfirmed early-access address        | The confirmation link expires after 24 hours; unconfirmed entries are cleared |
+| Usage and cost records                  | Kept as billing history                                                       |
+| Error reports and logs                  | As configured at the provider, currently short-term                           |
+| Records we must keep by law             | For the statutory period, commercial and tax law included                     |
+
+## Erasure
+
+When somebody exercises their right under Art. 17 GDPR, your workspace can
+erase them in one action. That does the following, and we mention it here
+because "we will delete your data" usually means less than people assume:
+
+- Every fact anchored to that person is deleted, including facts that were
+  consolidated out of them, which an anchor-scoped delete would otherwise miss.
+- Facts about other people that still mention them by name are redacted.
+- Their name and addresses are removed from the source transcripts and from the
+  review history, so the record that a meeting happened survives without them
+  in it.
+- Recordings and attachments that no longer back any surviving fact are marked
+  for deletion, and the stored files go with them.
+- Derived caches built from any of the above are dropped and rebuilt.
+
+It is irreversible. There is no recycle bin, because a recycle bin would mean
+we kept a copy.
+
+## Your rights
+
+Under the GDPR you can ask for access to your data (Art. 15), correction
+(Art. 16), erasure (Art. 17), restriction (Art. 18), a portable copy
+(Art. 20), and you can object to processing based on legitimate interests
+(Art. 21). Where processing rests on consent, you can withdraw it at any time,
+without affecting what was lawful before you did.
+
+Write to the privacy contact above. We answer within one month.
+
+**One routing note.** For anything inside a customer's workspace, that customer
+is the controller, not us. If you are a client of a company that uses
+memorynine, ask them — they can see the record, they can correct it, and they
+can erase you. If you approach us instead, we will pass the request on and tell
+you we have.
+
+## Automated decision-making
+
+There is none within the meaning of Art. 22 GDPR. The assistant drafts and
+proposes; a person confirms. Nothing it produces has a legal or similarly
+significant effect on anyone by itself, and nothing enters the knowledge base
+without a human saying so.
+
+The assistant can be wrong, and it is built to say when it does not know rather
+than fill the gap. Answers carry the source they rest on so a reader can check
+them. That is a design decision, not a legal guarantee: what your team repeats
+to a client is your team's responsibility.
+
+## Cookies and analytics
+
+Strictly necessary cookies — your session, your consent choice — are set
+without asking, because the site does not work without them. Everything else
+waits for your consent, and you can withdraw it at any time. Legal basis for
+non-essential cookies and similar technologies: Art. 6(1)(a) GDPR together with
+§ 25(1) TDDDG.
+
+## Security
+
+Access to a workspace is scoped on every single read, from the signed-in
+session rather than from anything a user or a model can influence — so there is
+no question that reaches another workspace's data. Recordings sit in private
+storage reachable only through links that expire. Passwords are hashed.
+Transport is encrypted. Material arriving from outside — a forwarded thread, a
+transcript — is treated as text somebody wrote, never as an instruction to the
+assistant.
+
+## Complaints
+
+If you think we have handled your data badly, tell us first — we would rather
+fix it. You can also complain to a supervisory authority, in the member state
+where you live, work, or where the problem happened.
+
+## Changes
+
+We update this notice when the product changes. The date at the top is when it
+last changed. If a change affects workspace content or adds a subprocessor that
+touches it, we tell customers rather than relying on you to re-read this page.

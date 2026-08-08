@@ -20,13 +20,6 @@ export default async (): Promise<NextConfig> => {
       source: "/legal",
       statusCode: 301,
     },
-    // Short, sayable URL for the live masterclass. Temporary on purpose: a 301
-    // would be cached in every attendee's browser and break the next talk.
-    {
-      destination: "/learn/masterclass-28-07-2026",
-      permanent: false,
-      source: "/live",
-    },
   ];
 
   nextConfig.redirects = redirects;
