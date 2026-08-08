@@ -212,7 +212,7 @@ export const OrganizationSwitcher = ({
                 id={newOrganizationId}
                 name="organization"
                 onChange={handleNewOrganizationNameChange}
-                placeholder="Acme Inc."
+                placeholder="Lang & Partner"
                 required
                 type="text"
                 value={newOrganizationName}

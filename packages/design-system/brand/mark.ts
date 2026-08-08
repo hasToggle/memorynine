@@ -28,18 +28,18 @@ export const PAPER = "#fafafa";
 /** PAPER at ~28% over INK — the unreviewed field. */
 const MUTED = "#4a4a4a";
 /** The bare mark has no tile to pre-composite against, so it uses real alpha. */
-const BARE_MUTED_OPACITY = 0.3;
+export const BARE_MUTED_OPACITY = 0.3;
 
 /** Everything below is expressed on a 32-unit grid. */
 export const MARK_SIZE = 32;
 const BADGE_RADIUS = 7;
-const CELL = 5.6;
-const CELL_RADIUS = 1.6;
-const CONNECTOR_WIDTH = 2.2;
+export const CELL = 5.6;
+export const CELL_RADIUS = 1.6;
+export const CONNECTOR_WIDTH = 2.2;
 /** Cell centres: a 5-unit inset either side leaves 5.6/2.6/5.6/2.6/5.6. */
-const CENTRES = [8, 16, 24] as const;
+export const CENTRES = [8, 16, 24] as const;
 /** Column/row pairs on the rising diagonal, bottom-left to top-right. */
-const ACCENT_CELLS = new Set(["0,2", "1,1", "2,0"]);
+export const ACCENT_CELLS = new Set(["0,2", "1,1", "2,0"]);
 
 interface MarkOptions {
   /**

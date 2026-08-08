@@ -27,10 +27,10 @@ const round = (value: number, places = 2): number => {
 const GAP = round(MARK_SIZE * (10 / 24));
 const TYPE_SIZE = MARK_SIZE * (17 / 24);
 /** Font units → lockup units. Rounded once, so every derived number agrees. */
-const TYPE_SCALE = round(TYPE_SIZE / WORDMARK_UPEM, 6);
+export const TYPE_SCALE = round(TYPE_SIZE / WORDMARK_UPEM, 6);
 
-const WORD_X = round(MARK_SIZE + GAP);
-const WORD_Y = round((MARK_SIZE - WORDMARK_HEIGHT * TYPE_SCALE) / 2);
+export const WORD_X = round(MARK_SIZE + GAP);
+export const WORD_Y = round((MARK_SIZE - WORDMARK_HEIGHT * TYPE_SCALE) / 2);
 
 export const LOCKUP_WIDTH = round(WORD_X + WORDMARK_WIDTH * TYPE_SCALE);
 export const LOCKUP_HEIGHT = MARK_SIZE;
