@@ -341,13 +341,19 @@ const TYPE_LABELS: Record<ReceiptSource["type"], string> = {
 const PREVIEW_LENGTH = 280;
 
 /**
- * "13 March", or "5 November 2024" once the year stops being obvious. Explicit
- * en-GB so a server in another locale cannot reorder day and month.
+ * "13 March", or "5 November 2024" once the year stops being obvious.
+ *
+ * Both options are load-bearing: en-GB so a server in another locale cannot
+ * reorder day and month, and UTC so the calendar day does not shift with the
+ * host's timezone — wholeMonthsBetween below reads UTC, and a receipt that
+ * disagreed with itself by a day depending on where the process runs would
+ * undermine the determinism this whole module is built on.
  */
 const formatDay = (date: Date, now: Date): string =>
   date.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "long",
+    timeZone: "UTC",
     ...(date.getUTCFullYear() === now.getUTCFullYear()
       ? {}
       : { year: "numeric" }),
