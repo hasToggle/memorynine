@@ -24,18 +24,15 @@ import {
   ReasoningTrigger,
 } from "@repo/design-system/components/ai-elements/reasoning";
 import { Shimmer } from "@repo/design-system/components/ai-elements/shimmer";
-import {
-  Tool,
-  ToolContent,
-  ToolHeader,
-  ToolInput,
-  ToolOutput,
-} from "@repo/design-system/components/ai-elements/tool";
 import { useEveAgent } from "eve/react";
 import { BrainIcon } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
+import type { CitationRef } from "@/lib/citation";
 import { type CitedFact, FactCitation } from "./fact-citation";
+import { ReceiptPanel } from "./receipt-panel";
+import { SearchSummary } from "./search-summary";
 import { type CitedSource, SourceCitation } from "./source-citation";
+import { useReceipts } from "./use-receipts";
 
 // The model emits <fact id="…"/> and <source id="…"/> inline. Streamdown
 // strips unknown tags by default, so each tag and its one attribute have to
@@ -129,6 +126,54 @@ const thinkingMessage = (isStreaming: boolean, duration?: number) => {
   return <p>{duration}s nachgedacht</p>;
 };
 
+/**
+ * Builds the `fact`/`source` renderer pair for one message's citations. Kept
+ * as a plain function (not a hook) so `KnowledgeChat` can cache the result
+ * per message in `componentsFor` below, rather than handing `MessageResponse`
+ * — which is `memo`-wrapped — a brand-new `components` object on every
+ * render. A fresh object there would defeat that memo and force Streamdown to
+ * re-parse and remount every citation on every streamed token, not just the
+ * message that actually changed.
+ */
+const buildCitationComponents = ({
+  facts,
+  messageId,
+  numbering,
+  select,
+  selectedId,
+  sources,
+}: {
+  facts: Map<string, CitedFact>;
+  messageId: string;
+  numbering: (messageId: string, citationId: string) => number;
+  select: (messageId: string, reference: CitationRef) => void;
+  selectedId: string | undefined;
+  sources: Map<string, CitedSource>;
+}) => {
+  const numberOf = (citationId: string) => numbering(messageId, citationId);
+  const onSelect = (reference: CitationRef) => select(messageId, reference);
+  return {
+    fact: ({ id }: { id?: string }) => (
+      <FactCitation
+        facts={facts}
+        id={id}
+        numberOf={numberOf}
+        onSelect={onSelect}
+        selectedId={selectedId}
+      />
+    ),
+    source: ({ id }: { id?: string }) => (
+      <SourceCitation
+        id={id}
+        numberOf={numberOf}
+        onSelect={onSelect}
+        selectedId={selectedId}
+        sources={sources}
+      />
+    ),
+  };
+};
+
 export const KnowledgeChat = () => {
   const agent = useEveAgent();
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
@@ -147,14 +192,83 @@ export const KnowledgeChat = () => {
     [agent.data.messages]
   );
 
-  const components = useMemo(
-    () => ({
-      fact: ({ id }: { id?: string }) => <FactCitation facts={facts} id={id} />,
-      source: ({ id }: { id?: string }) => (
-        <SourceCitation id={id} sources={sources} />
-      ),
-    }),
-    [facts, sources]
+  const { load, receipts } = useReceipts();
+  const [selected, setSelected] = useState<Record<string, CitationRef>>({});
+
+  const select = useCallback(
+    (messageId: string, reference: CitationRef) => {
+      if (reference.id.length === 0) {
+        return;
+      }
+      setSelected((current) => ({ ...current, [messageId]: reference }));
+      load(reference);
+    },
+    [load]
+  );
+
+  // Sequence numbers are per answer: an eight-character hex id is precise and
+  // unreadable, and the number only has to distinguish the chips in front of
+  // the reader. A message's citations only ever append as it streams in, so
+  // first-seen order is stable and the counters below never need to reset.
+  const numbering = useMemo(() => {
+    const counters = new Map<string, Map<string, number>>();
+    return (messageId: string, citationId: string) => {
+      let seen = counters.get(messageId);
+      if (!seen) {
+        seen = new Map();
+        counters.set(messageId, seen);
+      }
+      const existing = seen.get(citationId);
+      if (existing !== undefined) {
+        return existing;
+      }
+      const next = seen.size + 1;
+      seen.set(citationId, next);
+      return next;
+    };
+  }, []);
+
+  // Cache the built `components` object per message, keyed by the inputs
+  // that message's chips actually read. A render that doesn't change any of
+  // those returns the same object identity, keeping MessageResponse's memo
+  // — and Streamdown's own incremental-parse cache — intact.
+  const citationComponentsRef = useRef(
+    new Map<
+      string,
+      {
+        components: ReturnType<typeof buildCitationComponents>;
+        facts: Map<string, CitedFact>;
+        selectedId: string | undefined;
+        sources: Map<string, CitedSource>;
+      }
+    >()
+  );
+
+  const componentsFor = useCallback(
+    (messageId: string) => {
+      const selectedId = selected[messageId]?.id;
+      const cache = citationComponentsRef.current;
+      const cached = cache.get(messageId);
+      if (
+        cached &&
+        cached.facts === facts &&
+        cached.sources === sources &&
+        cached.selectedId === selectedId
+      ) {
+        return cached.components;
+      }
+      const components = buildCitationComponents({
+        facts,
+        messageId,
+        numbering,
+        select,
+        selectedId,
+        sources,
+      });
+      cache.set(messageId, { components, facts, selectedId, sources });
+      return components;
+    },
+    [facts, numbering, select, sources, selected]
   );
 
   // PromptInput owns the textarea and hands back the composed message, so the
@@ -222,7 +336,7 @@ export const KnowledgeChat = () => {
                     return (
                       <MessageResponse
                         allowedTags={ALLOWED_TAGS}
-                        components={components}
+                        components={componentsFor(message.id)}
                         // biome-ignore lint/suspicious/noArrayIndexKey: stream parts have no stable id and are append-only
                         key={index}
                       >
@@ -233,34 +347,36 @@ export const KnowledgeChat = () => {
 
                   if (isSearchTool(part)) {
                     const tool = part as ToolPart;
-                    const { errorText, value } = unwrapToolOutput(tool.output);
+                    const { value } = unwrapToolOutput(tool.output);
+                    const output = value as
+                      | {
+                          facts?: unknown[];
+                          searched?: string;
+                          sources?: unknown[];
+                        }
+                      | undefined;
                     return (
-                      <Tool
-                        // Fixed width: inside the fit-content message column
-                        // a percentage width would grow with every streamed
-                        // line of prose beneath it.
-                        className="w-96 max-w-full"
-                        // biome-ignore lint/suspicious/noArrayIndexKey: see above
+                      <SearchSummary
+                        factCount={output?.facts?.length ?? 0}
+                        // biome-ignore lint/suspicious/noArrayIndexKey: stream parts have no stable id and are append-only
                         key={index}
-                      >
-                        <ToolHeader
-                          state={tool.state as never}
-                          type={tool.type as never}
-                        />
-                        <ToolContent>
-                          <ToolInput input={tool.input} />
-                          <ToolOutput
-                            errorText={tool.errorText ?? errorText}
-                            output={value as never}
-                          />
-                        </ToolContent>
-                      </Tool>
+                        query={
+                          output?.searched ??
+                          (tool.input as { query?: string } | undefined)?.query
+                        }
+                        sourceCount={output?.sources?.length ?? 0}
+                        state={tool.state}
+                      />
                     );
                   }
 
                   return null;
                 })}
               </MessageContent>
+
+              {selected[message.id] ? (
+                <ReceiptPanel receipt={receipts[selected[message.id].id]} />
+              ) : null}
             </Message>
           ))}
 
