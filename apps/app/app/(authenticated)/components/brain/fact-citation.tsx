@@ -35,13 +35,11 @@ export const FactCitation = ({
   id,
   numberOf,
   onSelect,
-  selectedId,
 }: {
   facts: Map<string, CitedFact>;
   id?: string;
   numberOf: (id: string) => number;
   onSelect: (reference: CitationRef) => void;
-  selectedId: string | undefined;
 }) => {
   const factId = normalizeCitationId(id);
   const fact = factId ? facts.get(factId) : undefined;
@@ -53,15 +51,16 @@ export const FactCitation = ({
     id: fact ? (factId ?? "") : "",
     kind: "fact",
   };
-  const tone = toneFor(fact);
 
   return (
     <CitationChip
-      index={factId ? numberOf(factId) : 0}
+      // Only a resolved citation draws a sequence number. Numbering a broken
+      // one and then discarding it leaves a gap — "1 ? 3" — which reads as a
+      // rendering fault rather than as the deliberate alarm it is.
+      index={fact && factId ? numberOf(factId) : 0}
       onSelect={onSelect}
       reference={reference}
-      selected={factId !== undefined && selectedId === factId}
-      tone={tone}
+      tone={toneFor(fact)}
     />
   );
 };

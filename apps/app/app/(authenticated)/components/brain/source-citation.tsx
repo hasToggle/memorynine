@@ -35,13 +35,11 @@ export const SourceCitation = ({
   id,
   numberOf,
   onSelect,
-  selectedId,
   sources,
 }: {
   id?: string;
   numberOf: (id: string) => number;
   onSelect: (reference: CitationRef) => void;
-  selectedId: string | undefined;
   sources: Map<string, CitedSource>;
 }) => {
   const sourceId = normalizeCitationId(id);
@@ -54,15 +52,15 @@ export const SourceCitation = ({
     id: source ? (sourceId ?? "") : "",
     kind: "source",
   };
-  const tone = toneFor(source);
 
   return (
     <CitationChip
-      index={sourceId ? numberOf(sourceId) : 0}
+      // Same rule as FactCitation: a broken citation consumes no number, so
+      // the resolved chips stay 1, 2, 3 with no gap to misread.
+      index={source && sourceId ? numberOf(sourceId) : 0}
       onSelect={onSelect}
       reference={reference}
-      selected={sourceId !== undefined && selectedId === sourceId}
-      tone={tone}
+      tone={toneFor(source)}
     />
   );
 };

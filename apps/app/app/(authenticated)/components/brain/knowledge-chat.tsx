@@ -28,6 +28,7 @@ import { useEveAgent } from "eve/react";
 import { useCallback, useMemo, useState } from "react";
 import type { CitationRef } from "@/lib/citation";
 import { BriefPane } from "./brief-pane";
+import { SelectedCitationProvider } from "./citation-chip";
 import { type CitedFact, FactCitation } from "./fact-citation";
 import { ReceiptPanel } from "./receipt-panel";
 import { SearchSummary } from "./search-summary";
@@ -139,20 +140,24 @@ const thinkingMessage = (isStreaming: boolean, duration?: number) => {
  * render regardless. A cache keyed on those would never hit during a
  * stream, the one case it would matter for, while still growing for the
  * life of the conversation. Not worth it: build fresh every call.
+ *
+ * Which chip is *open* deliberately does not travel through here. That memo
+ * compares only `children` and `isAnimating`, so a new `components` object
+ * alone never repaints the subtree; once an answer has finished streaming its
+ * text is frozen and nothing else would. Selection goes through
+ * `SelectedCitationProvider` instead, which reaches the chips past the memo.
  */
 const buildCitationComponents = ({
   facts,
   messageId,
   numbering,
   select,
-  selectedId,
   sources,
 }: {
   facts: Map<string, CitedFact>;
   messageId: string;
   numbering: (messageId: string, citationId: string) => number;
   select: (messageId: string, reference: CitationRef) => void;
-  selectedId: string | undefined;
   sources: Map<string, CitedSource>;
 }) => {
   const numberOf = (citationId: string) => numbering(messageId, citationId);
@@ -164,7 +169,6 @@ const buildCitationComponents = ({
         id={id}
         numberOf={numberOf}
         onSelect={onSelect}
-        selectedId={selectedId}
       />
     ),
     source: ({ id }: { id?: string }) => (
@@ -172,7 +176,6 @@ const buildCitationComponents = ({
         id={id}
         numberOf={numberOf}
         onSelect={onSelect}
-        selectedId={selectedId}
         sources={sources}
       />
     ),
@@ -211,7 +214,7 @@ export const KnowledgeChat = ({ briefs }: { briefs: Brief[] }) => {
     [load]
   );
 
-  // Sequence numbers are per answer: an eight-character hex id is precise and
+  // Sequence numbers are per answer: a 24-character ObjectId is precise and
   // unreadable, and the number only has to distinguish the chips in front of
   // the reader. A message's citations only ever append as it streams in, so
   // first-seen order is stable and the counters below never need to reset.
@@ -240,10 +243,9 @@ export const KnowledgeChat = ({ briefs }: { briefs: Brief[] }) => {
         messageId,
         numbering,
         select,
-        selectedId: selected[messageId]?.id,
         sources,
       }),
-    [facts, numbering, select, selected, sources]
+    [facts, numbering, select, sources]
   );
 
   // PromptInput owns the textarea and hands back the composed message, so the
@@ -300,73 +302,85 @@ export const KnowledgeChat = ({ briefs }: { briefs: Brief[] }) => {
 
           {agent.data.messages.map((message) => (
             <Message from={message.role} key={message.id}>
-              <MessageContent>
-                {message.parts.map((part, index) => {
-                  if (part.type === "reasoning") {
-                    const reasoning = part as { state?: string; text?: string };
-                    return (
-                      <Reasoning
-                        className="w-full"
-                        isStreaming={reasoning.state === "streaming"}
-                        // biome-ignore lint/suspicious/noArrayIndexKey: stream parts have no stable id and are append-only
-                        key={index}
-                      >
-                        <ReasoningTrigger
-                          getThinkingMessage={thinkingMessage}
+              {/* Each answer owns its own open receipt. The provider sits
+                  above MessageResponse's memo boundary on purpose: a context
+                  value change reaches the chips inside even when that memo
+                  refuses to re-render the markdown around them. */}
+              <SelectedCitationProvider selectedId={selected[message.id]?.id}>
+                <MessageContent>
+                  {message.parts.map((part, index) => {
+                    if (part.type === "reasoning") {
+                      const reasoning = part as {
+                        state?: string;
+                        text?: string;
+                      };
+                      return (
+                        <Reasoning
+                          className="w-full"
+                          isStreaming={reasoning.state === "streaming"}
+                          // biome-ignore lint/suspicious/noArrayIndexKey: stream parts have no stable id and are append-only
+                          key={index}
+                        >
+                          <ReasoningTrigger
+                            getThinkingMessage={thinkingMessage}
+                          />
+                          <ReasoningContent>
+                            {reasoning.text ?? ""}
+                          </ReasoningContent>
+                        </Reasoning>
+                      );
+                    }
+
+                    if (part.type === "text") {
+                      return (
+                        <MessageResponse
+                          allowedTags={ALLOWED_TAGS}
+                          components={componentsFor(message.id)}
+                          // biome-ignore lint/suspicious/noArrayIndexKey: stream parts have no stable id and are append-only
+                          key={index}
+                        >
+                          {part.text}
+                        </MessageResponse>
+                      );
+                    }
+
+                    if (isSearchTool(part)) {
+                      const tool = part as ToolPart;
+                      const { errorText, value } = unwrapToolOutput(
+                        tool.output
+                      );
+                      const output = value as
+                        | {
+                            facts?: unknown[];
+                            searched?: string;
+                            sources?: unknown[];
+                          }
+                        | undefined;
+                      return (
+                        <SearchSummary
+                          errorText={tool.errorText ?? errorText}
+                          factCount={output?.facts?.length ?? 0}
+                          // biome-ignore lint/suspicious/noArrayIndexKey: stream parts have no stable id and are append-only
+                          key={index}
+                          query={
+                            output?.searched ??
+                            (tool.input as { query?: string } | undefined)
+                              ?.query
+                          }
+                          sourceCount={output?.sources?.length ?? 0}
+                          state={tool.state}
                         />
-                        <ReasoningContent>
-                          {reasoning.text ?? ""}
-                        </ReasoningContent>
-                      </Reasoning>
-                    );
-                  }
+                      );
+                    }
 
-                  if (part.type === "text") {
-                    return (
-                      <MessageResponse
-                        allowedTags={ALLOWED_TAGS}
-                        components={componentsFor(message.id)}
-                        // biome-ignore lint/suspicious/noArrayIndexKey: stream parts have no stable id and are append-only
-                        key={index}
-                      >
-                        {part.text}
-                      </MessageResponse>
-                    );
-                  }
+                    return null;
+                  })}
+                </MessageContent>
 
-                  if (isSearchTool(part)) {
-                    const tool = part as ToolPart;
-                    const { errorText, value } = unwrapToolOutput(tool.output);
-                    const output = value as
-                      | {
-                          facts?: unknown[];
-                          searched?: string;
-                          sources?: unknown[];
-                        }
-                      | undefined;
-                    return (
-                      <SearchSummary
-                        errorText={tool.errorText ?? errorText}
-                        factCount={output?.facts?.length ?? 0}
-                        // biome-ignore lint/suspicious/noArrayIndexKey: stream parts have no stable id and are append-only
-                        key={index}
-                        query={
-                          output?.searched ??
-                          (tool.input as { query?: string } | undefined)?.query
-                        }
-                        sourceCount={output?.sources?.length ?? 0}
-                        state={tool.state}
-                      />
-                    );
-                  }
-
-                  return null;
-                })}
-              </MessageContent>
-
-              {selected[message.id] ? (
-                <ReceiptPanel receipt={receipts[selected[message.id].id]} />
-              ) : null}
+                {selected[message.id] ? (
+                  <ReceiptPanel receipt={receipts[selected[message.id].id]} />
+                ) : null}
+              </SelectedCitationProvider>
             </Message>
           ))}
 

@@ -2,7 +2,7 @@
 
 import { cn } from "@repo/design-system/lib/utils";
 import type { ReceiptTier } from "@repo/knowledge";
-import { useCallback } from "react";
+import { createContext, type ReactNode, useCallback, useContext } from "react";
 import type { CitationRef } from "@/lib/citation";
 
 // The reader has to be able to tell, without hovering and without reading,
@@ -17,6 +17,38 @@ import type { CitationRef } from "@/lib/citation";
 // than falling through to a default.
 
 export type ChipTone = ReceiptTier | "broken";
+
+/**
+ * Which citation is currently open, read from context rather than passed in.
+ *
+ * In the chat these chips render inside `MessageResponse`, which is memo'd on
+ * `children` and `isAnimating` alone. Once a message finishes streaming its
+ * text never changes again, so a selection passed down through the `components`
+ * prop is swallowed by that comparator and the chip never repaints — no ring,
+ * and `aria-expanded` frozen at "false" for the rest of the session. A context
+ * consumer re-renders when the value changes even when an ancestor memo bailed
+ * out, which is exactly the property needed here.
+ *
+ * Default `undefined` means "nothing selected", so a chip rendered outside any
+ * provider is simply never selected.
+ */
+const SelectedCitationContext = createContext<string | undefined>(undefined);
+
+/**
+ * Scopes a selection to one surface. The chat provides one per message (each
+ * answer owns its own open receipt); BriefPane provides one per card.
+ */
+export const SelectedCitationProvider = ({
+  children,
+  selectedId,
+}: {
+  children: ReactNode;
+  selectedId: string | undefined;
+}) => (
+  <SelectedCitationContext value={selectedId}>
+    {children}
+  </SelectedCitationContext>
+);
 
 const LABELS: Record<ReceiptTier, string> = {
   checked: "confirmed — open the receipt",
@@ -40,34 +72,42 @@ export const CitationChip = ({
   index,
   onSelect,
   reference,
-  selected,
   tone,
 }: {
   index: number;
   onSelect: (reference: CitationRef) => void;
   reference: CitationRef;
-  selected: boolean;
   tone: ChipTone;
 }) => {
+  const selectedId = useContext(SelectedCitationContext);
   const select = useCallback(() => onSelect(reference), [onSelect, reference]);
 
   if (tone === "broken") {
     // An id the tools never returned. Dropping it would make an invented claim
     // indistinguishable from a sourced one, which is the failure this whole
-    // mechanism exists to make visible — so it stays loud.
+    // mechanism exists to make visible — so it stays exactly as loud as every
+    // other tier is quiet.
+    //
+    // Not a control: there is no receipt behind an id the knowledge base never
+    // returned, so a button here could only ever do nothing (the empty
+    // reference trips the caller's own guard) or open a panel reporting a
+    // fetch failure — which would read as our bug rather than as the model
+    // citing something that does not exist. A span says the true thing. The
+    // explanation moves from an aria-label, which is unreliable on a
+    // non-interactive element, into visually hidden text that every reader
+    // gets.
     return (
-      <button
-        aria-label="Unsupported citation — the knowledge base never returned this"
-        className="ml-0.5 cursor-help rounded bg-destructive/10 px-1 align-super font-medium text-destructive text-xs"
-        onClick={select}
-        type="button"
-      >
-        ?
-      </button>
+      <span className="ml-0.5 rounded bg-destructive/10 px-1 align-super font-medium text-destructive text-xs">
+        <span aria-hidden="true">?</span>
+        <span className="sr-only">
+          Unsupported citation — the knowledge base never returned this
+        </span>
+      </span>
     );
   }
 
   const label = LABELS[tone];
+  const selected = reference.id.length > 0 && selectedId === reference.id;
   const warn = isWarn(tone);
 
   return (
