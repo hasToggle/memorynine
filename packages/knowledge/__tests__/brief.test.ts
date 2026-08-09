@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { ObjectId } from "mongodb";
 import { BRIEF_FACT_LIMIT, BRIEF_SOURCE_LIMIT, buildBrief } from "../brief";
 import {
+  composeReceipt,
   PREVIEW_LENGTH,
   type ReceiptSource,
   truncatePreview,
@@ -166,6 +167,33 @@ describe("buildBrief", () => {
       sources: [makeSource(long, "transcribed")],
     });
     expect(brief.lines[0]?.text).toBe(truncatePreview(long));
+    expect(brief.lines[0]?.text.endsWith("…")).toBe(true);
+  });
+
+  test("cuts at the same place as the receipt even when the cut lands on a space", () => {
+    // The one case where a trim before truncation diverged: the brief sees the
+    // query's $substrCP of PREVIEW_LENGTH + 1 characters, the receipt sees the
+    // whole stored content, and the character at the boundary is whitespace.
+    const content = `${"x".repeat(PREVIEW_LENGTH)} und noch mehr Text`;
+    const projected = content.slice(0, PREVIEW_LENGTH + 1);
+    const source = makeSource(projected, "transcribed");
+
+    const brief = buildBrief({
+      anchor: ANCHOR,
+      contestedIds: new Set(),
+      facts: [],
+      now: NOW,
+      sources: [source],
+    });
+    const receipt = composeReceipt({
+      contested: false,
+      nameOf: () => "Eric",
+      now: NOW,
+      source: { ...source, content, excerpt: undefined },
+    });
+
+    expect(typeof receipt.quote).toBe("string");
+    expect(brief.lines[0]?.text).toBe(receipt.quote ?? "");
     expect(brief.lines[0]?.text.endsWith("…")).toBe(true);
   });
 

@@ -96,8 +96,13 @@ export const CitationChip = ({
     // explanation moves from an aria-label, which is unreliable on a
     // non-interactive element, into visually hidden text that every reader
     // gets.
+    //
+    // `inline-block` restores what the <button> gave for free: a UA button is
+    // inline-block, a span is inline, and with only px-1 and no py the painted
+    // background would drop from the text-xs line box to the font content box
+    // — about 2px shorter. This marker stays loud to the pixel.
     return (
-      <span className="ml-0.5 rounded bg-destructive/10 px-1 align-super font-medium text-destructive text-xs">
+      <span className="ml-0.5 inline-block rounded bg-destructive/10 px-1 align-super font-medium text-destructive text-xs">
         <span aria-hidden="true">?</span>
         <span className="sr-only">
           Unsupported citation — the knowledge base never returned this

@@ -26,15 +26,34 @@ const BRIEF_TARGET_LIMIT = 6;
 const RAW_SOURCE_SCAN = 20;
 
 /**
- * The statuses at which a source actually has wording to show. `received`,
- * `transcribing` and `failed` are excluded because their `content` is absent
- * or empty, and a brief line with no text is a chip with nothing to read
- * beside it. Matching on the list rather than on `{ $ne: "reviewed" }` also
- * lets the `{tenantId, status, createdAt}` index serve the scan: `$ne` on the
- * middle key cannot use it and forces a blocking sort over the tenant's whole
- * unreviewed backlog on every page load.
+ * Every status a source can hold while it still has wording worth showing.
+ *
+ * Only `transcribing` is excluded (`reviewed` is excluded by buildBrief, which
+ * owns that judgment): a voice memo mid-transcription is the one state where
+ * `content` is reliably absent. Everything else can carry text —
+ * an email arrives at `received` with its body already set (`inbound.ts`), so
+ * does a pasted note (`create-source.ts`), a retryable extraction failure
+ * rests an email or note back at `received` and an exhausted one flips it to
+ * `failed` (`extraction-run.ts`), and neither unsets `content`. Narrowing this
+ * list further would hide the most recently captured material from the group
+ * whose entire purpose is to show it.
+ *
+ * A voice source sitting at `received` has audio and no transcript yet, and
+ * matches here — buildBrief's text guard drops it, which is what that guard is
+ * for.
+ *
+ * Listing the statuses rather than writing `{ $ne: "reviewed" }` also lets the
+ * `{tenantId, status, createdAt}` index serve the scan: `$ne` on the middle key
+ * cannot use it and forces a blocking sort over the tenant's whole unreviewed
+ * backlog on every page load.
  */
-const READABLE_SOURCE_STATUSES = ["transcribed", "extracting", "proposed"];
+const READABLE_SOURCE_STATUSES = [
+  "extracting",
+  "failed",
+  "proposed",
+  "received",
+  "transcribed",
+];
 
 /** Which anchor field on a fact corresponds to each dossier anchor kind. */
 const ANCHOR_ID: Record<
@@ -157,6 +176,13 @@ const readBriefs = async (): Promise<Brief[]> => {
   // clock, so position here says nothing about where newly captured material
   // came from. It is carried once, on the first card, and the pane renders it
   // under its own heading that says it is filed against nobody.
+  //
+  // Carried even when that first anchor has no confirmed facts of its own.
+  // Skipping to a card that does would drop the material entirely in the one
+  // workspace where it matters most — captures in, nothing reviewed yet — and
+  // the pane would then fall through to a cold start that says nothing has
+  // been captured, which would be false. The card suppresses its own count
+  // instead.
   let unfiledCarried = false;
 
   for (const target of targets) {

@@ -85,15 +85,21 @@ export const buildBrief = ({
   // missing field returns, so the guard is on the resolved text, not on the
   // field, and it runs before the cap so a silent source cannot eat a slot a
   // readable one would have taken.
+  //
+  // truncatePreview is handed the stored wording exactly as the receipt's
+  // quoteOf hands it the same wording: unmodified. Trimming first would move
+  // the cut — 280 characters followed by a space came out one character
+  // shorter here than there, so a line ended flush while the receipt opened
+  // from it showed an ellipsis. The trim belongs to the emptiness test alone.
   const sourceLines: BriefLine[] = sources
     .filter((source) => source.status !== "reviewed")
     .map((source) => ({
       citationId: source._id.toHexString(),
       contested: false,
       kind: "source" as const,
-      text: truncatePreview((source.excerpt ?? source.content ?? "").trim()),
+      text: truncatePreview(source.excerpt ?? source.content ?? ""),
     }))
-    .filter((line) => line.text.length > 0)
+    .filter((line) => line.text.trim().length > 0)
     .slice(0, BRIEF_SOURCE_LIMIT);
 
   return {

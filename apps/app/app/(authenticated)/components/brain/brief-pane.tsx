@@ -92,12 +92,18 @@ const BriefCard = ({
     <article className="rounded-xl border">
       <header className="flex items-baseline justify-between gap-3 border-b px-4 py-3">
         <h3 className="font-medium text-sm">{brief.anchor.name}</h3>
-        <span className="font-medium font-mono text-[0.625rem] text-muted-foreground uppercase tracking-[0.12em]">
-          {factLines.length} thing{factLines.length === 1 ? "" : "s"}
-          {brief.contestedCount > 0
-            ? ` · ${brief.contestedCount} contested`
-            : ""}
-        </span>
+        {/* The count is a statement about this anchor, so it is absent rather
+            than zero when the anchor has nothing confirmed and the card is
+            carrying only unfiled material. "0 things" above a populated card
+            reads as a bug. */}
+        {factLines.length > 0 ? (
+          <span className="font-medium font-mono text-[0.625rem] text-muted-foreground uppercase tracking-[0.12em]">
+            {factLines.length} thing{factLines.length === 1 ? "" : "s"}
+            {brief.contestedCount > 0
+              ? ` · ${brief.contestedCount} contested`
+              : ""}
+          </span>
+        ) : null}
       </header>
 
       <div className="px-4 py-3">
