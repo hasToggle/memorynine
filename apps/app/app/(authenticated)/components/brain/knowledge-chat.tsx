@@ -26,7 +26,7 @@ import {
 import { Shimmer } from "@repo/design-system/components/ai-elements/shimmer";
 import { useEveAgent } from "eve/react";
 import { BrainIcon } from "lucide-react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import type { CitationRef } from "@/lib/citation";
 import { type CitedFact, FactCitation } from "./fact-citation";
 import { ReceiptPanel } from "./receipt-panel";
@@ -128,12 +128,17 @@ const thinkingMessage = (isStreaming: boolean, duration?: number) => {
 
 /**
  * Builds the `fact`/`source` renderer pair for one message's citations. Kept
- * as a plain function (not a hook) so `KnowledgeChat` can cache the result
- * per message in `componentsFor` below, rather than handing `MessageResponse`
- * — which is `memo`-wrapped — a brand-new `components` object on every
- * render. A fresh object there would defeat that memo and force Streamdown to
- * re-parse and remount every citation on every streamed token, not just the
- * message that actually changed.
+ * as a plain function, not a hook — it holds no state of its own, and
+ * `componentsFor` below needs to build one of these per message inside a
+ * render-time loop, which hooks cannot do.
+ *
+ * `MessageResponse` is `memo`-wrapped, which might suggest caching this
+ * result to preserve identity across renders — but eve's reducer rebuilds
+ * `agent.data.messages` (and every message's `parts` array) on every
+ * streamed event, so `facts`/`sources` below get a new `Map` on every
+ * render regardless. A cache keyed on those would never hit during a
+ * stream, the one case it would matter for, while still growing for the
+ * life of the conversation. Not worth it: build fresh every call.
  */
 const buildCitationComponents = ({
   facts,
@@ -228,47 +233,17 @@ export const KnowledgeChat = () => {
     };
   }, []);
 
-  // Cache the built `components` object per message, keyed by the inputs
-  // that message's chips actually read. A render that doesn't change any of
-  // those returns the same object identity, keeping MessageResponse's memo
-  // — and Streamdown's own incremental-parse cache — intact.
-  const citationComponentsRef = useRef(
-    new Map<
-      string,
-      {
-        components: ReturnType<typeof buildCitationComponents>;
-        facts: Map<string, CitedFact>;
-        selectedId: string | undefined;
-        sources: Map<string, CitedSource>;
-      }
-    >()
-  );
-
   const componentsFor = useCallback(
-    (messageId: string) => {
-      const selectedId = selected[messageId]?.id;
-      const cache = citationComponentsRef.current;
-      const cached = cache.get(messageId);
-      if (
-        cached &&
-        cached.facts === facts &&
-        cached.sources === sources &&
-        cached.selectedId === selectedId
-      ) {
-        return cached.components;
-      }
-      const components = buildCitationComponents({
+    (messageId: string) =>
+      buildCitationComponents({
         facts,
         messageId,
         numbering,
         select,
-        selectedId,
+        selectedId: selected[messageId]?.id,
         sources,
-      });
-      cache.set(messageId, { components, facts, selectedId, sources });
-      return components;
-    },
-    [facts, numbering, select, sources, selected]
+      }),
+    [facts, numbering, select, selected, sources]
   );
 
   // PromptInput owns the textarea and hands back the composed message, so the
@@ -347,7 +322,7 @@ export const KnowledgeChat = () => {
 
                   if (isSearchTool(part)) {
                     const tool = part as ToolPart;
-                    const { value } = unwrapToolOutput(tool.output);
+                    const { errorText, value } = unwrapToolOutput(tool.output);
                     const output = value as
                       | {
                           facts?: unknown[];
@@ -357,6 +332,7 @@ export const KnowledgeChat = () => {
                       | undefined;
                     return (
                       <SearchSummary
+                        errorText={tool.errorText ?? errorText}
                         factCount={output?.facts?.length ?? 0}
                         // biome-ignore lint/suspicious/noArrayIndexKey: stream parts have no stable id and are append-only
                         key={index}

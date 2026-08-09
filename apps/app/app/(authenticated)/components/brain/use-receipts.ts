@@ -9,8 +9,16 @@ import type { CitationRef } from "@/lib/citation";
 // than with the answer: the provenance a receipt shows is far larger than the
 // answer itself, and most citations are never opened.
 
+// A lookup that returned nothing, or threw, has to land somewhere a reader
+// can see rather than silently reverting to "no panel at all" — that reads as
+// "click did nothing" rather than "this failed." "failed" is a distinct
+// sentinel from a missing key precisely so ReceiptPanel can say so, and from
+// "loading" so a later click retries instead of being treated as already
+// in flight.
+export type ReceiptEntry = Receipt | "failed" | "loading";
+
 export const useReceipts = () => {
-  const [byId, setById] = useState<Record<string, Receipt | "loading">>({});
+  const [byId, setById] = useState<Record<string, ReceiptEntry>>({});
 
   // setState updater functions must stay pure — React may invoke one more
   // than once per commit — so the "already loading/loaded" guard and the
@@ -21,10 +29,13 @@ export const useReceipts = () => {
   byIdRef.current = byId;
 
   const load = useCallback((reference: CitationRef) => {
-    if (byIdRef.current[reference.id]) {
+    const current = byIdRef.current[reference.id];
+    // Skip only while a fetch is already in flight or already succeeded.
+    // "failed" falls through so the next click retries.
+    if (current && current !== "failed") {
       return;
     }
-    setById((current) => ({ ...current, [reference.id]: "loading" }));
+    setById((latest) => ({ ...latest, [reference.id]: "loading" }));
     getReceipts({
       factIds: reference.kind === "fact" ? [reference.id] : [],
       sourceIds: reference.kind === "source" ? [reference.id] : [],
@@ -35,20 +46,14 @@ export const useReceipts = () => {
           for (const receipt of receipts) {
             next[receipt.id] = receipt;
           }
-          // A lookup that returned nothing must not sit on "loading"
-          // forever — drop it so a retry is possible.
           if (!receipts.some((receipt) => receipt.id === reference.id)) {
-            delete next[reference.id];
+            next[reference.id] = "failed";
           }
           return next;
         });
       })
       .catch(() => {
-        setById((latest) => {
-          const next = { ...latest };
-          delete next[reference.id];
-          return next;
-        });
+        setById((latest) => ({ ...latest, [reference.id]: "failed" }));
       });
   }, []);
 

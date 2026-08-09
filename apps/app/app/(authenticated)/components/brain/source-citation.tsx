@@ -46,7 +46,14 @@ export const SourceCitation = ({
 }) => {
   const sourceId = normalizeCitationId(id);
   const source = sourceId ? sources.get(sourceId) : undefined;
-  const reference: CitationRef = { id: sourceId ?? "", kind: "source" };
+  // An id that never resolved carries no reference at all: the empty id
+  // trips the `reference.id.length === 0` guard in the caller's `select`,
+  // so a broken chip can neither be "selected" nor fire a receipt fetch for
+  // an id the tools never returned.
+  const reference: CitationRef = {
+    id: source ? (sourceId ?? "") : "",
+    kind: "source",
+  };
   const tone = toneFor(source);
 
   return (
@@ -54,7 +61,7 @@ export const SourceCitation = ({
       index={sourceId ? numberOf(sourceId) : 0}
       onSelect={onSelect}
       reference={reference}
-      selected={selectedId === sourceId}
+      selected={sourceId !== undefined && selectedId === sourceId}
       tone={tone}
     />
   );

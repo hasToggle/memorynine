@@ -3,6 +3,7 @@
 import { Skeleton } from "@repo/design-system/components/ui/skeleton";
 import { cn } from "@repo/design-system/lib/utils";
 import type { Receipt } from "@repo/knowledge";
+import type { ReceiptEntry } from "./use-receipts";
 
 // The receipt the marketing site promises, with the rows renamed to things we
 // can actually prove. It stays open until another chip is clicked: this is a
@@ -17,7 +18,7 @@ const isWarn = (receipt: Receipt) => receipt.tier !== "checked";
 export const ReceiptPanel = ({
   receipt,
 }: {
-  receipt: Receipt | "loading" | undefined;
+  receipt: ReceiptEntry | undefined;
 }) => {
   if (receipt === undefined) {
     return null;
@@ -29,6 +30,16 @@ export const ReceiptPanel = ({
         <Skeleton className="h-3 w-24" />
         <Skeleton className="mt-3 h-3 w-full" />
         <Skeleton className="mt-2 h-3 w-4/5" />
+      </div>
+    );
+  }
+
+  if (receipt === "failed") {
+    return (
+      <div className="mt-3 rounded-lg border border-t-2 border-t-destructive bg-muted/30 p-4">
+        <p className="text-destructive text-xs">
+          Couldn't open this citation — click it again to retry.
+        </p>
       </div>
     );
   }
