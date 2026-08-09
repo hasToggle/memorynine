@@ -45,6 +45,7 @@ export type {
 } from "./contradiction";
 export {
   buildContradictionPrompt,
+  findContestedFactIds,
   parseContradictionResponse,
   runContradictionCheck,
   sweepContradictions,

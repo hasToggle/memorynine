@@ -91,8 +91,9 @@ export interface OrganizationMemberInfo {
 }
 
 /**
- * The active organization's member directory (Liveblocks presence, mention
- * suggestions). Replaces Clerk's getOrganizationMembershipList.
+ * The active organization's member directory. Used to turn stored identifiers
+ * — fact.confirmedBy (a user id), source.capturedBy (an email) — into names a
+ * receipt can show. Replaces Clerk's getOrganizationMembershipList.
  */
 export const listOrganizationMembers = async (
   organizationId: string
