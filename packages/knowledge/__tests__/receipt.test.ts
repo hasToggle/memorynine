@@ -235,7 +235,9 @@ describe("composeReceipt — timezone determinism", () => {
           type: "voice",
         }),
       });
-      expect(detail(receipt, "Where it came from")).toBe("Voice memo, 13 March");
+      expect(detail(receipt, "Where it came from")).toBe(
+        "Voice memo, 13 March"
+      );
     } finally {
       process.env.TZ = oldTz;
     }
