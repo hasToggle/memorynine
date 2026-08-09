@@ -118,12 +118,12 @@ const collectCitables = (
 
 const thinkingMessage = (isStreaming: boolean, duration?: number) => {
   if (isStreaming || duration === 0) {
-    return <Shimmer duration={1}>Denkt nach …</Shimmer>;
+    return <Shimmer duration={1}>Thinking…</Shimmer>;
   }
   if (duration === undefined) {
-    return <p>Kurz nachgedacht</p>;
+    return <p>Thought for a moment</p>;
   }
-  return <p>{duration}s nachgedacht</p>;
+  return <p>Thought for {duration}s</p>;
 };
 
 /**
@@ -184,7 +184,7 @@ export const KnowledgeChat = ({ briefs }: { briefs: Brief[] }) => {
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
 
   // Covers the gap between sending and the first streamed part — once the
-  // assistant's reasoning starts arriving, its own "Denkt nach …" takes over.
+  // assistant's reasoning starts arriving, its own "Thinking…" takes over.
   const lastMessage = agent.data.messages.at(-1) as
     | { parts: unknown[]; role?: string }
     | undefined;
@@ -372,7 +372,7 @@ export const KnowledgeChat = ({ briefs }: { briefs: Brief[] }) => {
 
           {awaitingResponse ? (
             <Shimmer className="text-sm" duration={1.5}>
-              Einen Moment …
+              One moment…
             </Shimmer>
           ) : null}
         </ConversationContent>
@@ -393,7 +393,7 @@ export const KnowledgeChat = ({ briefs }: { briefs: Brief[] }) => {
           <PromptInputTextarea
             className="min-h-0"
             disabled={isBusy}
-            placeholder="Was möchtest du wissen?"
+            placeholder="Ask the company brain…"
           />
         </PromptInputBody>
         <PromptInputFooter className="justify-end">

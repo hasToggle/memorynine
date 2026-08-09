@@ -37,7 +37,7 @@ export const NoteForm = ({ onCaptured }: { onCaptured: () => void }) => {
     <div className="flex flex-col gap-3">
       <Textarea
         onChange={changeText}
-        placeholder="Notiz nach dem Telefonat mit …"
+        placeholder="Note after the call with …"
         rows={6}
         value={text}
       />
