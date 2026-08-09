@@ -49,6 +49,9 @@ export const ensureIndexes = async (db: Db): Promise<void> => {
         name: "tenant_anchor",
         unique: true,
       },
+      // listBriefTargets sorts a tenant's dossiers by recency; the unique
+      // index above leads with anchor.kind and cannot serve that sort.
+      { key: { tenantId: 1, updatedAt: -1 }, name: "tenant_recency" },
     ]),
     organizations.createIndexes([
       { key: { tenantId: 1, name: 1 }, name: "tenant_name" },

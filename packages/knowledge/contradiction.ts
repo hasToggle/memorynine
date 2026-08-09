@@ -362,3 +362,49 @@ export const sweepContradictions = async (
 
   return report;
 };
+
+/**
+ * Which of these facts an open contradiction proposal is currently disputing.
+ *
+ * The sweep above has always written these proposals; until the Ask surface
+ * needed to warn a reader before they quoted a fact, nothing read them back.
+ * Scoped to `status: "open"` on purpose — a resolved proposal is a dispute that
+ * has been settled, and re-flagging it would train people to ignore the flag.
+ */
+export const findContestedFactIds = async (
+  db: Db,
+  tenantId: string,
+  factIds: ObjectId[]
+): Promise<Set<string>> => {
+  if (factIds.length === 0) {
+    return new Set();
+  }
+  const { proposals } = getCollections(db);
+  const open = await proposals
+    .find(
+      {
+        "factDrafts.supersedes": { $in: factIds },
+        kind: "contradiction",
+        status: "open",
+        tenantId,
+      },
+      { projection: { "factDrafts.supersedes": 1 } }
+    )
+    .toArray();
+
+  const wanted = new Set(factIds.map((id) => id.toHexString()));
+  const contested = new Set<string>();
+  for (const proposal of open) {
+    for (const draft of proposal.factDrafts) {
+      for (const id of draft.supersedes ?? []) {
+        const hex = id.toHexString();
+        // A proposal can supersede facts beyond the ones asked about; only
+        // report on what the caller handed us.
+        if (wanted.has(hex)) {
+          contested.add(hex);
+        }
+      }
+    }
+  }
+  return contested;
+};
