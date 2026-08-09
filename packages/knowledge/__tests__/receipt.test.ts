@@ -215,3 +215,22 @@ describe("composeReceipt — degraded provenance", () => {
     expect(receipt.quote?.endsWith("…")).toBe(true);
   });
 });
+
+describe("composeReceipt — timezone determinism", () => {
+  test("formatDay is UTC-consistent for midnight timestamps", () => {
+    // A timestamp at midnight UTC: 2026-03-13T00:00:00Z
+    // If formatDay lacks timeZone: "UTC", it renders as "12 March" in
+    // America/Los_Angeles and "13 March" in UTC/Europe. The receipt must
+    // always show "13 March" regardless of where the process runs.
+    const receipt = composeReceipt({
+      contested: false,
+      nameOf,
+      now: NOW,
+      source: makeSource({
+        occurredAt: new Date("2026-03-13T00:00:00Z"),
+        type: "voice",
+      }),
+    });
+    expect(detail(receipt, "Where it came from")).toBe("Voice memo, 13 March");
+  });
+});
