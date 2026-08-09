@@ -3,7 +3,6 @@
 import {
   Conversation,
   ConversationContent,
-  ConversationEmptyState,
   ConversationScrollButton,
 } from "@repo/design-system/components/ai-elements/conversation";
 import {
@@ -24,10 +23,11 @@ import {
   ReasoningTrigger,
 } from "@repo/design-system/components/ai-elements/reasoning";
 import { Shimmer } from "@repo/design-system/components/ai-elements/shimmer";
+import type { Brief } from "@repo/knowledge";
 import { useEveAgent } from "eve/react";
-import { BrainIcon } from "lucide-react";
 import { useCallback, useMemo, useState } from "react";
 import type { CitationRef } from "@/lib/citation";
+import { BriefPane } from "./brief-pane";
 import { type CitedFact, FactCitation } from "./fact-citation";
 import { ReceiptPanel } from "./receipt-panel";
 import { SearchSummary } from "./search-summary";
@@ -179,7 +179,7 @@ const buildCitationComponents = ({
   };
 };
 
-export const KnowledgeChat = () => {
+export const KnowledgeChat = ({ briefs }: { briefs: Brief[] }) => {
   const agent = useEveAgent();
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
 
@@ -263,25 +263,39 @@ export const KnowledgeChat = () => {
     [agent, isBusy]
   );
 
+  // Sends directly rather than seeding the composer: PromptInput owns its
+  // own textarea state, so mirroring that state up here just to prefill it
+  // would cost more than it buys — and the button already reads as an
+  // action ("ask about X"), not as autofill the reader still has to submit.
+  const askAbout = useCallback(
+    (name: string) => {
+      if (isBusy) {
+        return;
+      }
+      agent
+        .send(`What should I know before I talk to ${name}?`)
+        .catch(() => undefined);
+    },
+    [agent, isBusy]
+  );
+
   return (
     <div className="mx-auto flex h-full w-full min-w-0 max-w-3xl flex-col gap-3">
       <Conversation className="min-h-0 flex-1 rounded-xl border">
         <ConversationContent
-          // Center the empty state in the frame; harmless with messages
-          // present, but overflowing content must not be justify-centered or
-          // its top becomes unreachable.
+          // Center only the true cold-start card — it's small and fixed
+          // height. A populated brief pane can run to several cards taller
+          // than the frame, and justify-center on overflowing content pushes
+          // its top out of reach (the failure mode this rule exists to
+          // avoid), so real briefs render top-aligned instead.
           className={
-            agent.data.messages.length === 0
+            agent.data.messages.length === 0 && briefs.length === 0
               ? "min-h-full justify-center"
               : undefined
           }
         >
           {agent.data.messages.length === 0 ? (
-            <ConversationEmptyState
-              description="Jede Antwort zitiert die Fakten, auf denen sie beruht."
-              icon={<BrainIcon className="size-8" />}
-              title="Frag das Firmengedächtnis"
-            />
+            <BriefPane briefs={briefs} onAsk={askAbout} />
           ) : null}
 
           {agent.data.messages.map((message) => (

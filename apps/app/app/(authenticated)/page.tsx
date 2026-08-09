@@ -1,6 +1,7 @@
 import { auth } from "@repo/auth/server";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { listBriefs } from "@/app/actions/knowledge/list-briefs";
 import { listPeople } from "@/app/actions/knowledge/list-people";
 import {
   listOpenProposals,
@@ -28,18 +29,20 @@ const BrainPage = async () => {
     redirect("/join");
   }
 
-  const [sources, openProposals, skippedProposals, people] = await Promise.all([
-    listRecentSources(),
-    listOpenProposals(),
-    listSkippedProposals(),
-    listPeople(),
-  ]);
+  const [sources, openProposals, skippedProposals, people, briefs] =
+    await Promise.all([
+      listRecentSources(),
+      listOpenProposals(),
+      listSkippedProposals(),
+      listPeople(),
+      listBriefs(),
+    ]);
 
   return (
     <>
       <Header page="Brain" />
       <BrainWorkspace
-        ask={<KnowledgeChat />}
+        ask={<KnowledgeChat briefs={briefs} />}
         capture={<CapturePane sources={sources} />}
         openReviewCount={openProposals.length}
         people={<PeoplePane people={people} />}
