@@ -217,20 +217,27 @@ describe("composeReceipt — degraded provenance", () => {
 });
 
 describe("composeReceipt — timezone determinism", () => {
-  test("formatDay is UTC-consistent for midnight timestamps", () => {
+  test("formatDay is UTC-consistent even in negative-offset timezones", () => {
     // A timestamp at midnight UTC: 2026-03-13T00:00:00Z
-    // If formatDay lacks timeZone: "UTC", it renders as "12 March" in
-    // America/Los_Angeles and "13 March" in UTC/Europe. The receipt must
-    // always show "13 March" regardless of where the process runs.
-    const receipt = composeReceipt({
-      contested: false,
-      nameOf,
-      now: NOW,
-      source: makeSource({
-        occurredAt: new Date("2026-03-13T00:00:00Z"),
-        type: "voice",
-      }),
-    });
-    expect(detail(receipt, "Where it came from")).toBe("Voice memo, 13 March");
+    // Without timeZone: "UTC", toLocaleDateString renders it in the host's
+    // local time: "12 March" in America/Los_Angeles (UTC-8), but "13 March"
+    // in UTC and positive-offset zones. Force America/Los_Angeles to prove
+    // the fix works. This test fails if someone removes timeZone: "UTC".
+    const oldTz = process.env.TZ;
+    try {
+      process.env.TZ = "America/Los_Angeles";
+      const receipt = composeReceipt({
+        contested: false,
+        nameOf,
+        now: NOW,
+        source: makeSource({
+          occurredAt: new Date("2026-03-13T00:00:00Z"),
+          type: "voice",
+        }),
+      });
+      expect(detail(receipt, "Where it came from")).toBe("Voice memo, 13 March");
+    } finally {
+      process.env.TZ = oldTz;
+    }
   });
 });
