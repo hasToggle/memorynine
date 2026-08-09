@@ -86,6 +86,14 @@ export { processSource } from "./process-source";
 export type { ReExtractSourceOptions } from "./re-extraction";
 export { reExtractSource } from "./re-extraction";
 export type {
+  ComposeReceiptInput,
+  Receipt,
+  ReceiptRow,
+  ReceiptSource,
+  ReceiptTier,
+} from "./receipt";
+export { composeReceipt } from "./receipt";
+export type {
   HybridFactsSearchOptions,
   RerankableDocument,
   RerankedDocument,
