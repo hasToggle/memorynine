@@ -104,7 +104,11 @@ export type {
   ReceiptSource,
   ReceiptTier,
 } from "./receipt";
-export { composeReceipt, PREVIEW_LENGTH } from "./receipt";
+export {
+  composeReceipt,
+  PREVIEW_LENGTH,
+  truncatePreview,
+} from "./receipt";
 export type {
   HybridFactsSearchOptions,
   RerankableDocument,

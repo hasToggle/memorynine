@@ -1,7 +1,11 @@
 import { describe, expect, test } from "bun:test";
 import { ObjectId } from "mongodb";
 import { BRIEF_FACT_LIMIT, BRIEF_SOURCE_LIMIT, buildBrief } from "../brief";
-import type { ReceiptSource } from "../receipt";
+import {
+  PREVIEW_LENGTH,
+  type ReceiptSource,
+  truncatePreview,
+} from "../receipt";
 import type { Fact } from "../schemas/facts";
 
 const TENANT = "test-tenant";
@@ -115,6 +119,54 @@ describe("buildBrief", () => {
     expect(brief.lines.filter((line) => line.kind === "source")).toHaveLength(
       BRIEF_SOURCE_LIMIT
     );
+  });
+
+  test("a source with no wording yet produces no line", () => {
+    // A voice memo still transcribing has no content, and the brief query's
+    // $substrCP over the missing field hands back "" rather than undefined.
+    const brief = buildBrief({
+      anchor: ANCHOR,
+      contestedIds: new Set(),
+      facts: [],
+      now: NOW,
+      sources: [
+        makeSource("", "transcribing"),
+        { ...makeSource("", "received"), excerpt: undefined },
+        makeSource("   \n  ", "failed"),
+      ],
+    });
+    expect(brief.lines).toEqual([]);
+  });
+
+  test("a silent source does not consume one of the two source slots", () => {
+    const brief = buildBrief({
+      anchor: ANCHOR,
+      contestedIds: new Set(),
+      facts: [],
+      now: NOW,
+      sources: [
+        makeSource("", "transcribing"),
+        makeSource("Ungeprüft eins.", "transcribed"),
+        makeSource("Ungeprüft zwei.", "proposed"),
+      ],
+    });
+    expect(brief.lines.map((line) => line.text)).toEqual([
+      "Ungeprüft eins.",
+      "Ungeprüft zwei.",
+    ]);
+  });
+
+  test("marks a cut source line the same way the receipt does", () => {
+    const long = "ü".repeat(PREVIEW_LENGTH + 40);
+    const brief = buildBrief({
+      anchor: ANCHOR,
+      contestedIds: new Set(),
+      facts: [],
+      now: NOW,
+      sources: [makeSource(long, "transcribed")],
+    });
+    expect(brief.lines[0]?.text).toBe(truncatePreview(long));
+    expect(brief.lines[0]?.text.endsWith("…")).toBe(true);
   });
 
   test("never offers a reviewed source as raw material", () => {

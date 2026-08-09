@@ -95,12 +95,18 @@ const wholeMonthsBetween = (from: Date, to: Date): number =>
   (to.getUTCFullYear() - from.getUTCFullYear()) * 12 +
   (to.getUTCMonth() - from.getUTCMonth());
 
-const truncate = (text: string): string =>
+/**
+ * The single truncation rule for stored source wording. Exported so a brief
+ * line and the receipt it opens cut at the same place and mark the cut the
+ * same way — a line severed mid-word with no ellipsis, above a receipt that
+ * shows one, reads as two different rules applied to the same sentence.
+ */
+export const truncatePreview = (text: string): string =>
   text.length > PREVIEW_LENGTH ? `${text.slice(0, PREVIEW_LENGTH)}…` : text;
 
 const quoteOf = (source: ReceiptSource | undefined): string | null => {
   const raw = source?.excerpt ?? source?.content;
-  return raw ? truncate(raw) : null;
+  return raw ? truncatePreview(raw) : null;
 };
 
 const provenanceRow = (

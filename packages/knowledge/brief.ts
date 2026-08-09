@@ -1,5 +1,5 @@
 import type { dossierAnchorKinds } from "./dossier";
-import type { ReceiptSource } from "./receipt";
+import { type ReceiptSource, truncatePreview } from "./receipt";
 import type { Fact } from "./schemas/facts";
 
 // What the Ask surface shows before anyone types. Assembled from facts rather
@@ -77,15 +77,24 @@ export const buildBrief = ({
   // Only genuinely unchecked material earns the ochre tier. A reviewed source
   // has already become a fact, and offering its raw wording would invite
   // quoting the draft over the confirmed sentence.
+  //
+  // A source that has no wording yet — still transcribing, or a capture that
+  // failed — produces no line at all. Emitting one would put a bare chip on
+  // the surface with nothing beside it to read. The empty text can arrive
+  // either as a missing field or as the empty string a $substrCP over a
+  // missing field returns, so the guard is on the resolved text, not on the
+  // field, and it runs before the cap so a silent source cannot eat a slot a
+  // readable one would have taken.
   const sourceLines: BriefLine[] = sources
     .filter((source) => source.status !== "reviewed")
-    .slice(0, BRIEF_SOURCE_LIMIT)
     .map((source) => ({
       citationId: source._id.toHexString(),
       contested: false,
-      kind: "source",
-      text: source.excerpt ?? source.content ?? "",
-    }));
+      kind: "source" as const,
+      text: truncatePreview((source.excerpt ?? source.content ?? "").trim()),
+    }))
+    .filter((line) => line.text.length > 0)
+    .slice(0, BRIEF_SOURCE_LIMIT);
 
   return {
     anchor,
