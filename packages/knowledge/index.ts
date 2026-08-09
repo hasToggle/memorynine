@@ -6,6 +6,17 @@
 export { ObjectId } from "mongodb";
 export type { CandidateAnchor } from "./anchors";
 export { findCandidateAnchors } from "./anchors";
+export type {
+  Brief,
+  BriefAnchor,
+  BriefLine,
+  BuildBriefInput,
+} from "./brief";
+export {
+  BRIEF_FACT_LIMIT,
+  BRIEF_SOURCE_LIMIT,
+  buildBrief,
+} from "./brief";
 export type { KnowledgeCollections } from "./collections";
 export { ensureIndexes, getCollections } from "./collections";
 export type {
