@@ -10,6 +10,7 @@ import {
   findContestedFactIds,
   getCollections,
   type ObjectId,
+  PREVIEW_LENGTH,
   type ReceiptSource,
 } from "@repo/knowledge";
 import { getKnowledgeDb } from "@repo/knowledge/client";
@@ -73,10 +74,29 @@ export const listBriefs = async (): Promise<Brief[]> => {
         .toArray(),
       people.find({ _id: { $in: anchorIds }, tenantId: orgId }).toArray(),
       engagements.find({ _id: { $in: anchorIds }, tenantId: orgId }).toArray(),
+      // Only the fields ReceiptSource needs, and only PREVIEW_LENGTH characters
+      // of content — never the full attachments/audio/content of up to 20 raw
+      // documents, of which buildBrief keeps at most BRIEF_SOURCE_LIMIT (2).
+      // The excerpt is truncated in the database, the same budget the receipt
+      // itself uses, so a 40KB forwarded email can never reach the client as a
+      // brief line.
       sources
-        .find({ status: { $ne: "reviewed" }, tenantId: orgId })
-        .sort({ createdAt: -1 })
-        .limit(RAW_SOURCE_SCAN)
+        .aggregate<ReceiptSource>([
+          { $match: { status: { $ne: "reviewed" }, tenantId: orgId } },
+          { $sort: { createdAt: -1 } },
+          { $limit: RAW_SOURCE_SCAN },
+          {
+            $project: {
+              capturedBy: 1,
+              createdAt: 1,
+              "email.subject": 1,
+              excerpt: { $substrCP: ["$content", 0, PREVIEW_LENGTH] },
+              occurredAt: 1,
+              status: 1,
+              type: 1,
+            },
+          },
+        ])
         .toArray(),
     ]);
 
@@ -117,7 +137,7 @@ export const listBriefs = async (): Promise<Brief[]> => {
         // be attributed to one brief. It rides along with the freshest anchor
         // only (index 0, since targets is sorted by updatedAt desc), where
         // "something new landed" is the useful signal.
-        sources: index === 0 ? (rawSources as ReceiptSource[]) : [],
+        sources: index === 0 ? rawSources : [],
       });
     })
     .filter((brief) => brief.lines.length > 0);

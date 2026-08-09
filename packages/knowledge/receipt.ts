@@ -67,8 +67,14 @@ const TYPE_LABELS: Record<ReceiptSource["type"], string> = {
   voice: "Voice memo",
 };
 
-/** Matches the hovercard's old budget; the excerpt is already truncated at 1500. */
-const PREVIEW_LENGTH = 280;
+/**
+ * Matches the hovercard's old budget; the search excerpt is already truncated
+ * at SOURCE_EXCERPT_LENGTH (1500). Exported so any caller building its own
+ * `ReceiptSource.excerpt` — e.g. a raw-source brief line, which is a one-line
+ * card and must never be longer than the receipt that explains it — truncates
+ * to the same number instead of inventing a second one.
+ */
+export const PREVIEW_LENGTH = 280;
 
 /**
  * "13 March", or "5 November 2024" once the year stops being obvious. Uses

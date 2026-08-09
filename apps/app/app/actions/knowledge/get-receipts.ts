@@ -64,11 +64,8 @@ export const getReceipts = async ({
     listOrganizationMembers(orgId),
   ]);
 
-  const sourceById = new Map(
-    sourceDocs.map((source) => [
-      source._id.toHexString(),
-      source as ReceiptSource,
-    ])
+  const sourceById = new Map<string, ReceiptSource>(
+    sourceDocs.map((source) => [source._id.toHexString(), source])
   );
   const nameOf = buildNameResolver(members);
   const now = new Date();
