@@ -3,7 +3,11 @@
 import type { Brief, BriefLine } from "@repo/knowledge";
 import { useCallback, useState } from "react";
 import type { CitationRef } from "@/lib/citation";
-import { type ChipTone, CitationChip } from "./citation-chip";
+import {
+  type ChipTone,
+  CitationChip,
+  SelectedCitationProvider,
+} from "./citation-chip";
 import { ReceiptPanel } from "./receipt-panel";
 import { type ReceiptEntry, useReceipts } from "./use-receipts";
 
@@ -23,6 +27,30 @@ const toneFor = (line: BriefLine): ChipTone => {
   }
   return line.contested ? "checked-contested" : "checked";
 };
+
+const BriefLines = ({
+  lines,
+  offset,
+  select,
+}: {
+  lines: BriefLine[];
+  offset: number;
+  select: (reference: CitationRef) => void;
+}) => (
+  <ul className="space-y-2">
+    {lines.map((line, index) => (
+      <li className="text-sm leading-relaxed" key={line.citationId}>
+        {line.text}
+        <CitationChip
+          index={offset + index + 1}
+          onSelect={select}
+          reference={{ id: line.citationId, kind: line.kind }}
+          tone={toneFor(line)}
+        />
+      </li>
+    ))}
+  </ul>
+);
 
 const BriefCard = ({
   brief,
@@ -50,12 +78,22 @@ const BriefCard = ({
     [brief.anchor.name, onAsk]
   );
 
+  // Fact lines are this anchor's, confirmed and filed against it. Source lines
+  // are not: unreviewed material is anchored to nobody until a reviewer files
+  // it, so it is carried on the first card for want of anywhere else to put it.
+  // Rendering the two in one list under this anchor's heading, distinguished by
+  // nothing but chip colour, reads as "Südlicht wants to renegotiate" being a
+  // fact about Nordwind. They get separate lists and the second says out loud
+  // whose it isn't.
+  const factLines = brief.lines.filter((line) => line.kind === "fact");
+  const unfiledLines = brief.lines.filter((line) => line.kind === "source");
+
   return (
     <article className="rounded-xl border">
       <header className="flex items-baseline justify-between gap-3 border-b px-4 py-3">
         <h3 className="font-medium text-sm">{brief.anchor.name}</h3>
         <span className="font-medium font-mono text-[0.625rem] text-muted-foreground uppercase tracking-[0.12em]">
-          {brief.lines.length} thing{brief.lines.length === 1 ? "" : "s"}
+          {factLines.length} thing{factLines.length === 1 ? "" : "s"}
           {brief.contestedCount > 0
             ? ` · ${brief.contestedCount} contested`
             : ""}
@@ -63,22 +101,32 @@ const BriefCard = ({
       </header>
 
       <div className="px-4 py-3">
-        <ul className="space-y-2">
-          {brief.lines.map((line, index) => (
-            <li className="text-sm leading-relaxed" key={line.citationId}>
-              {line.text}
-              <CitationChip
-                index={index + 1}
-                onSelect={select}
-                reference={{ id: line.citationId, kind: line.kind }}
-                selected={selected?.id === line.citationId}
-                tone={toneFor(line)}
-              />
-            </li>
-          ))}
-        </ul>
+        <SelectedCitationProvider selectedId={selected?.id}>
+          {factLines.length > 0 ? (
+            <BriefLines lines={factLines} offset={0} select={select} />
+          ) : null}
 
-        {selected ? <ReceiptPanel receipt={receipts[selected.id]} /> : null}
+          {unfiledLines.length > 0 ? (
+            <section
+              className={
+                factLines.length > 0 ? "mt-4 border-t pt-3" : undefined
+              }
+            >
+              <h4 className="font-medium font-mono text-[0.625rem] text-muted-foreground uppercase tracking-[0.12em]">
+                Just captured — not yet filed against anyone
+              </h4>
+              <div className="mt-2">
+                <BriefLines
+                  lines={unfiledLines}
+                  offset={factLines.length}
+                  select={select}
+                />
+              </div>
+            </section>
+          ) : null}
+
+          {selected ? <ReceiptPanel receipt={receipts[selected.id]} /> : null}
+        </SelectedCitationProvider>
 
         <button
           className="mt-3 rounded-sm text-muted-foreground text-xs underline underline-offset-4 hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring focus-visible:outline-offset-2"
