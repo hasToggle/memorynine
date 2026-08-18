@@ -1,3 +1,11 @@
+// better-auth 1.7.0 stopped emitting the bare `import "../../client/index.mjs"`
+// side-effect line in its plugin .d.mts files. `organizationClient()`'s atoms are
+// typed with `AuthQueryAtom`, which is only *declared* in the non-exported
+// `better-auth/dist/client/query.mjs` and re-exported from the public
+// `better-auth/client` barrel. Without that barrel in the program, declaration
+// emit can't name the type portably (TS2883). This type-only import pulls the
+// barrel back in and erases to nothing at runtime.
+import type {} from "better-auth/client";
 import { organizationClient } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
 
