@@ -11,11 +11,11 @@
     "@types/react-dom": "19.2.4"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^4.0.43",
-    "@ai-sdk/react": "^4.0.71",
+    "@ai-sdk/openai": "^4.0.46",
+    "@ai-sdk/react": "^4.0.80",
     "@t3-oss/env-nextjs": "^0.13.11",
-    "ai": "^7.0.68",
-    "next": "^16.3.1",
+    "ai": "^7.0.77",
+    "next": "^16.3.2",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-markdown": "^10.1.0",
