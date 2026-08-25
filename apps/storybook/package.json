@@ -11,7 +11,7 @@
   },
   "overrides": {
     "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.4"
+    "@types/react-dom": "19.2.5"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
@@ -37,7 +37,7 @@
     "@storybook/react": "^10.5.10",
     "@types/node": "^26.3.0",
     "@types/react": "^19.2.18",
-    "@types/react-dom": "^19.2.4",
+    "@types/react-dom": "^19.2.5",
     "chromatic": "^18.5.0",
     "postcss": "^8.5.26",
     "storybook": "^10.5.10",
