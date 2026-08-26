@@ -1,7 +1,18 @@
-import { afterAll, beforeAll, describe, expect, test } from "bun:test";
+import {
+  afterAll,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  test,
+} from "bun:test";
 import { MongoClient, ObjectId } from "mongodb";
 import { getCollections } from "../collections";
-import { composeMorningBrief, gatherMorningBriefData } from "../initiative";
+import {
+  composeMorningBrief,
+  gatherMorningBriefData,
+  runMorningBriefSweep,
+} from "../initiative";
 import {
   deliveryOutcomeValues,
   initiativeDeliverySchema,
@@ -441,5 +452,136 @@ describe("composeMorningBrief", () => {
       options
     );
     expect(email?.subject).toBe("Morning brief: 1 new capture");
+  });
+});
+
+describe.skipIf(!uri)("runMorningBriefSweep", () => {
+  const client = new MongoClient(uri ?? "mongodb://localhost:27017");
+  const db = client.db("knowledge_test_initiative_sweep");
+  const sent: { subject: string; to: string[] }[] = [];
+  const send = (email: { subject: string; to: string[] }) => {
+    sent.push({ subject: email.subject, to: email.to });
+    return Promise.resolve();
+  };
+  const options = { appOrigin: "https://app.example.com", now: NOW, send };
+
+  beforeAll(async () => {
+    await client.connect();
+  });
+
+  beforeEach(async () => {
+    await db.dropDatabase();
+    sent.length = 0;
+    const { initiativeSettings, sources } = getCollections(db);
+    const doc = (msAgo: number) => ({
+      createdAt: at(msAgo),
+      updatedAt: at(msAgo),
+    });
+    await initiativeSettings.insertMany([
+      {
+        _id: new ObjectId(),
+        ...doc(30 * DAY),
+        enabled: true,
+        recipients: ["a@example.com"],
+        tenantId: TENANT,
+      },
+      {
+        _id: new ObjectId(),
+        ...doc(30 * DAY),
+        enabled: true,
+        recipients: ["b@example.com"],
+        tenantId: OTHER_TENANT,
+      },
+      {
+        _id: new ObjectId(),
+        ...doc(30 * DAY),
+        enabled: false,
+        recipients: ["c@example.com"],
+        tenantId: "tenant-disabled",
+      },
+    ]);
+    // Only TENANT has news; OTHER_TENANT is quiet; disabled has news that
+    // must never send.
+    await sources.insertMany([
+      {
+        _id: new ObjectId(),
+        ...doc(2 * HOUR),
+        capturedBy: "u",
+        content: "Frische Notiz",
+        status: "received",
+        tenantId: TENANT,
+        type: "manual",
+      },
+      {
+        _id: new ObjectId(),
+        ...doc(2 * HOUR),
+        capturedBy: "u",
+        content: "Sollte nie ankommen",
+        status: "received",
+        tenantId: "tenant-disabled",
+        type: "manual",
+      },
+    ]);
+  });
+
+  afterAll(async () => {
+    await client.close();
+  });
+
+  test("sends to enabled tenants with news, records outcomes", async () => {
+    const report = await runMorningBriefSweep(db, options);
+    expect(report).toEqual({
+      alreadyDelivered: 0,
+      failed: 0,
+      failures: [],
+      noNews: 1,
+      sent: 1,
+    });
+    expect(sent).toEqual([
+      {
+        subject: "Morning brief: 1 new capture",
+        to: ["a@example.com"],
+      },
+    ]);
+    const { initiativeDeliveries } = getCollections(db);
+    const outcomes = await initiativeDeliveries
+      .find({}, { projection: { outcome: 1, tenantId: 1 } })
+      .toArray();
+    expect(outcomes.map((d) => [d.tenantId, d.outcome]).sort()).toEqual([
+      [TENANT, "sent"],
+      [OTHER_TENANT, "no-news"],
+    ]);
+  });
+
+  test("second run on the same day delivers nothing", async () => {
+    await runMorningBriefSweep(db, options);
+    sent.length = 0;
+    const report = await runMorningBriefSweep(db, options);
+    expect(sent).toEqual([]);
+    expect(report.sent).toBe(0);
+    expect(report.alreadyDelivered).toBe(2);
+  });
+
+  test("one tenant's send failure never blocks another's", async () => {
+    const failingSend = async (email: { to: string[] }) => {
+      if (email.to[0] === "a@example.com") {
+        throw new Error("mailbox on fire");
+      }
+      await send(email as never);
+    };
+    const report = await runMorningBriefSweep(db, {
+      ...options,
+      send: failingSend as never,
+    });
+    expect(report.failed).toBe(1);
+    expect(report.failures[0]).toContain(TENANT);
+    expect(report.failures[0]).toContain("mailbox on fire");
+    expect(report.noNews).toBe(1);
+    const { initiativeDeliveries } = getCollections(db);
+    const failedDelivery = await initiativeDeliveries.findOne({
+      tenantId: TENANT,
+    });
+    expect(failedDelivery?.outcome).toBe("failed");
+    expect(failedDelivery?.error).toContain("mailbox on fire");
   });
 });

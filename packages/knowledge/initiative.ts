@@ -1,7 +1,10 @@
 import type { Db, ObjectId } from "mongodb";
+import { MongoServerError } from "mongodb";
 import { getCollections } from "./collections";
+import { deterministicId } from "./idempotency";
 import { truncatePreview } from "./receipt";
 import { currentlyValidFilter } from "./schemas/facts";
+import type { DeliveryOutcome } from "./schemas/initiative";
 
 // The initiative loop, increment ① (spec §5): the morning brief. Everything
 // here is deterministic — outbound mail quotes captured material, and captured
@@ -235,4 +238,116 @@ export const composeMorningBrief = (
     subject,
     text: textLines.join("\n"),
   };
+};
+
+export type SendMorningBrief = (email: {
+  html: string;
+  subject: string;
+  text: string;
+  to: string[];
+}) => Promise<void>;
+
+export interface MorningBriefSweepReport {
+  alreadyDelivered: number;
+  failed: number;
+  failures: string[];
+  noNews: number;
+  sent: number;
+}
+
+// Claim-then-send: inserting the deterministic delivery row IS the day's lock.
+// A crash between claim and send costs that tenant one brief; the alternative
+// (send-then-record) risks a double send on retry, which is worse for a
+// product whose whole pitch is respecting attention (spec §5).
+const claimDelivery = async (
+  db: Db,
+  tenantId: string,
+  date: string,
+  now: Date
+): Promise<boolean> => {
+  const { initiativeDeliveries } = getCollections(db);
+  try {
+    await initiativeDeliveries.insertOne({
+      _id: deterministicId(`morning-brief:${tenantId}:${date}`),
+      createdAt: now,
+      date,
+      outcome: "claimed",
+      recipients: [],
+      tenantId,
+      updatedAt: now,
+    });
+    return true;
+  } catch (error) {
+    if (error instanceof MongoServerError && error.code === 11_000) {
+      return false;
+    }
+    throw error;
+  }
+};
+
+const recordOutcome = async (
+  db: Db,
+  tenantId: string,
+  date: string,
+  now: Date,
+  outcome: DeliveryOutcome,
+  extra: { error?: string; recipients?: string[] } = {}
+): Promise<void> => {
+  const { initiativeDeliveries } = getCollections(db);
+  await initiativeDeliveries.updateOne(
+    { _id: deterministicId(`morning-brief:${tenantId}:${date}`) },
+    { $set: { ...extra, outcome, updatedAt: now } }
+  );
+};
+
+export const runMorningBriefSweep = async (
+  db: Db,
+  {
+    appOrigin,
+    now,
+    send,
+  }: { appOrigin: string; now: Date; send: SendMorningBrief }
+): Promise<MorningBriefSweepReport> => {
+  const { initiativeSettings } = getCollections(db);
+  const date = now.toISOString().slice(0, 10);
+  const report: MorningBriefSweepReport = {
+    alreadyDelivered: 0,
+    failed: 0,
+    failures: [],
+    noNews: 0,
+    sent: 0,
+  };
+
+  const enabled = await initiativeSettings.find({ enabled: true }).toArray();
+  for (const settings of enabled) {
+    const { recipients, tenantId } = settings;
+    // Sequential on purpose: tenant counts are small, and one slow tenant
+    // holding a connection beats a burst of parallel aggregation load at
+    // 05:00 UTC.
+    // biome-ignore lint/performance/noAwaitInLoops: Intentional sequential processing
+    if (!(await claimDelivery(db, tenantId, date, now))) {
+      report.alreadyDelivered += 1;
+      continue;
+    }
+    try {
+      const data = await gatherMorningBriefData(db, tenantId, now);
+      const email = composeMorningBrief(data, { appOrigin, now });
+      if (!email) {
+        report.noNews += 1;
+        await recordOutcome(db, tenantId, date, now, "no-news");
+        continue;
+      }
+      await send({ ...email, to: recipients });
+      report.sent += 1;
+      await recordOutcome(db, tenantId, date, now, "sent", { recipients });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      report.failed += 1;
+      report.failures.push(`${tenantId}: ${message}`);
+      await recordOutcome(db, tenantId, date, now, "failed", {
+        error: message,
+      });
+    }
+  }
+  return report;
 };

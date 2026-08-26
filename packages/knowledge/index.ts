@@ -87,6 +87,20 @@ export type { GatewayConfig, GatewayUsage, UsageContext } from "./gateway";
 export { createGatewayGenerate, parseGatewayUsage } from "./gateway";
 export type { CreateEmailSourceResult, InboundEmail } from "./inbound";
 export { createEmailSource, parseInboundSenderMap } from "./inbound";
+export type {
+  MorningBriefData,
+  MorningBriefEmail,
+  MorningBriefSweepReport,
+  SendMorningBrief,
+} from "./initiative";
+export {
+  CAPTURE_PREVIEW_LIMIT,
+  COLD_AFTER_DAYS,
+  composeMorningBrief,
+  GOING_COLD_LIMIT,
+  gatherMorningBriefData,
+  runMorningBriefSweep,
+} from "./initiative";
 export { keys } from "./keys";
 export type { SweepOptions, SweepReport } from "./pipeline";
 export { sweepPipeline } from "./pipeline";
