@@ -33,7 +33,7 @@ import {
 } from "@repo/design-system/components/ai-elements/tool";
 import { useEveAgent } from "eve/react";
 import { BrainIcon } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { type ComponentProps, useCallback, useMemo } from "react";
 import { type CitedFact, FactCitation } from "./fact-citation";
 import { type CitedSource, SourceCitation } from "./source-citation";
 
@@ -42,6 +42,10 @@ import { type CitedSource, SourceCitation } from "./source-citation";
 // be allow-listed explicitly — which also means nothing else the model
 // invents can reach the DOM.
 const ALLOWED_TAGS = { fact: ["id"], source: ["id"] };
+
+// Derived from the component rather than imported from "ai", which apps/app
+// does not depend on directly.
+type SubmitStatus = ComponentProps<typeof PromptInputSubmit>["status"];
 
 interface ToolPart {
   errorText?: string;
@@ -132,6 +136,13 @@ const thinkingMessage = (isStreaming: boolean, duration?: number) => {
 export const KnowledgeChat = () => {
   const agent = useEveAgent();
   const isBusy = agent.status === "submitted" || agent.status === "streaming";
+  // eve 0.45.0 added "resuming": the store is replaying an attached session
+  // and refuses new turns, so the composer stays locked alongside isBusy.
+  const isResuming = agent.status === "resuming";
+  const isLocked = isBusy || isResuming;
+  // PromptInputSubmit speaks the AI SDK's ChatStatus, which has no "resuming".
+  // A resume is a pre-turn wait, so it reads as "submitted" — same spinner.
+  const submitStatus: SubmitStatus = isResuming ? "submitted" : agent.status;
 
   // Covers the gap between sending and the first streamed part — once the
   // assistant's reasoning starts arriving, its own "Denkt nach …" takes over.
@@ -162,7 +173,7 @@ export const KnowledgeChat = () => {
   const submit = useCallback(
     (message: { text?: string }) => {
       const text = message.text?.trim() ?? "";
-      if (text.length === 0 || isBusy) {
+      if (text.length === 0 || isLocked) {
         return;
       }
       // Rejections surface through agent.error, which the view renders; this
@@ -171,7 +182,7 @@ export const KnowledgeChat = () => {
       // send({ message }).
       agent.send(text).catch(() => undefined);
     },
-    [agent, isBusy]
+    [agent, isLocked]
   );
 
   return (
@@ -286,12 +297,12 @@ export const KnowledgeChat = () => {
         <PromptInputBody>
           <PromptInputTextarea
             className="min-h-0"
-            disabled={isBusy}
+            disabled={isLocked}
             placeholder="Was möchtest du wissen?"
           />
         </PromptInputBody>
         <PromptInputFooter className="justify-end">
-          <PromptInputSubmit disabled={isBusy} status={agent.status} />
+          <PromptInputSubmit disabled={isLocked} status={submitStatus} />
         </PromptInputFooter>
       </PromptInput>
     </div>
