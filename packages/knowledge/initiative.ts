@@ -324,12 +324,15 @@ export const runMorningBriefSweep = async (
     // Sequential on purpose: tenant counts are small, and one slow tenant
     // holding a connection beats a burst of parallel aggregation load at
     // 05:00 UTC.
-    // biome-ignore lint/performance/noAwaitInLoops: Intentional sequential processing
-    if (!(await claimDelivery(db, tenantId, date, now))) {
-      report.alreadyDelivered += 1;
-      continue;
-    }
     try {
+      // Claim check is inside the per-tenant try/catch: a thrown claim error
+      // (non-duplicate DB issue) isolates to this tenant; the catch block's
+      // recordOutcome('failed') becomes a harmless no-op when no claim row exists.
+      // biome-ignore lint/performance/noAwaitInLoops: Intentional sequential processing
+      if (!(await claimDelivery(db, tenantId, date, now))) {
+        report.alreadyDelivered += 1;
+        continue;
+      }
       const data = await gatherMorningBriefData(db, tenantId, now);
       const email = composeMorningBrief(data, { appOrigin, now });
       if (!email) {
