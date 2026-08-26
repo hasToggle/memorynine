@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test";
 import { MongoClient, ObjectId } from "mongodb";
+import { getCollections } from "../collections";
+import { composeMorningBrief, gatherMorningBriefData } from "../initiative";
 import {
   deliveryOutcomeValues,
   initiativeDeliverySchema,
   initiativeSettingsSchema,
 } from "../schemas/initiative";
-import { getCollections } from "../collections";
-import { gatherMorningBriefData } from "../initiative";
 
 const now = () => ({ createdAt: new Date(), updatedAt: new Date() });
 
@@ -337,5 +337,109 @@ describe.skipIf(!uri)("gatherMorningBriefData", () => {
     expect(data.captures.count).toBe(1);
     expect(data.reviewQueue.count).toBe(0);
     expect(data.goingCold).toEqual([]);
+  });
+});
+
+const NO_NEWS = {
+  captures: { count: 0, latest: [], newFactCount: 0 },
+  goingCold: [],
+  reviewQueue: { contradictionCount: 0, count: 0, oldestCreatedAt: null },
+};
+
+describe("composeMorningBrief", () => {
+  const options = { appOrigin: "https://app.example.com", now: NOW };
+
+  test("returns null when there is no news", () => {
+    expect(composeMorningBrief(NO_NEWS, options)).toBeNull();
+  });
+
+  test("going-quiet alone never triggers a send", () => {
+    const email = composeMorningBrief(
+      {
+        ...NO_NEWS,
+        goingCold: [
+          {
+            lastActivity: at(40 * DAY),
+            name: "Karl Kalt",
+            personId: new ObjectId(),
+          },
+        ],
+      },
+      options
+    );
+    expect(email).toBeNull();
+  });
+
+  test("composes subject, text and html with review link", () => {
+    const email = composeMorningBrief(
+      {
+        captures: {
+          count: 2,
+          latest: [
+            {
+              excerpt: "Notiz aus dem Gespräch",
+              type: "manual",
+              when: at(2 * HOUR),
+            },
+            { excerpt: null, type: "voice", when: at(3 * HOUR) },
+          ],
+          newFactCount: 1,
+        },
+        goingCold: [
+          {
+            lastActivity: at(40 * DAY),
+            name: "Karl Kalt",
+            personId: new ObjectId(),
+          },
+        ],
+        reviewQueue: {
+          contradictionCount: 1,
+          count: 3,
+          oldestCreatedAt: at(5 * DAY),
+        },
+      },
+      options
+    );
+    expect(email?.subject).toBe(
+      "Morning brief: 2 new captures · 3 waiting for review"
+    );
+    expect(email?.text).toContain("https://app.example.com/review");
+    expect(email?.text).toContain("Karl Kalt");
+    expect(email?.text).toContain("40 days");
+    expect(email?.text).toContain("1 contradiction");
+    expect(email?.html).toContain("Notiz aus dem Gespräch");
+  });
+
+  test("escapes captured material in html", () => {
+    const email = composeMorningBrief(
+      {
+        ...NO_NEWS,
+        captures: {
+          count: 1,
+          latest: [
+            {
+              excerpt: "<script>alert(1)</script>",
+              type: "manual",
+              when: at(HOUR),
+            },
+          ],
+          newFactCount: 0,
+        },
+      },
+      options
+    );
+    expect(email?.html).not.toContain("<script>");
+    expect(email?.html).toContain("&lt;script&gt;");
+  });
+
+  test("singularizes counts", () => {
+    const email = composeMorningBrief(
+      {
+        ...NO_NEWS,
+        captures: { count: 1, latest: [], newFactCount: 1 },
+      },
+      options
+    );
+    expect(email?.subject).toBe("Morning brief: 1 new capture");
   });
 });
