@@ -104,10 +104,36 @@ describe.skipIf(!uri)("gatherMorningBriefData", () => {
     const fresh = new ObjectId();
     const cold = new ObjectId();
     const colder = new ObjectId();
+    const supersededOnly = new ObjectId();
     await people.insertMany([
-      { _id: fresh, ...doc(90 * DAY), emails: [], name: "Frida Frisch", tenantId: TENANT },
-      { _id: cold, ...doc(90 * DAY), emails: [], name: "Karl Kalt", tenantId: TENANT },
-      { _id: colder, ...doc(90 * DAY), emails: [], name: "Elke Eis", tenantId: TENANT },
+      {
+        _id: fresh,
+        ...doc(90 * DAY),
+        emails: [],
+        name: "Frida Frisch",
+        tenantId: TENANT,
+      },
+      {
+        _id: cold,
+        ...doc(90 * DAY),
+        emails: [],
+        name: "Karl Kalt",
+        tenantId: TENANT,
+      },
+      {
+        _id: colder,
+        ...doc(90 * DAY),
+        emails: [],
+        name: "Elke Eis",
+        tenantId: TENANT,
+      },
+      {
+        _id: supersededOnly,
+        ...doc(90 * DAY),
+        emails: [],
+        name: "Petra Pause",
+        tenantId: TENANT,
+      },
     ]);
     await facts.insertMany([
       // Fresh activity (2 days) — must not appear in goingCold. Also created
@@ -172,6 +198,21 @@ describe.skipIf(!uri)("gatherMorningBriefData", () => {
         supersededBy: new ObjectId(),
         tenantId: TENANT,
         text: "Frida bevorzugte Nachmittage.",
+      },
+      // 50 days old and superseded — the ONLY fact for Petra. With
+      // currentlyValidFilter she has no valid facts → no group row →
+      // excluded from goingCold. Without the filter she would appear.
+      {
+        _id: new ObjectId(),
+        ...doc(50 * DAY),
+        anchors: { personId: supersededOnly },
+        category: "background",
+        confidence: 0.8,
+        confirmedBy: "reviewer",
+        sourceId: new ObjectId(),
+        supersededBy: new ObjectId(),
+        tenantId: TENANT,
+        text: "Petra war mal aktiv.",
       },
     ]);
     await sources.insertMany([
@@ -281,10 +322,14 @@ describe.skipIf(!uri)("gatherMorningBriefData", () => {
 
   test("lists cold people oldest-first from currently valid facts only", async () => {
     const data = await gatherMorningBriefData(db, TENANT, NOW);
+    // Petra has only a superseded fact, so she must not appear in goingCold even
+    // though her fact is older than the 28-day threshold. This exercises the
+    // currentlyValidFilter exclusion.
     expect(data.goingCold.map((p) => p.name)).toEqual([
       "Elke Eis",
       "Karl Kalt",
     ]);
+    expect(data.goingCold.some((p) => p.name === "Petra Pause")).toBe(false);
   });
 
   test("is tenant-isolated", async () => {
