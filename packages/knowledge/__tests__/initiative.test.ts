@@ -563,6 +563,20 @@ describe.skipIf(!uri)("runMorningBriefSweep", () => {
   });
 
   test("one tenant's send failure never blocks another's", async () => {
+    // Give OTHER_TENANT news so this test verifies a tenant that would send
+    // successfully is unaffected by a sibling's failure.
+    const { sources } = getCollections(db);
+    await sources.insertOne({
+      _id: new ObjectId(),
+      capturedBy: "u",
+      content: "Notiz für Tenant B",
+      createdAt: at(2 * HOUR),
+      status: "received",
+      tenantId: OTHER_TENANT,
+      type: "manual",
+      updatedAt: at(2 * HOUR),
+    });
+
     const failingSend = async (email: { to: string[] }) => {
       if (email.to[0] === "a@example.com") {
         throw new Error("mailbox on fire");
@@ -574,9 +588,16 @@ describe.skipIf(!uri)("runMorningBriefSweep", () => {
       send: failingSend as never,
     });
     expect(report.failed).toBe(1);
+    expect(report.sent).toBe(1);
     expect(report.failures[0]).toContain(TENANT);
     expect(report.failures[0]).toContain("mailbox on fire");
-    expect(report.noNews).toBe(1);
+    // Verify OTHER_TENANT's email was sent despite TENANT's failure
+    expect(sent).toEqual([
+      {
+        subject: "Morning brief: 1 new capture",
+        to: ["b@example.com"],
+      },
+    ]);
     const { initiativeDeliveries } = getCollections(db);
     const failedDelivery = await initiativeDeliveries.findOne({
       tenantId: TENANT,

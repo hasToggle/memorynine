@@ -334,19 +334,43 @@ export const runMorningBriefSweep = async (
       const email = composeMorningBrief(data, { appOrigin, now });
       if (!email) {
         report.noNews += 1;
-        await recordOutcome(db, tenantId, date, now, "no-news");
+        // The claim row guarantees at-most-once delivery. A bookkeeping failure
+        // must not reclassify the outcome or abort the sweep for other tenants.
+        try {
+          await recordOutcome(db, tenantId, date, now, "no-news");
+        } catch (error) {
+          console.error(
+            `Failed to record no-news outcome for ${tenantId}:`,
+            error
+          );
+        }
         continue;
       }
       await send({ ...email, to: recipients });
       report.sent += 1;
-      await recordOutcome(db, tenantId, date, now, "sent", { recipients });
+      // The mail is out and the claim doc already guarantees at-most-once; a
+      // bookkeeping failure must not reclassify a delivered brief as failed.
+      try {
+        await recordOutcome(db, tenantId, date, now, "sent", { recipients });
+      } catch (error) {
+        console.error(`Failed to record sent outcome for ${tenantId}:`, error);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       report.failed += 1;
       report.failures.push(`${tenantId}: ${message}`);
-      await recordOutcome(db, tenantId, date, now, "failed", {
-        error: message,
-      });
+      // The failure is already in the report; a second write failure must not
+      // abort the sweep for the remaining tenants.
+      try {
+        await recordOutcome(db, tenantId, date, now, "failed", {
+          error: message,
+        });
+      } catch (recordError) {
+        console.error(
+          `Failed to record failed outcome for ${tenantId}:`,
+          recordError
+        );
+      }
     }
   }
   return report;
