@@ -149,6 +149,16 @@ export {
   factCategoryValues,
   factSchema,
 } from "./schemas/facts";
+export type {
+  DeliveryOutcome,
+  InitiativeDelivery,
+  InitiativeSettings,
+} from "./schemas/initiative";
+export {
+  deliveryOutcomeValues,
+  initiativeDeliverySchema,
+  initiativeSettingsSchema,
+} from "./schemas/initiative";
 export type { EntityDraft, FactDraft, Proposal } from "./schemas/proposals";
 export {
   entityDraftSchema,
