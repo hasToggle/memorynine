@@ -17,7 +17,7 @@
     "@streamdown/code": "^1.1.1",
     "@streamdown/math": "^1.0.2",
     "@streamdown/mermaid": "^1.0.2",
-    "ai": "^7.0.79",
+    "ai": "^7.0.83",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -53,7 +53,7 @@
     "@types/node": "^26.3.0",
     "@types/react": "^19.2.18",
     "postcss": "^8.5.26",
-    "sharp": "^0.35.3",
+    "sharp": "^0.35.4",
     "tailwindcss": "^4.3.3",
     "typescript": "^7.0.2"
   }
