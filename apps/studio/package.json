@@ -6,6 +6,6 @@
     "dev": "prisma studio --schema ../../packages/database/prisma/schema.prisma --port 3005"
   },
   "devDependencies": {
-    "prisma": "7.9.1"
+    "prisma": "7.10.0"
   }
 }
