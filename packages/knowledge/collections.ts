@@ -4,6 +4,10 @@ import type { Collection, Db } from "mongodb";
 import type { Dossier } from "./dossier";
 import type { Engagement, Organization, Person } from "./schemas/entities";
 import type { Fact } from "./schemas/facts";
+import type {
+  InitiativeDelivery,
+  InitiativeSettings,
+} from "./schemas/initiative";
 import type { Proposal } from "./schemas/proposals";
 import type { Source } from "./schemas/sources";
 import type { Usage } from "./schemas/usage";
@@ -12,6 +16,8 @@ export interface KnowledgeCollections {
   dossiers: Collection<Dossier>;
   engagements: Collection<Engagement>;
   facts: Collection<Fact>;
+  initiativeDeliveries: Collection<InitiativeDelivery>;
+  initiativeSettings: Collection<InitiativeSettings>;
   organizations: Collection<Organization>;
   people: Collection<Person>;
   proposals: Collection<Proposal>;
@@ -23,6 +29,10 @@ export const getCollections = (db: Db): KnowledgeCollections => ({
   dossiers: db.collection<Dossier>("dossiers"),
   engagements: db.collection<Engagement>("engagements"),
   facts: db.collection<Fact>("facts"),
+  initiativeDeliveries: db.collection<InitiativeDelivery>(
+    "initiativeDeliveries"
+  ),
+  initiativeSettings: db.collection<InitiativeSettings>("initiativeSettings"),
   organizations: db.collection<Organization>("organizations"),
   people: db.collection<Person>("people"),
   proposals: db.collection<Proposal>("proposals"),
@@ -39,6 +49,8 @@ export const ensureIndexes = async (db: Db): Promise<void> => {
     proposals,
     facts,
     dossiers,
+    initiativeDeliveries,
+    initiativeSettings,
     usage,
   } = getCollections(db);
 
@@ -49,6 +61,9 @@ export const ensureIndexes = async (db: Db): Promise<void> => {
         name: "tenant_anchor",
         unique: true,
       },
+      // listBriefs sorts a tenant's dossiers by recency; the unique
+      // index above leads with anchor.kind and cannot serve that sort.
+      { key: { tenantId: 1, updatedAt: -1 }, name: "tenant_recency" },
     ]),
     organizations.createIndexes([
       { key: { tenantId: 1, name: 1 }, name: "tenant_name" },
@@ -93,6 +108,14 @@ export const ensureIndexes = async (db: Db): Promise<void> => {
         name: "tenant_engagement_anchor",
       },
       { key: { tenantId: 1, sourceId: 1 }, name: "tenant_source" },
+    ]),
+    initiativeSettings.createIndexes([
+      { key: { tenantId: 1 }, name: "tenant", unique: true },
+    ]),
+    initiativeDeliveries.createIndexes([
+      // The deterministic _id already dedupes; this serves "what did we send
+      // this tenant lately" reads.
+      { key: { tenantId: 1, date: -1 }, name: "tenant_date" },
     ]),
     usage.createIndexes([
       { key: { tenantId: 1, createdAt: -1 }, name: "tenant_recency" },

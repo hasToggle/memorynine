@@ -6,6 +6,7 @@
   "types": "./index.ts",
   "scripts": {
     "clean": "git clean -xdf .cache .turbo dist node_modules",
+    "enable-morning-brief": "bun scripts/enable-morning-brief.ts",
     "eval-extraction": "bun scripts/eval-extraction.ts",
     "probe-zdr": "bun scripts/probe-zdr.ts",
     "re-extract": "bun scripts/re-extract.cli.ts",

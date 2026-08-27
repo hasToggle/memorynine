@@ -1,12 +1,8 @@
 "use client";
 
-import {
-  InlineCitation,
-  InlineCitationCard,
-  InlineCitationCardBody,
-} from "@repo/design-system/components/ai-elements/inline-citation";
-import { Badge } from "@repo/design-system/components/ui/badge";
-import { HoverCardTrigger } from "@repo/design-system/components/ui/hover-card";
+import type { CitationRef } from "@/lib/citation";
+import { normalizeCitationId } from "@/lib/citation";
+import { type ChipTone, CitationChip } from "./citation-chip";
 
 // Every fact the agent has returned in this conversation, keyed by the id it
 // must cite. Built from tool output rather than from the prose, so a claim can
@@ -14,127 +10,57 @@ import { HoverCardTrigger } from "@repo/design-system/components/ui/hover-card";
 export interface CitedFact {
   category: string;
   confidence: number;
+  contested?: boolean;
   id: string;
   text: string;
   validFrom: string | null;
 }
 
-// The category enum values are storage keys, not UI copy.
-const CATEGORY_LABELS: Record<string, string> = {
-  background: "Hintergrund",
-  "decision-process": "Entscheidungsweg",
-  logistics: "Logistik",
-  objection: "Einwand",
-  other: "Sonstiges",
-  preference: "Präferenz",
-  relationship: "Beziehung",
+const toneFor = (fact: CitedFact | undefined): ChipTone => {
+  if (!fact) {
+    return "broken";
+  }
+  return fact.contested ? "checked-contested" : "checked";
 };
-
-const categoryLabel = (category: string): string =>
-  CATEGORY_LABELS[category] ?? category;
-
-const germanDate = (iso: string | null) =>
-  iso
-    ? new Date(iso).toLocaleDateString("de-DE", { dateStyle: "medium" })
-    : null;
-
-// Streamdown's sanitizer rewrites `id` attributes to "user-content-…" as
-// DOM-clobbering protection (the GitHub convention), so the attribute arrives
-// prefixed even though the model emitted the bare fact id. Strip it before
-// resolving against the retrieved facts.
-const CLOBBER_PREFIX = /^user-content-/;
 
 /**
  * Renders one `<fact id="…"/>` marker the model emitted inline.
  *
- * An id we never returned is shown as broken rather than dropped. A dropped
- * citation is indistinguishable from an uncited claim, which is precisely the
- * failure this whole mechanism exists to make visible.
+ * An id we never returned renders as broken rather than being dropped. A
+ * dropped citation is indistinguishable from an uncited claim, which is
+ * precisely the failure this mechanism exists to make visible.
  */
 export const FactCitation = ({
   facts,
   id,
+  numberOf,
+  onSelect,
 }: {
   facts: Map<string, CitedFact>;
   id?: string;
+  numberOf: (id: string) => number;
+  onSelect: (reference: CitationRef) => void;
 }) => {
-  const factId = id?.replace(CLOBBER_PREFIX, "");
+  const factId = normalizeCitationId(id);
   const fact = factId ? facts.get(factId) : undefined;
-
-  if (!fact) {
-    // Same hover-card interaction as a resolved citation, so the broken
-    // marker explains itself instead of relying on the native title tooltip.
-    return (
-      <InlineCitation>
-        <InlineCitationCard>
-          <HoverCardTrigger asChild>
-            <button
-              className="ml-0.5 cursor-help rounded bg-destructive/10 px-1 align-super font-medium text-destructive text-xs"
-              type="button"
-            >
-              ?
-            </button>
-          </HoverCardTrigger>
-          <InlineCitationCardBody className="w-80 overflow-hidden">
-            <div className="px-4 py-3.5">
-              <p className="font-medium text-destructive text-sm">
-                Unbelegtes Zitat
-              </p>
-              <p className="mt-1 text-muted-foreground text-xs leading-relaxed">
-                Die Wissensdatenbank hat den zitierten Fakt in dieser
-                Unterhaltung nicht geliefert. Diese Aussage ist damit nicht
-                belegt.
-              </p>
-            </div>
-            {factId ? (
-              <footer className="border-t bg-muted/30 px-4 py-2">
-                <span className="font-mono text-[10px] text-muted-foreground">
-                  Fakt {factId}
-                </span>
-              </footer>
-            ) : null}
-          </InlineCitationCardBody>
-        </InlineCitationCard>
-      </InlineCitation>
-    );
-  }
-
-  const since = germanDate(fact.validFrom);
-  const confidence = Math.round(fact.confidence * 100);
+  // An id that never resolved carries no reference at all: the empty id
+  // trips the `reference.id.length === 0` guard in the caller's `select`,
+  // so a broken chip can neither be "selected" nor fire a receipt fetch for
+  // an id the tools never returned.
+  const reference: CitationRef = {
+    id: fact ? (factId ?? "") : "",
+    kind: "fact",
+  };
 
   return (
-    <InlineCitation>
-      <InlineCitationCard>
-        <HoverCardTrigger asChild>
-          <Badge
-            asChild
-            className="ml-1 cursor-help rounded-full"
-            variant="secondary"
-          >
-            <button type="button">{categoryLabel(fact.category)}</button>
-          </Badge>
-        </HoverCardTrigger>
-        <InlineCitationCardBody className="w-80 overflow-hidden">
-          <blockquote className="px-4 py-3.5 text-sm leading-relaxed">
-            <span aria-hidden className="text-muted-foreground">
-              „
-            </span>
-            {fact.text}
-            <span aria-hidden className="text-muted-foreground">
-              “
-            </span>
-          </blockquote>
-          <footer className="flex items-center justify-between gap-3 border-t bg-muted/30 px-4 py-2 text-muted-foreground text-xs">
-            <span>{since ? `gültig seit ${since}` : " "}</span>
-            <span className="tabular-nums">
-              Konfidenz{" "}
-              <span className="font-medium text-foreground">
-                {confidence}&thinsp;%
-              </span>
-            </span>
-          </footer>
-        </InlineCitationCardBody>
-      </InlineCitationCard>
-    </InlineCitation>
+    <CitationChip
+      // Only a resolved citation draws a sequence number. Numbering a broken
+      // one and then discarding it leaves a gap — "1 ? 3" — which reads as a
+      // rendering fault rather than as the deliberate alarm it is.
+      index={fact && factId ? numberOf(factId) : 0}
+      onSelect={onSelect}
+      reference={reference}
+      tone={toneFor(fact)}
+    />
   );
 };

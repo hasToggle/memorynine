@@ -10,6 +10,7 @@ import { MongoClient, ObjectId } from "mongodb";
 import { ensureIndexes, getCollections } from "../collections";
 import {
   buildContradictionPrompt,
+  findContestedFactIds,
   parseContradictionResponse,
   runContradictionCheck,
 } from "../contradiction";
@@ -20,6 +21,25 @@ const uri = process.env.MONGODB_TEST_URI;
 const TENANT = "test-tenant";
 const now = () => ({ createdAt: new Date(), updatedAt: new Date() });
 const unknownIdPattern = /unknown fact id/i;
+
+// Shared by every describe below that needs a live cluster, so none of them
+// opens a second connection.
+const client = new MongoClient(uri ?? "mongodb://localhost:27017");
+const db = client.db("knowledge_test_contradiction");
+
+beforeAll(async () => {
+  if (!uri) {
+    return;
+  }
+  await client.connect();
+});
+
+afterAll(async () => {
+  if (!uri) {
+    return;
+  }
+  await client.close();
+});
 
 describe("buildContradictionPrompt", () => {
   test("groups the candidates it shows by category", () => {
@@ -82,8 +102,6 @@ describe("parseContradictionResponse", () => {
 });
 
 describe.skipIf(!uri)("runContradictionCheck", () => {
-  const client = new MongoClient(uri ?? "mongodb://localhost:27017");
-  const db = client.db("knowledge_test_contradiction");
   const { facts, people, proposals } = getCollections(db);
   const personId = new ObjectId();
   const anchor = { id: personId, kind: "person" as const };
@@ -120,7 +138,6 @@ describe.skipIf(!uri)("runContradictionCheck", () => {
     });
 
   beforeAll(async () => {
-    await client.connect();
     await db.dropDatabase();
     await ensureIndexes(db);
     await people.insertOne({
@@ -146,7 +163,6 @@ describe.skipIf(!uri)("runContradictionCheck", () => {
 
   afterAll(async () => {
     await db.dropDatabase();
-    await client.close();
   });
 
   test("proposes a resolution that supersedes both sides", async () => {
@@ -223,5 +239,99 @@ describe.skipIf(!uri)("runContradictionCheck", () => {
       .toArray();
     expect(current).toHaveLength(1);
     expect(current[0]?._id.equals(created?._id as ObjectId)).toBe(true);
+  });
+});
+
+describe.skipIf(!uri)("findContestedFactIds", () => {
+  test("returns only the ids an open contradiction proposal supersedes", async () => {
+    const disputedA = new ObjectId();
+    const disputedB = new ObjectId();
+    const settled = new ObjectId();
+    const untouched = new ObjectId();
+    const { proposals } = getCollections(db);
+
+    await proposals.insertMany([
+      {
+        _id: new ObjectId(),
+        createdAt: new Date(),
+        entityDrafts: [],
+        factDrafts: [
+          {
+            anchors: { organizationId: new ObjectId() },
+            category: "logistics",
+            confidence: 0.8,
+            resolution: { status: "pending" },
+            supersedes: [disputedA, disputedB],
+            text: "Aufgelöste Fassung.",
+          },
+        ],
+        kind: "contradiction",
+        status: "open",
+        tenantId: TENANT,
+        updatedAt: new Date(),
+      },
+      {
+        _id: new ObjectId(),
+        createdAt: new Date(),
+        entityDrafts: [],
+        factDrafts: [
+          {
+            anchors: { organizationId: new ObjectId() },
+            category: "logistics",
+            confidence: 0.8,
+            resolution: { status: "confirmed" },
+            supersedes: [settled],
+            text: "Schon entschieden.",
+          },
+        ],
+        kind: "contradiction",
+        status: "resolved",
+        tenantId: TENANT,
+        updatedAt: new Date(),
+      },
+    ] as never);
+
+    const contested = await findContestedFactIds(db, TENANT, [
+      disputedA,
+      disputedB,
+      settled,
+      untouched,
+    ]);
+
+    expect(contested.has(disputedA.toHexString())).toBe(true);
+    expect(contested.has(disputedB.toHexString())).toBe(true);
+    expect(contested.has(settled.toHexString())).toBe(false);
+    expect(contested.has(untouched.toHexString())).toBe(false);
+  });
+
+  test("never reports another tenant's dispute", async () => {
+    const disputed = new ObjectId();
+    const { proposals } = getCollections(db);
+    await proposals.insertOne({
+      _id: new ObjectId(),
+      createdAt: new Date(),
+      entityDrafts: [],
+      factDrafts: [
+        {
+          anchors: { organizationId: new ObjectId() },
+          category: "logistics",
+          confidence: 0.8,
+          resolution: { status: "pending" },
+          supersedes: [disputed],
+          text: "Fremde Fassung.",
+        },
+      ],
+      kind: "contradiction",
+      status: "open",
+      tenantId: "other-tenant",
+      updatedAt: new Date(),
+    } as never);
+
+    const contested = await findContestedFactIds(db, TENANT, [disputed]);
+    expect(contested.size).toBe(0);
+  });
+
+  test("an empty id list does not query at all", async () => {
+    expect((await findContestedFactIds(db, TENANT, [])).size).toBe(0);
   });
 });

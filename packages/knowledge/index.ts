@@ -6,6 +6,17 @@
 export { ObjectId } from "mongodb";
 export type { CandidateAnchor } from "./anchors";
 export { findCandidateAnchors } from "./anchors";
+export type {
+  Brief,
+  BriefAnchor,
+  BriefLine,
+  BuildBriefInput,
+} from "./brief";
+export {
+  BRIEF_FACT_LIMIT,
+  BRIEF_SOURCE_LIMIT,
+  buildBrief,
+} from "./brief";
 export type { KnowledgeCollections } from "./collections";
 export { ensureIndexes, getCollections } from "./collections";
 export type {
@@ -34,6 +45,7 @@ export type {
 } from "./contradiction";
 export {
   buildContradictionPrompt,
+  findContestedFactIds,
   parseContradictionResponse,
   runContradictionCheck,
   sweepContradictions,
@@ -75,6 +87,20 @@ export type { GatewayConfig, GatewayUsage, UsageContext } from "./gateway";
 export { createGatewayGenerate, parseGatewayUsage } from "./gateway";
 export type { CreateEmailSourceResult, InboundEmail } from "./inbound";
 export { createEmailSource, parseInboundSenderMap } from "./inbound";
+export type {
+  MorningBriefData,
+  MorningBriefEmail,
+  MorningBriefSweepReport,
+  SendMorningBrief,
+} from "./initiative";
+export {
+  CAPTURE_PREVIEW_LIMIT,
+  COLD_AFTER_DAYS,
+  composeMorningBrief,
+  GOING_COLD_LIMIT,
+  gatherMorningBriefData,
+  runMorningBriefSweep,
+} from "./initiative";
 export { keys } from "./keys";
 export type { SweepOptions, SweepReport } from "./pipeline";
 export { sweepPipeline } from "./pipeline";
@@ -85,6 +111,18 @@ export type {
 export { processSource } from "./process-source";
 export type { ReExtractSourceOptions } from "./re-extraction";
 export { reExtractSource } from "./re-extraction";
+export type {
+  ComposeReceiptInput,
+  Receipt,
+  ReceiptRow,
+  ReceiptSource,
+  ReceiptTier,
+} from "./receipt";
+export {
+  composeReceipt,
+  PREVIEW_LENGTH,
+  truncatePreview,
+} from "./receipt";
 export type {
   HybridFactsSearchOptions,
   RerankableDocument,
@@ -125,6 +163,16 @@ export {
   factCategoryValues,
   factSchema,
 } from "./schemas/facts";
+export type {
+  DeliveryOutcome,
+  InitiativeDelivery,
+  InitiativeSettings,
+} from "./schemas/initiative";
+export {
+  deliveryOutcomeValues,
+  initiativeDeliverySchema,
+  initiativeSettingsSchema,
+} from "./schemas/initiative";
 export type { EntityDraft, FactDraft, Proposal } from "./schemas/proposals";
 export {
   entityDraftSchema,

@@ -19,6 +19,10 @@
     {
       "path": "/cron/knowledge-consolidation",
       "schedule": "0 3 * * *"
+    },
+    {
+      "path": "/cron/morning-brief",
+      "schedule": "0 5 * * 1-5"
     }
   ]
 }

@@ -2,6 +2,7 @@ import {
   createVoyageRerank,
   type Fact,
   factCategoryValues,
+  findContestedFactIds,
   retrieveFacts,
 } from "@repo/knowledge";
 import { getKnowledgeDb } from "@repo/knowledge/client";
@@ -40,13 +41,43 @@ export default defineTool({
       tenantId,
     });
 
+    // Whether a reviewer is currently being asked to settle a disagreement
+    // about this fact. The instructions require conflicts to be shown rather
+    // than silently resolved; without this the model cannot tell.
+    //
+    // Failures degrade to empty set (all facts contested: false) rather than
+    // failing the entire search. Retrieval must not be held hostage by a
+    // supplementary lookup. The authoritative warning surface is getReceipts,
+    // which runs its own independent findContestedFactIds call when a citation
+    // is opened; a reader who clicks through still sees "Two versions on
+    // record" even if this lookup failed. What is lost is only the model's
+    // ability to mention the conflict in prose.
+    let contested: Set<string>;
+    try {
+      contested = await findContestedFactIds(
+        getKnowledgeDb(),
+        tenantId,
+        results.map(({ fact }) => fact._id)
+      );
+    } catch (error) {
+      console.warn(
+        `search-knowledge: contested lookup failed, assuming no conflicts: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+      contested = new Set();
+    }
+
     return {
       // Shaped for citation: the id is the thing the model has to reproduce
       // exactly, so it leads. Dates and ObjectIds are stringified because tool
       // output crosses a durable JSON boundary.
+      //
+      // Provenance deliberately does NOT travel here — see get-receipts.ts.
       facts: results.map(({ fact, relevanceScore }) => ({
         category: fact.category,
         confidence: fact.confidence,
+        contested: contested.has(fact._id.toHexString()),
         id: fact._id.toHexString(),
         relevanceScore,
         text: fact.text,
