@@ -35,7 +35,7 @@
     "@storybook/addon-themes": "^10.5.10",
     "@storybook/nextjs": "^10.5.10",
     "@storybook/react": "^10.5.10",
-    "@types/node": "^26.4.0",
+    "@types/node": "^26.4.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.5",
     "chromatic": "^18.7.2",
