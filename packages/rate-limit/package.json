@@ -9,7 +9,7 @@
   "dependencies": {
     "@t3-oss/env-nextjs": "^0.13.11",
     "@upstash/ratelimit": "^2.0.8",
-    "@upstash/redis": "^1.38.3",
+    "@upstash/redis": "^1.38.4",
     "zod": "^4.5.4"
   },
   "devDependencies": {
