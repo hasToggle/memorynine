@@ -8,13 +8,13 @@
   },
   "overrides": {
     "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.5"
+    "@types/react-dom": "19.2.7"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^4.0.57",
-    "@ai-sdk/react": "^4.0.94",
+    "@ai-sdk/openai": "^4.0.58",
+    "@ai-sdk/react": "^4.0.95",
     "@t3-oss/env-nextjs": "^0.13.11",
-    "ai": "^7.0.91",
+    "ai": "^7.0.92",
     "next": "^16.3.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
@@ -26,6 +26,6 @@
     "@repo/typescript-config": "workspace:*",
     "@types/node": "26.4.1",
     "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.5"
+    "@types/react-dom": "19.2.7"
   }
 }
