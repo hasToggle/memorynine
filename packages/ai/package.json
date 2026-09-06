@@ -11,7 +11,7 @@
     "@types/react-dom": "19.2.7"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^4.0.59",
+    "@ai-sdk/openai": "^4.0.60",
     "@ai-sdk/react": "^4.0.96",
     "@t3-oss/env-nextjs": "^0.13.11",
     "ai": "^7.0.93",
