@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@auto-it/first-time-contributor": "^11.3.0",
-    "@biomejs/biome": "2.5.12",
+    "@biomejs/biome": "2.5.13",
     "@repo/typescript-config": "workspace:*",
     "@turbo/gen": "^2.8.9",
     "@types/node": "^26.0.0",
