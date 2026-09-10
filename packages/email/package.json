@@ -11,13 +11,13 @@
     "next": "^16.3.4",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-email": "6.9.3",
+    "react-email": "6.9.5",
     "resend": "^6.26.0",
     "zod": "^4.5.4"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "26.5.0",
+    "@types/node": "26.5.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "19.2.7",
     "typescript": "^7.0.2"
