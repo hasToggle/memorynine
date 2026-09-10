@@ -12,13 +12,13 @@
     "@repo/design-system": "workspace:*",
     "@t3-oss/env-nextjs": "^0.13.11",
     "@vercel/toolbar": "^0.2.7",
-    "flags": "^4.3.0",
+    "flags": "^4.3.1",
     "react": "^19.2.8",
     "zod": "^4.5.4"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "26.5.0",
+    "@types/node": "26.5.1",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "typescript": "^7.0.2"
