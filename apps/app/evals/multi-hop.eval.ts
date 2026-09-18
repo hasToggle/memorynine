@@ -26,7 +26,7 @@ export default defineEval({
     const firstId = firstFact._id.toHexString();
     const secondId = secondFact._id.toHexString();
 
-    await t.send(
+    const turn = await t.send(
       "Wer leitet bei Vogelsang Maschinenbau das Projekt „Prozessoptimierung Fertigung“ vor Ort, und wessen zusätzliche Freigabe ist dort bei Ausgaben über 50.000 EUR nötig?"
     );
 
@@ -34,7 +34,7 @@ export default defineEval({
     t.calledTool("search-knowledge");
 
     t.check(
-      citedIds(t.reply),
+      citedIds(turn.message),
       satisfies(
         (ids: string[]) => ids.includes(firstId) && ids.includes(secondId),
         `cites both multi-hop facts ${firstId} and ${secondId}`

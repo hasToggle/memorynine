@@ -23,13 +23,13 @@ export default defineEval({
     const { current } = secondRoleChange;
     const currentId = current._id.toHexString();
 
-    await t.send(
+    const turn = await t.send(
       "Was ist die aktuelle Rolle von Martin Kowalski bei Hafenlogistik Nord?"
     );
 
     t.succeeded();
     t.calledTool("search-knowledge");
-    const cited = citedIds(t.reply);
+    const cited = citedIds(turn.message);
 
     // Deterministic half: the current fact must be cited.
     t.check(

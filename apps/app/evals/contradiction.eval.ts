@@ -56,7 +56,7 @@ export default defineEval({
     // even when layer 1 passes (both retrieved, only one cited) — that gap
     // is what separates an agent failure from a retrieval failure, and it is
     // the property instructions.md's conflict rule is actually about.
-    const cited = citedIds(t.reply);
+    const cited = citedIds(turn.message);
     t.check(
       cited,
       satisfies(

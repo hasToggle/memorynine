@@ -10,7 +10,7 @@
 
 const FACT_TAG = /<fact\s+id="([^"]+)"/g;
 
-export const citedIds = (reply: string | null): string[] =>
+export const citedIds = (reply: string | undefined): string[] =>
   [...(reply ?? "").matchAll(FACT_TAG)].map((match) => match[1] as string);
 
 interface SearchOutput {
