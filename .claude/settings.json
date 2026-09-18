@@ -10,40 +10,11 @@
       "mcp__plugin_context7_context7__query-docs",
       "WebFetch(domain:github.com)"
     ],
-    "deny": ["Read(./.entire/metadata/**)", "Read(**/.env*)"],
+    "deny": ["Read(**/.env*)"],
     "ask": []
   },
   "hooks": {
-    "PostToolUse": [
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "entire hooks claude-code post-task"
-          }
-        ]
-      },
-      {
-        "matcher": "TodoWrite",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "entire hooks claude-code post-todo"
-          }
-        ]
-      }
-    ],
     "PreToolUse": [
-      {
-        "matcher": "Task",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "entire hooks claude-code pre-task"
-          }
-        ]
-      },
       {
         "matcher": "Edit|Write",
         "hooks": [
@@ -54,54 +25,12 @@
         ]
       }
     ],
-    "SessionEnd": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "entire hooks claude-code session-end"
-          }
-        ]
-      }
-    ],
-    "SessionStart": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "entire hooks claude-code session-start"
-          }
-        ]
-      }
-    ],
     "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "entire hooks claude-code stop"
-          }
-        ]
-      },
       {
         "hooks": [
           {
             "type": "command",
             "command": "bunx --bun biome format --write . || true"
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "entire hooks claude-code user-prompt-submit"
           }
         ]
       }

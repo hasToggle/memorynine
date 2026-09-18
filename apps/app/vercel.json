@@ -1,10 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "ignoreCommand": "node ../../scripts/skip-ci.js",
-  "git": {
-    "deploymentEnabled": {
-      "entire/*": false,
-      "entire/**": false
-    }
-  }
+  "ignoreCommand": "node ../../scripts/skip-ci.js"
 }
