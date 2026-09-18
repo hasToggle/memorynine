@@ -49,7 +49,7 @@ export default defineEval({
     // agent fabricated the connection. Citing an unrelated returned fact
     // while saying so is not a failure here — that's the judge's job below.
     t.check(
-      citedIds(t.reply),
+      citedIds(turn.message),
       satisfies(
         (ids: string[]) =>
           ids.every((id) => !ASKED_ABOUT_ENTITY.test(facts.get(id) ?? "")),
@@ -71,7 +71,7 @@ export default defineEval({
     // entity-mention check above passes it vacuously. Only this check
     // catches a hallucinated id.
     t.check(
-      citedIds(t.reply),
+      citedIds(turn.message),
       satisfies(
         (ids: string[]) => ids.every((id) => returned.has(id)),
         "every cited fact id was returned by search-knowledge"

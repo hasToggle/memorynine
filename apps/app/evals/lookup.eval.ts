@@ -17,7 +17,7 @@ export default defineEval({
   async test(t) {
     const [firstRoleChange] = PLANTED.roleChanges;
     const target = firstRoleChange.current;
-    await t.send(
+    const turn = await t.send(
       "Trifft Anke Feldmann die strategischen Entscheidungen bei Hafenlogistik Nord aktuell allein oder gemeinsam mit einem Co-Geschäftsführer?"
     );
 
@@ -25,7 +25,7 @@ export default defineEval({
     t.calledTool("search-knowledge");
 
     t.check(
-      citedIds(t.reply),
+      citedIds(turn.message),
       satisfies(
         (ids: string[]) => ids.includes(target._id.toHexString()),
         `cites the current role fact ${target._id.toHexString()}`

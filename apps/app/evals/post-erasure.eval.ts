@@ -88,7 +88,7 @@ export default defineEval({
 
       t.succeeded();
 
-      const reply = t.reply ?? "";
+      const reply = turn.message ?? "";
       const returned = returnedIds(turn.toolCalls);
       const cited = citedIds(reply);
 
