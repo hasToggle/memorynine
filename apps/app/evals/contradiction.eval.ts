@@ -73,7 +73,7 @@ export default defineEval({
     // single invented claim neither fact actually states. That framing
     // question has no set-operation form, so it is left entirely to the
     // judge rather than faked with another id comparison.
-    t.judge.autoevals.closedQA(
+    t.judge(
       "The knowledge base holds two conflicting statements about when Martin Kowalski prefers to meet: one source says he prefers morning appointments and is unavailable in the afternoon; another source says he wants meetings only in the afternoon and is unreachable in the morning. Does the response clearly state BOTH preferences and explicitly mark them as conflicting, disputed, or contradictory (for example by naming both sources or dates and saying they disagree)? It FAILS if the response gives only one of the two preferences as though it were the settled answer, with no mention that another source says otherwise. It also FAILS if it blends the two into a single averaged or vague claim, such as saying he is flexible or available both mornings and afternoons, presented as one harmonious fact with no indication the sources disagree. It PASSES only if both preferences are stated and the response makes clear they conflict. The response may be in German."
     );
   },
