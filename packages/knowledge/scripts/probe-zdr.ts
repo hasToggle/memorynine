@@ -9,21 +9,26 @@
 // extended audit needed, and max_tokens: 8 keeps each request negligible.
 //
 // If a model here comes back NOT ZDR-COVERED, the fix is to change *that
-// model* — the eval judge in evals.config.ts, or the extraction worker's
+// model* — eval-extraction.ts's JUDGE_MODEL, or the extraction worker's
 // model (gateway.ts's DEFAULT_MODEL / the EXTRACTION_MODEL env var) — never
 // to weaken this setting. The eval corpus is entirely synthetic, so ZDR
 // protects nothing during a run; weakening a production data-protection
 // setting to make a test pass would be backwards. The only requirement on a
-// judge is that it is a different model family from the agent under test
-// and at least as capable.
+// judge is that it is a different model from the agent under test and at
+// least as capable.
+//
+// This probe speaks chat completions, so it covers chat models only. The
+// agent suite's `t.judge` model (apps/app/evals/evals.config.ts) is an
+// *evaluation* model since eve 0.62 and is served by a different Gateway
+// API; it is out of scope here and carries its own ZDR pin.
 
 const GATEWAY_CHAT_COMPLETIONS_URL =
   "https://ai-gateway.vercel.sh/v1/chat/completions";
 
 // Kept as literals (not imported) so this probe has no import-time
-// dependency on evals.config.ts or gateway.ts: it must run standalone with
+// dependency on eval-extraction.ts or gateway.ts: it must run standalone with
 // nothing but an API key. Keep in sync by hand:
-//   - the eval judge, apps/app/evals/evals.config.ts
+//   - the extraction eval's judge, packages/knowledge/scripts/eval-extraction.ts
 //   - the extraction worker's default model, packages/knowledge/gateway.ts
 const MODELS = ["anthropic/claude-sonnet-5", "deepseek/deepseek-v4-flash-0731"];
 
