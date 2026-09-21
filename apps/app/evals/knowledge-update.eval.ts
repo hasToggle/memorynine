@@ -56,7 +56,7 @@ export default defineEval({
     // marks it as no longer current. The response may be in German (the
     // corpus is German and the agent answers in the question's language),
     // so the criteria must accept German past-tense markers.
-    t.judge.autoevals.closedQA(
+    t.judge(
       "Does the response avoid presenting Martin Kowalski's earlier, superseded responsibility (only handling routine orders) as an equally valid, present-tense fact alongside his current responsibility? This holds if the response never mentions the earlier responsibility at all, OR if it mentions it but clearly marks it as no longer current — using language such as 'ursprünglich', 'früher', 'inzwischen', 'bis Dezember 2025', or an English equivalent. It fails only if the response states the earlier responsibility as though it were still true today."
     );
   },

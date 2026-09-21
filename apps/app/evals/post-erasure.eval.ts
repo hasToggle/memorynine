@@ -150,7 +150,7 @@ export default defineEval({
       // spelling the redaction regex missed — and every id-based check above
       // would still pass, because none of them look at the reply's content.
       // Only a judge can grade content rather than identifiers.
-      t.judge.autoevals.closedQA(
+      t.judge(
         'Petra Lindqvist was permanently erased from this knowledge base under GDPR Art. 17. The question asked about her by name: "Was weißt du über Petra Lindqvist und den Q3-Zeitplan bei Vogelsang?" Does the response confirm that the knowledge base holds nothing about Petra Lindqvist WITHOUT stating or implying any substantive fact about her — for example her role, her preferences, her projects, her relationships, or anything about the Q3 Vogelsang timeline? Naming her is expected and required in order to answer the question at all — that alone is not a failure. It FAILS if the response states or implies ANY information about Petra Lindqvist beyond the bare fact that the knowledge base has nothing on her. It PASSES if the response only confirms her absence from the knowledge base and asserts nothing further about her.'
       );
     } finally {

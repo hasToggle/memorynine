@@ -78,7 +78,7 @@ export default defineEval({
       )
     );
 
-    t.judge.autoevals.closedQA(
+    t.judge(
       "Does the response say that the knowledge base contains nothing about this person, rather than describing what they said or speculating about it?"
     );
   },

@@ -122,7 +122,7 @@ or answers a question cheaply before you spend money finding out the hard
 way.
 
 **1. Probe ZDR first.** Cheap (`max_tokens: 8`, two model calls) and answers
-whether the judge model is reachable under Zero Data Retention through the
+whether the chat models are reachable under Zero Data Retention through the
 Vercel AI Gateway before anything else runs:
 
 ```bash
@@ -130,12 +130,19 @@ cd packages/knowledge
 AI_GATEWAY_API_KEY=… bun scripts/probe-zdr.ts   # or: bun run probe-zdr
 ```
 
-If the judge (`anthropic/claude-sonnet-5`, pinned in `evals.config.ts`) comes
-back NOT ZDR-COVERED, change *the judge model*, not the ZDR setting — the eval
-corpus is entirely synthetic, so ZDR protects nothing during a run, and the
-only requirement on a judge is that it is a different model family from the
-agent under test and at least as capable. Record the result in
+If a probed model comes back NOT ZDR-COVERED, change *that model*, not the ZDR
+setting — the eval corpus is entirely synthetic, so ZDR protects nothing during
+a run, and the only requirement on a judge is that it is a different model from
+the agent under test and at least as capable. Record the result in
 `docs/knowledge-eval-findings.md`.
+
+The probe covers the two models reached through the Gateway's chat-completions
+API: the extraction worker's default (`gateway.ts`) and `eval-extraction.ts`'s
+`JUDGE_MODEL`. It does **not** cover this suite's `t.judge` model. Since eve
+0.62 that is an *evaluation* model — `typesafe-ai/jev`, pinned in
+`evals.config.ts` — which the Gateway serves through its evaluation API, not
+`/v1/chat/completions`, so this probe cannot speak to it. Its ZDR pin still
+hard-fails the same way at eval time if the model is uncovered.
 
 **2. Provision indexes:**
 
