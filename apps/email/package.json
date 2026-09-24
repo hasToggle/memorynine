@@ -18,8 +18,8 @@
     "@repo/email": "workspace:*",
     "mongodb": "^7.6.0",
     "react": "^19.3.0",
-    "react-email": "6.9.5",
-    "resend": "^6.28.1"
+    "react-email": "6.11.0",
+    "resend": "^6.29.0"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
