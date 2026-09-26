@@ -6,16 +6,22 @@
 
 // biome-ignore lint/performance/noNamespaceImport: Sentry SDK requires namespace import for proper initialization
 import * as Sentry from "@sentry/nextjs";
+import {
+  attachStacktrace,
+  dataCollection,
+  legacyEnvironment,
+} from "./defaults";
 import { keys } from "./keys";
 
 export const initializeSentry = (): ReturnType<typeof Sentry.init> =>
   Sentry.init({
+    attachStacktrace,
+    dataCollection,
+
     // Setting this option to true will print useful information to the console while you're setting up Sentry.
     debug: false,
     dsn: keys().NEXT_PUBLIC_SENTRY_DSN,
-
-    // Enable logging
-    enableLogs: true,
+    environment: legacyEnvironment(process.env.VERCEL_ENV),
 
     // Integrations for console logging
     integrations: [
