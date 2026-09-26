@@ -1,5 +1,5 @@
 import { withLogtail } from "@logtail/next";
-import { withSentryConfig } from "@sentry/nextjs";
+import { withSentryConfig } from "@sentry/nextjs/config";
 import { keys } from "./keys";
 
 const hasAuthToken = !!process.env.SENTRY_AUTH_TOKEN;
@@ -16,7 +16,22 @@ export const sentryConfig: Parameters<typeof withSentryConfig>[1] = {
     disable: !hasAuthToken,
   },
   ...(hasAuthToken
-    ? {}
+    ? {
+        // v11 names Vercel deploys `production` / `preview`; keep v10's prefix
+        // so they line up with the runtime environment (see ./defaults)
+        ...(process.env.VERCEL && process.env.VERCEL_TARGET_ENV
+          ? {
+              release: {
+                deploy: {
+                  env: `vercel-${process.env.VERCEL_TARGET_ENV}`,
+                  url: process.env.VERCEL_URL
+                    ? `https://${process.env.VERCEL_URL}`
+                    : undefined,
+                },
+              },
+            }
+          : {}),
+      }
     : {
         release: {
           create: false,

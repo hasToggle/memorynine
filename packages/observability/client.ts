@@ -6,21 +6,29 @@
 
 // biome-ignore lint/performance/noNamespaceImport: Sentry SDK requires namespace import for proper initialization
 import * as Sentry from "@sentry/nextjs";
+import {
+  attachStacktrace,
+  dataCollection,
+  legacyEnvironment,
+} from "./defaults";
 import { keys } from "./keys";
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
 
 export const initializeSentry = (): ReturnType<typeof Sentry.init> =>
   Sentry.init({
+    attachStacktrace,
+    dataCollection,
+
     // Setting this option to true will print useful information to the console while you're setting up Sentry.
     debug: false,
     dsn: keys().NEXT_PUBLIC_SENTRY_DSN,
-
-    // Enable logging
-    enableLogs: true,
+    environment: legacyEnvironment(process.env.NEXT_PUBLIC_VERCEL_ENV),
 
     // You can remove this option if you're not planning to use the Sentry Session Replay feature:
     integrations: [
+      // v11 defaults to one session per page load; keep v10's session per navigation
+      Sentry.browserSessionIntegration({ lifecycle: "route" }),
       Sentry.replayIntegration({
         blockAllMedia: true,
         // Additional Replay configuration goes in here, for example:
