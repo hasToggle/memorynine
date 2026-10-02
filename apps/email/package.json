@@ -16,10 +16,10 @@
   "dependencies": {
     "@react-email/render": "^2.1.0",
     "@repo/email": "workspace:*",
-    "mongodb": "^7.6.0",
+    "mongodb": "^7.7.0",
     "react": "^19.3.0",
     "react-email": "6.11.0",
-    "resend": "^6.30.0"
+    "resend": "^6.32.0"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
