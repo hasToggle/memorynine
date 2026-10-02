@@ -30,7 +30,7 @@
     "@repo/seo": "workspace:*",
     "@repo/storage": "workspace:*",
     "@repo/webhooks": "workspace:*",
-    "@sentry/nextjs": "^11.2.0",
+    "@sentry/nextjs": "^11.4.0",
     "@t3-oss/env-nextjs": "^0.13.11",
     "better-auth": "^1.7.7",
     "clsx": "^2.1.1",
