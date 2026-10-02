@@ -12,9 +12,9 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.83",
-    "@ai-sdk/react": "^4.0.129",
+    "@ai-sdk/react": "^4.0.130",
     "@t3-oss/env-nextjs": "^0.13.11",
-    "ai": "^7.0.126",
+    "ai": "^7.0.127",
     "next": "^16.3.8",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
@@ -24,7 +24,7 @@
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "26.6.3",
+    "@types/node": "26.6.4",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0"
   }
