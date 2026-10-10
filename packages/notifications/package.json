@@ -8,9 +8,9 @@
   },
   "dependencies": {
     "@knocklabs/node": "^1.36.0",
-    "@knocklabs/react": "^0.13.2",
+    "@knocklabs/react": "^0.14.0",
     "@t3-oss/env-nextjs": "^0.13.11",
-    "next": "^16.3.8",
+    "next": "^16.4.0",
     "react": "^19.3.0",
     "zod": "^4.6.5"
   },
