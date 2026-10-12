@@ -19,7 +19,7 @@
   "dependencies": {
     "@t3-oss/env-nextjs": "^0.13.11",
     "mongodb": "^7.7.0",
-    "zod": "^4.6.5"
+    "zod": "^4.6.6"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
