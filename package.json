@@ -46,7 +46,7 @@
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "bun-types": "latest",
     "tsup": "^9.0.0",
-    "turbo": "2.11.8",
+    "turbo": "2.11.9",
     "typescript": "^7.0.0",
     "ultracite": "8.0.1"
   },
