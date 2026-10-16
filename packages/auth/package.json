@@ -8,15 +8,15 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
-    "@better-auth/mongo-adapter": "^1.7.7",
+    "@better-auth/mongo-adapter": "^1.7.10",
     "@repo/email": "workspace:*",
     "@t3-oss/env-nextjs": "^0.13.11",
-    "better-auth": "^1.7.7",
+    "better-auth": "^1.7.10",
     "lucide-react": "^1.57.0",
     "mongodb": "^7.7.0",
-    "next": "^16.4.0",
+    "next": "^16.4.2",
     "next-themes": "^0.4.6",
-    "react": "^19.3.0",
+    "react": "^19.3.1",
     "server-only": "^0.0.1",
     "zod": "^4.6.7"
   },
