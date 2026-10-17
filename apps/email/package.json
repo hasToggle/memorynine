@@ -14,11 +14,11 @@
     "@types/react": "19.3.0"
   },
   "dependencies": {
-    "@react-email/render": "^2.1.0",
+    "@react-email/render": "^2.1.1",
     "@repo/email": "workspace:*",
     "mongodb": "^7.7.0",
     "react": "^19.3.1",
-    "react-email": "6.11.2",
+    "react-email": "6.11.3",
     "resend": "^6.33.0"
   },
   "devDependencies": {

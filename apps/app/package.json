@@ -15,7 +15,7 @@
     "@types/react-dom": "19.3.0"
   },
   "dependencies": {
-    "@react-email/render": "^2.1.0",
+    "@react-email/render": "^2.1.1",
     "@repo/analytics": "workspace:*",
     "@repo/auth": "workspace:*",
     "@repo/database": "workspace:*",
