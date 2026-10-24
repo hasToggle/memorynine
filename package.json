@@ -46,11 +46,11 @@
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "bun-types": "latest",
     "tsup": "^9.0.0",
-    "turbo": "2.11.9",
+    "turbo": "2.11.10",
     "typescript": "^7.0.0",
-    "ultracite": "8.0.1"
+    "ultracite": "8.0.2"
   },
-  "packageManager": "bun@1.4.3",
+  "packageManager": "bun@1.4.4",
   "engines": {
     "node": ">=20.19.0"
   }
