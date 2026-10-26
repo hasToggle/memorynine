@@ -8,10 +8,10 @@
     "typecheck": "tsc --noEmit --emitDeclarationOnly false"
   },
   "dependencies": {
-    "@better-auth/mongo-adapter": "^1.7.13",
+    "@better-auth/mongo-adapter": "^1.7.14",
     "@repo/email": "workspace:*",
     "@t3-oss/env-nextjs": "^0.13.11",
-    "better-auth": "^1.7.13",
+    "better-auth": "^1.7.14",
     "lucide-react": "^1.61.0",
     "mongodb": "^7.7.0",
     "next": "^16.4.3",
