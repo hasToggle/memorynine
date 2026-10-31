@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
+import { routeAuth } from "eve/channels/auth";
 import { channelAuth, evalTenant } from "../agent/channels/eve";
 
 const req = (url: string) => new Request(url);
@@ -11,41 +12,62 @@ afterEach(() => {
 });
 
 describe("evalTenant", () => {
-  test("returns null when EVAL_TENANT_ID is unset", () => {
+  test("returns null when EVAL_TENANT_ID is unset", async () => {
     delete process.env.EVAL_TENANT_ID;
     process.env.EVE_DEV = "1";
-    expect(evalTenant(req("http://localhost:3000/eve/v1/session"))).toBeNull();
+    expect(
+      await evalTenant(req("http://localhost:3000/eve/v1/session"))
+    ).toBeNull();
   });
 
   // eve 0.30.0 rebased the local-dev grant off the request host and onto the
   // deployment, because a Host header is attacker-supplied. A request that
   // looks loopback must no longer be enough on its own.
-  test("returns null on a non-dev deployment even when set", () => {
+  test("returns null on a non-dev deployment even when set", async () => {
     process.env.EVAL_TENANT_ID = "eval-tenant-alpha";
-    expect(evalTenant(req("http://localhost:3000/eve/v1/session"))).toBeNull();
+    expect(
+      await evalTenant(req("http://localhost:3000/eve/v1/session"))
+    ).toBeNull();
   });
 
-  test("returns null in Vercel production even when set", () => {
+  test("returns null in Vercel production even when set", async () => {
     process.env.EVAL_TENANT_ID = "eval-tenant-alpha";
     process.env.VERCEL = "1";
     process.env.VERCEL_ENV = "production";
-    expect(evalTenant(req("http://localhost:3000/eve/v1/session"))).toBeNull();
+    expect(
+      await evalTenant(req("http://localhost:3000/eve/v1/session"))
+    ).toBeNull();
   });
 
-  test("stamps the tenant under `eve dev`/`eve eval` when set", () => {
+  test("stamps the tenant under `eve dev`/`eve eval` when set", async () => {
     process.env.EVAL_TENANT_ID = "eval-tenant-alpha";
     process.env.EVE_DEV = "1";
-    const result = evalTenant(req("http://localhost:3000/eve/v1/session"));
+    const result = await evalTenant(
+      req("http://localhost:3000/eve/v1/session")
+    );
     expect(result?.attributes).toEqual({ tenantId: "eval-tenant-alpha" });
     expect(result?.principalType).toBe("user");
   });
 
-  test("stamps the tenant under `vercel dev` when set", () => {
+  test("stamps the tenant under `vercel dev` when set", async () => {
     process.env.EVAL_TENANT_ID = "eval-tenant-beta";
     process.env.VERCEL = "1";
     process.env.VERCEL_ENV = "development";
-    const result = evalTenant(req("https://app.example.com/eve/v1/session"));
+    const result = await evalTenant(
+      req("http://localhost:3000/eve/v1/session")
+    );
     expect(result?.attributes).toEqual({ tenantId: "eval-tenant-beta" });
+  });
+
+  // evalTenant is gated on localDev()'s own verifier, so it must refuse what
+  // localDev() refuses. eve 0.91 added a cross-site check; a request addressed
+  // to a non-local host is the simplest way to trip it.
+  test("returns null for a request localDev() itself would refuse", async () => {
+    process.env.EVAL_TENANT_ID = "eval-tenant-alpha";
+    process.env.EVE_DEV = "1";
+    expect(
+      await evalTenant(req("https://app.example.com/eve/v1/session"))
+    ).toBeNull();
   });
 });
 
@@ -60,17 +82,34 @@ describe("channelAuth order", () => {
   // with an untenanted session failing on plumbing exactly like the bug F1
   // fixed, and no assertion about evalTenant in isolation (above) would ever
   // catch it.
-  test("evalTenant precedes localDev in the composed chain", () => {
+  //
+  // Asserted by behaviour, not by function name: the walk below is eve's own
+  // routeAuth over the real chain, so it holds however eve builds localDev()'s
+  // verifier (0.91 renamed it from anonymous to `authenticate`, which broke an
+  // earlier version of this test that pinned `fn.name`).
+  test("evalTenant precedes localDev in the composed chain", async () => {
     expect(channelAuth).toHaveLength(3);
     expect(channelAuth[1]).toBe(evalTenant);
-    // localDev()'s returned verifier is an anonymous arrow function (`eve`'s
-    // localDev() returns it from a `return` expression, not an assignment,
-    // so it never gets a name inferred) — distinguishing it structurally
-    // from betterAuthSession and evalTenant, both named const declarations.
-    expect(channelAuth.map((fn) => fn.name)).toEqual([
-      "betterAuthSession",
-      "evalTenant",
-      "",
-    ]);
+
+    process.env.EVAL_TENANT_ID = "eval-tenant-alpha";
+    process.env.EVE_DEV = "1";
+    const result = await routeAuth(
+      req("http://localhost:3000/eve/v1/session"),
+      channelAuth
+    );
+    expect(result).not.toBeInstanceOf(Response);
+    expect(result).toMatchObject({
+      attributes: { tenantId: "eval-tenant-alpha" },
+      authenticator: "eval",
+    });
+  });
+
+  test("an untenanted dev request still falls through to localDev", async () => {
+    process.env.EVE_DEV = "1";
+    const result = await routeAuth(
+      req("http://localhost:3000/eve/v1/session"),
+      channelAuth
+    );
+    expect(result).toMatchObject({ authenticator: "local-dev" });
   });
 });

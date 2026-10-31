@@ -683,7 +683,10 @@ instead of living only in a gitignored file.
   make F1's fix dead code (every loopback eval request satisfied by
   `localDev()` first) with all tests still green. **Fixed in the final review
   pass**: `channelAuth` is now exported and `eval-tenant.test.ts` pins
-  `evalTenant` at index 1, ahead of the anonymous `localDev()` verifier.
+  `evalTenant` at index 1, ahead of `localDev()`'s verifier, and walks the
+  chain with eve's `routeAuth` to prove an eval request is authenticated by
+  `evalTenant`. (It first told the verifier apart by its empty function name,
+  which eve 0.91 changed to `authenticate` — see the behavioural check.)
 - **Task 5** (`docs/knowledge-eval-findings.md`) — F2, F3, F4 and the F6 note
   originally cited an unreachable commit sha (`9710484`, written before the
   plan was amended); corrected to `ce4f927` in each. (Not F5 — F5 never cited

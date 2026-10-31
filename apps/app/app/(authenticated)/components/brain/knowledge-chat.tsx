@@ -24,9 +24,10 @@ import {
 } from "@repo/design-system/components/ai-elements/reasoning";
 import { Shimmer } from "@repo/design-system/components/ai-elements/shimmer";
 import type { Brief } from "@repo/knowledge";
-import { useEveAgent } from "eve/react";
+import { type UseEveAgentStatus, useEveAgent } from "eve/react";
 import { type ComponentProps, useCallback, useMemo, useState } from "react";
 import type { CitationRef } from "@/lib/citation";
+import { collectCitables, isToolPart, unwrapToolOutput } from "@/lib/eve-parts";
 import { BriefPane } from "./brief-pane";
 import { SelectedCitationProvider } from "./citation-chip";
 import { type CitedFact, FactCitation } from "./fact-citation";
@@ -45,80 +46,26 @@ const ALLOWED_TAGS = { fact: ["id"], source: ["id"] };
 // does not depend on directly.
 type SubmitStatus = ComponentProps<typeof PromptInputSubmit>["status"];
 
-interface ToolPart {
-  errorText?: string;
-  input?: unknown;
-  output?: unknown;
-  state?: string;
-  type: string;
-}
-
-const isSearchTool = (part: { type: string }) =>
-  part.type === "tool-search-knowledge" ||
-  part.type === "dynamic-tool" ||
-  part.type.startsWith("tool-");
-
-/**
- * eve delivers tool results in the AI SDK result envelope
- * `{ type: "json" | "error-text" | …, value }`, so the payload lives one
- * level down. Unwrap defensively — a bare payload passes through untouched.
- */
-const unwrapToolOutput = (
-  output: unknown
-): { errorText?: string; value?: unknown } => {
-  if (output === null || typeof output !== "object") {
-    return { value: output };
+// PromptInputSubmit speaks the AI SDK's ChatStatus; eve's store reports only
+// idle / busy / resuming, with failures in `error`. A resume and the gap before
+// the first streamed part are both pre-turn waits, so they read as "submitted"
+// — the spinner. The rest of a busy turn is "streaming".
+const toSubmitStatus = ({
+  awaitingResponse,
+  hasError,
+  status,
+}: {
+  awaitingResponse: boolean;
+  hasError: boolean;
+  status: UseEveAgentStatus;
+}): SubmitStatus => {
+  if (status === "resuming" || awaitingResponse) {
+    return "submitted";
   }
-  const { type, value } = output as { type?: unknown; value?: unknown };
-  if (type === "error-text" || type === "error-json") {
-    return {
-      errorText: typeof value === "string" ? value : JSON.stringify(value),
-    };
+  if (status === "busy") {
+    return "streaming";
   }
-  if (type === "json" || type === "text" || type === "content") {
-    return { value };
-  }
-  return { value: output };
-};
-
-/**
- * Collect everything the agent has retrieved so far — confirmed facts and raw
- * sources. Citations resolve against tool output, never against the prose:
- * the model can only cite what the knowledge base actually handed it.
- */
-const ingestToolOutput = (
-  raw: unknown,
-  facts: Map<string, CitedFact>,
-  sources: Map<string, CitedSource>
-) => {
-  const output = unwrapToolOutput(raw).value as
-    | { facts?: CitedFact[]; sources?: CitedSource[] }
-    | undefined;
-  for (const fact of output?.facts ?? []) {
-    if (fact?.id) {
-      facts.set(fact.id, fact);
-    }
-  }
-  for (const source of output?.sources ?? []) {
-    if (source?.id) {
-      sources.set(source.id, source);
-    }
-  }
-};
-
-const collectCitables = (
-  messages: { parts: { output?: unknown; type: string }[] }[]
-): { facts: Map<string, CitedFact>; sources: Map<string, CitedSource> } => {
-  const facts = new Map<string, CitedFact>();
-  const sources = new Map<string, CitedSource>();
-  for (const message of messages) {
-    for (const part of message.parts) {
-      if (isSearchTool(part)) {
-        ingestToolOutput(part.output, facts, sources);
-      }
-    }
-  }
-  return { facts, sources };
+  return hasError ? "error" : "ready";
 };
 
 const thinkingMessage = (isStreaming: boolean, duration?: number) => {
@@ -139,7 +86,7 @@ const thinkingMessage = (isStreaming: boolean, duration?: number) => {
  *
  * `MessageResponse` is `memo`-wrapped, which might suggest caching this
  * result to preserve identity across renders — but eve's reducer rebuilds
- * `agent.data.messages` (and every message's `parts` array) on every
+ * `agent.messages` (and every message's `parts` array) on every
  * streamed event, so `facts`/`sources` below get a new `Map` on every
  * render regardless. A cache keyed on those would never hit during a
  * stream, the one case it would matter for, while still growing for the
@@ -188,27 +135,27 @@ const buildCitationComponents = ({
 
 export const KnowledgeChat = ({ briefs }: { briefs: Brief[] }) => {
   const agent = useEveAgent();
-  const isBusy = agent.status === "submitted" || agent.status === "streaming";
-  // eve 0.45.0 added "resuming": the store is replaying an attached session
-  // and refuses new turns, so the composer stays locked alongside isBusy.
+  const isBusy = agent.status === "busy";
+  // The store is replaying an attached session and refuses new turns, so the
+  // composer stays locked alongside isBusy.
   const isResuming = agent.status === "resuming";
   const isLocked = isBusy || isResuming;
-  // PromptInputSubmit speaks the AI SDK's ChatStatus, which has no "resuming".
-  // A resume is a pre-turn wait, so it reads as "submitted" — same spinner.
-  const submitStatus: SubmitStatus = isResuming ? "submitted" : agent.status;
 
   // Covers the gap between sending and the first streamed part — once the
   // assistant's reasoning starts arriving, its own "Thinking…" takes over.
-  const lastMessage = agent.data.messages.at(-1) as
-    | { parts: unknown[]; role?: string }
-    | undefined;
+  const lastMessage = agent.messages.at(-1);
   const awaitingResponse =
     isBusy &&
     (lastMessage?.role !== "assistant" || lastMessage.parts.length === 0);
+  const submitStatus = toSubmitStatus({
+    awaitingResponse,
+    hasError: agent.error !== undefined,
+    status: agent.status,
+  });
 
   const { facts, sources } = useMemo(
-    () => collectCitables(agent.data.messages as never),
-    [agent.data.messages]
+    () => collectCitables(agent.messages),
+    [agent.messages]
   );
 
   const { load, receipts } = useReceipts();
@@ -302,16 +249,16 @@ export const KnowledgeChat = ({ briefs }: { briefs: Brief[] }) => {
           // its top out of reach (the failure mode this rule exists to
           // avoid), so real briefs render top-aligned instead.
           className={
-            agent.data.messages.length === 0 && briefs.length === 0
+            agent.messages.length === 0 && briefs.length === 0
               ? "min-h-full justify-center"
               : undefined
           }
         >
-          {agent.data.messages.length === 0 ? (
+          {agent.messages.length === 0 ? (
             <BriefPane briefs={briefs} onAsk={askAbout} />
           ) : null}
 
-          {agent.data.messages.map((message) => (
+          {agent.messages.map((message) => (
             <Message from={message.role} key={message.id}>
               {/* Each answer owns its own open receipt. The provider sits
                   above MessageResponse's memo boundary on purpose: a context
@@ -355,10 +302,9 @@ export const KnowledgeChat = ({ briefs }: { briefs: Brief[] }) => {
                       );
                     }
 
-                    if (isSearchTool(part)) {
-                      const tool = part as ToolPart;
+                    if (isToolPart(part)) {
                       const { errorText, value } = unwrapToolOutput(
-                        tool.output
+                        part.output
                       );
                       const output = value as
                         | {
@@ -369,17 +315,17 @@ export const KnowledgeChat = ({ briefs }: { briefs: Brief[] }) => {
                         | undefined;
                       return (
                         <SearchSummary
-                          errorText={tool.errorText ?? errorText}
+                          errorText={part.error?.message ?? errorText}
                           factCount={output?.facts?.length ?? 0}
                           // biome-ignore lint/suspicious/noArrayIndexKey: stream parts have no stable id and are append-only
                           key={index}
                           query={
                             output?.searched ??
-                            (tool.input as { query?: string } | undefined)
+                            (part.input as { query?: string } | undefined)
                               ?.query
                           }
                           sourceCount={output?.sources?.length ?? 0}
-                          state={tool.state}
+                          state={part.state}
                         />
                       );
                     }

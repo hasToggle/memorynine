@@ -7,6 +7,13 @@ import { useEffect } from "react";
 // JSON input and output inline — developer plumbing on a product surface. What
 // a reader needs is that a search happened, what for, and how much it found.
 
+// eve 0.84 replaced the AI SDK's tool states ("output-available",
+// "output-error") with its own call states. A call that ended any way but
+// "completed" never produced an answer, so it must not read as "searching" or
+// as "nothing found" — both would suggest the knowledge base was consulted.
+export const isDidNotRun = (state: string | undefined) =>
+  state === "failed" || state === "rejected" || state === "cancelled";
+
 export const SearchSummary = ({
   errorText,
   factCount,
@@ -20,8 +27,8 @@ export const SearchSummary = ({
   sourceCount: number;
   state: string | undefined;
 }) => {
-  const done = state === "output-available";
-  const failed = state === "output-error";
+  const done = state === "completed";
+  const failed = isDidNotRun(state);
 
   // eve fills errorText from the thrown error's `message`, which for a Mongo
   // or Voyage failure carries hostnames, ports and occasionally URLs with

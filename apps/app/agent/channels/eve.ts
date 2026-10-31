@@ -1,5 +1,5 @@
 import { authInstance } from "@repo/auth/instance";
-import { localDev } from "eve/channels/auth";
+import { type AuthFn, localDev } from "eve/channels/auth";
 import { eveChannel } from "eve/channels/eve";
 
 // The agent's front door. eve rejects unauthenticated traffic by default; this
@@ -33,19 +33,9 @@ const betterAuthSession = async (request: Request) => {
   };
 };
 
-/**
- * Whether this process is a local development server, mirroring the rule
- * eve's own localDev() applies: `eve dev` (EVE_DEV=1) or `vercel dev`
- * (VERCEL=1 with VERCEL_ENV=development). eve 0.30.0 rebased localDev() onto
- * this deployment property and removed the isLoopbackRequest() helper this
- * file used to gate on, because a request's Host header is attacker-supplied
- * and could hand out local-dev access on a self-hosted server.
- *
- * Duplicated rather than imported: eve keeps its equivalent internal.
- */
-const isLocalDevelopmentServer = () =>
-  (Boolean(process.env.VERCEL) && process.env.VERCEL_ENV === "development") ||
-  process.env.EVE_DEV === "1";
+// One verifier, used both as the gate inside evalTenant and as the last entry
+// of channelAuth below.
+const localDevVerifier = localDev();
 
 /**
  * Stamps a tenant onto eval sessions. `eve eval` drives the agent over HTTP
@@ -54,18 +44,21 @@ const isLocalDevelopmentServer = () =>
  * reads tenantId off the verified session and from nowhere else.
  *
  * This grants no access that is not already granted: `eve eval` starts its own
- * development server, so EVE_DEV=1 and localDev() already admits every request
- * to it unauthenticated. This only adds an attribute to a principal that
- * already gets in, and it gates on the identical condition, so it can never
- * accept a request localDev() would have refused. EVAL_TENANT_ID is also unset
- * in production, so it returns null before the deployment check matters.
+ * development server, so localDev() already admits its requests
+ * unauthenticated. This only adds an attribute to a principal that already
+ * gets in. The gate is localDev()'s own verifier rather than a copy of its
+ * rule, so evalTenant accepts exactly what localDev() accepts in whichever eve
+ * version is installed. A copy drifted once already: eve 0.91 made localDev()
+ * also refuse cross-site browser requests and remote peers, which a
+ * deployment-only check here would have waved through. EVAL_TENANT_ID is also
+ * unset in production, so it returns null before the gate matters.
  *
  * Exported for test. Deliberately NOT a fallback default inside the tool —
  * guessing a tenant is the whole ballgame.
  */
-export const evalTenant = (_request: Request) => {
+export const evalTenant = async (request: Request) => {
   const tenantId = process.env.EVAL_TENANT_ID;
-  if (!(tenantId && isLocalDevelopmentServer())) {
+  if (!(tenantId && (await localDevVerifier(request)))) {
     return null;
   }
   return {
@@ -82,7 +75,11 @@ export const evalTenant = (_request: Request) => {
 // evals run, so if it came first it would win every time and evalTenant would
 // become dead code with every test still green (this is what F1's fix actually
 // depends on).
-export const channelAuth = [betterAuthSession, evalTenant, localDev()];
+export const channelAuth: AuthFn<Request>[] = [
+  betterAuthSession,
+  evalTenant,
+  localDevVerifier,
+];
 
 // NOTE: route auth authenticates the caller, it does not prove that this caller
 // owns the session id in the URL. eve treats a session id as a bearer
