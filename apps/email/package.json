@@ -14,12 +14,12 @@
     "@types/react": "19.3.0"
   },
   "dependencies": {
-    "@react-email/render": "^2.1.1",
+    "@react-email/render": "^2.2.0",
     "@repo/email": "workspace:*",
-    "mongodb": "^7.7.0",
+    "mongodb": "^7.8.0",
     "react": "^19.3.1",
     "react-email": "6.11.6",
-    "resend": "^6.34.1"
+    "resend": "^6.37.0"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",

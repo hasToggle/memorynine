@@ -34,7 +34,7 @@ export default defineEval({
     t.calledTool("search-knowledge");
 
     t.check(
-      citedIds(turn.message),
+      citedIds(turn.reply),
       satisfies(
         (ids: string[]) => ids.includes(firstId) && ids.includes(secondId),
         `cites both multi-hop facts ${firstId} and ${secondId}`

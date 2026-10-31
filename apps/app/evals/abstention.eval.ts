@@ -23,7 +23,7 @@ import { citedIds, returnedFacts, returnedIds } from "./support/citations";
 
 // Unambiguous even under transliteration ("Federweiß" -> "Federweiss" is a
 // plausible model rendering; "Zabelthorpe" has no umlaut to lose).
-const ASKED_ABOUT_ENTITY = /zabelthorpe|federwei(?:ß|ss)/i;
+const ASKED_ABOUT_ENTITY = /zabelthorpe|federwei(?:ß|ss)/iu;
 
 export default defineEval({
   description:
@@ -49,7 +49,7 @@ export default defineEval({
     // agent fabricated the connection. Citing an unrelated returned fact
     // while saying so is not a failure here — that's the judge's job below.
     t.check(
-      citedIds(turn.message),
+      citedIds(turn.reply),
       satisfies(
         (ids: string[]) =>
           ids.every((id) => !ASKED_ABOUT_ENTITY.test(facts.get(id) ?? "")),
@@ -71,7 +71,7 @@ export default defineEval({
     // entity-mention check above passes it vacuously. Only this check
     // catches a hallucinated id.
     t.check(
-      citedIds(turn.message),
+      citedIds(turn.reply),
       satisfies(
         (ids: string[]) => ids.every((id) => returned.has(id)),
         "every cited fact id was returned by search-knowledge"

@@ -49,7 +49,7 @@ export default defineEval({
     // the model declines to cite: the raw fact still reached the model (and
     // was logged in tool output) even if the final prose never names it.
     t.check(
-      citedIds(turn.message),
+      citedIds(turn.reply),
       satisfies(
         (ids: string[]) => ids.every((id) => !betaIds.has(id)),
         "the answer cites no tenant-beta fact"

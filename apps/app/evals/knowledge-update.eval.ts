@@ -29,7 +29,7 @@ export default defineEval({
 
     t.succeeded();
     t.calledTool("search-knowledge");
-    const cited = citedIds(turn.message);
+    const cited = citedIds(turn.reply);
 
     // Deterministic half: the current fact must be cited.
     t.check(

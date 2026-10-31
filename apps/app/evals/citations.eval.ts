@@ -19,7 +19,7 @@ export default defineEval({
     t.calledTool("search-knowledge");
 
     const returned = returnedIds(turn.toolCalls);
-    const cited = citedIds(turn.message);
+    const cited = citedIds(turn.reply);
 
     // A hallucinated id is the failure mode that makes citations worthless:
     // it looks exactly like a real one to a reader.

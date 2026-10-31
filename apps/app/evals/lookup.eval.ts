@@ -25,7 +25,7 @@ export default defineEval({
     t.calledTool("search-knowledge");
 
     t.check(
-      citedIds(turn.message),
+      citedIds(turn.reply),
       satisfies(
         (ids: string[]) => ids.includes(target._id.toHexString()),
         `cites the current role fact ${target._id.toHexString()}`
