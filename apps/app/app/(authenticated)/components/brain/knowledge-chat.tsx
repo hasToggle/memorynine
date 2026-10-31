@@ -240,7 +240,7 @@ export const KnowledgeChat = ({ briefs }: { briefs: Brief[] }) => {
   );
 
   return (
-    <div className="mx-auto flex h-full w-full min-w-0 max-w-3xl flex-col gap-3">
+    <div className="mx-auto flex h-full w-full max-w-3xl min-w-0 flex-col gap-3">
       <Conversation className="min-h-0 flex-1 rounded-xl border">
         <ConversationContent
           // Center only the true cold-start card — it's small and fixed

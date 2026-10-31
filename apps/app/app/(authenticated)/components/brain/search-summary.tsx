@@ -72,7 +72,7 @@ export const SearchSummary = ({
   })();
 
   return (
-    <p className="flex items-center gap-2 text-muted-foreground text-xs">
+    <p className="text-muted-foreground flex items-center gap-2 text-xs">
       <SearchIcon className="size-3.5 shrink-0" />
       {message}
     </p>

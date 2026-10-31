@@ -8,10 +8,12 @@
 // collects only files ending in that suffix) never treats this as an eval
 // file in its own right.
 
-const FACT_TAG = /<fact\s+id="([^"]+)"/g;
+const FACT_TAG = /<fact\s+id="(?<id>[^"]+)"/gu;
 
 export const citedIds = (reply: string | undefined): string[] =>
-  [...(reply ?? "").matchAll(FACT_TAG)].map((match) => match[1] as string);
+  [...(reply ?? "").matchAll(FACT_TAG)].map(
+    (match) => match.groups?.id as string
+  );
 
 interface SearchOutput {
   facts?: { id: string; text: string }[];

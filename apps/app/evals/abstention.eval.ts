@@ -23,7 +23,7 @@ import { citedIds, returnedFacts, returnedIds } from "./support/citations";
 
 // Unambiguous even under transliteration ("Federweiß" -> "Federweiss" is a
 // plausible model rendering; "Zabelthorpe" has no umlaut to lose).
-const ASKED_ABOUT_ENTITY = /zabelthorpe|federwei(?:ß|ss)/i;
+const ASKED_ABOUT_ENTITY = /zabelthorpe|federwei(?:ß|ss)/iu;
 
 export default defineEval({
   description:

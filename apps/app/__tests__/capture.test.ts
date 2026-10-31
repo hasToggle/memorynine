@@ -44,7 +44,7 @@ describe("pickRecordingMimeType", () => {
 
 // Mirrors VOICE_PREFIX_REGEX in the upload route, which rejects any pathname
 // that does not sit directly under voice/.
-const VOICE_PREFIX_REGEX = /^voice\/[^/]+$/;
+const VOICE_PREFIX_REGEX = /^voice\/[^/]+$/u;
 
 describe("voiceUploadTarget", () => {
   test("carries the recorded audio type, not the one implied by the extension", () => {

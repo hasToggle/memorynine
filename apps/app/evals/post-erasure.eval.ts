@@ -45,7 +45,7 @@ import { citedIds, returnedIds } from "./support/citations";
 //
 // Restoration reuses Task 6's seeder (packages/knowledge/scripts/seed-evals.ts)
 // rather than duplicating its delete/insert logic or shelling out to it.
-const PETRA_REGEX = /petra/i;
+const PETRA_REGEX = /petra/iu;
 
 export default defineEval({
   description:
