@@ -17,13 +17,13 @@
     "@streamdown/code": "^2.0.0",
     "@streamdown/math": "^1.0.3",
     "@streamdown/mermaid": "^1.0.3",
-    "ai": "^7.0.163",
+    "ai": "^7.0.164",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "date-fns": "^4.4.0",
     "embla-carousel-react": "^8.6.0",
-    "geist": "^1.9.1",
+    "geist": "^1.9.2",
     "input-otp": "^1.5.0",
     "lucide-react": "^1.66.0",
     "motion": "^14.9.1",
@@ -48,13 +48,13 @@
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "@tailwindcss/postcss": "^4.3.4",
+    "@tailwindcss/postcss": "^4.3.5",
     "@tailwindcss/typography": "^0.5.20",
     "@types/node": "^26.6.6",
     "@types/react": "^19.3.0",
     "postcss": "^8.5.32",
     "sharp": "^0.35.5",
-    "tailwindcss": "^4.3.4",
+    "tailwindcss": "^4.3.5",
     "typescript": "^7.0.2"
   }
 }
