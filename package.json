@@ -39,14 +39,14 @@
   },
   "devDependencies": {
     "@auto-it/first-time-contributor": "^11.3.0",
-    "@biomejs/biome": "2.6.5",
+    "@biomejs/biome": "2.6.7",
     "@repo/typescript-config": "workspace:*",
     "@turbo/gen": "^2.8.9",
     "@types/node": "^26.0.0",
     "@typescript/native-preview": "7.0.0-dev.20260707.2",
     "bun-types": "latest",
     "tsup": "^9.0.0",
-    "turbo": "2.11.10",
+    "turbo": "2.11.11",
     "typescript": "^7.0.0",
     "ultracite": "8.1.1"
   },
