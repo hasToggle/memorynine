@@ -8,17 +8,17 @@
   },
   "dependencies": {
     "@t3-oss/env-nextjs": "^0.13.11",
-    "next": "^16.4.5",
+    "next": "^16.4.6",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
-    "react-email": "6.11.7",
+    "react-email": "6.11.17",
     "resend": "^6.37.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
     "@repo/typescript-config": "workspace:*",
-    "@types/node": "26.6.6",
-    "@types/react": "^19.3.0",
+    "@types/node": "26.6.11",
+    "@types/react": "^19.3.3",
     "@types/react-dom": "19.3.0",
     "typescript": "^7.0.2"
   }
